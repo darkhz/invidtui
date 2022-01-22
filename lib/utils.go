@@ -1,0 +1,163 @@
+package lib
+
+import (
+	"fmt"
+	"net/url"
+	"strconv"
+	"strings"
+	"time"
+)
+
+// FormatDuration takes a duration as seconds and returns a hh:mm:ss string.
+func FormatDuration(duration int) string {
+	var durationtext string
+
+	input, err := time.ParseDuration(strconv.Itoa(duration) + "s")
+	if err != nil {
+		return "00:00"
+	}
+
+	d := input.Round(time.Second)
+
+	h := d / time.Hour
+	d -= h * time.Hour
+
+	m := d / time.Minute
+	d -= m * time.Minute
+
+	s := d / time.Second
+
+	if h > 0 {
+		if h < 10 {
+			durationtext += "0"
+		}
+
+		durationtext += strconv.Itoa(int(h))
+		durationtext += ":"
+	}
+
+	if m > 0 {
+		if m < 10 {
+			durationtext += "0"
+		}
+
+		durationtext += strconv.Itoa(int(m))
+	} else {
+		durationtext += "00"
+	}
+
+	durationtext += ":"
+
+	if s < 10 {
+		durationtext += "0"
+	}
+
+	durationtext += strconv.Itoa(int(s))
+
+	return durationtext
+}
+
+// FormatPublished takes a duration in the format: "1 day ago",
+// and returns it in the format: "1d".
+func FormatPublished(published string) string {
+	ptext := strings.Split(published, " ")
+
+	if len(ptext) > 1 {
+		return ptext[0] + string(ptext[1][0])
+	}
+
+	return ptext[0]
+}
+
+// GetProgress renders a progress bar.
+func GetProgress(width int) (string, string, error) {
+	var state, mtype string
+
+	ppos := GetMPV().PlaylistPos()
+	if ppos == -1 {
+		return "", "", fmt.Errorf("Empty playlist")
+	}
+
+	title := GetMPV().Title()
+	title = title[1 : len(title)-1]
+
+	eof := GetMPV().IsEOF()
+	paused := GetMPV().IsPaused()
+	shuffle := GetMPV().IsShuffle()
+	loop := GetMPV().LoopType(true)
+
+	duration := GetMPV().Duration()
+	timepos := GetMPV().TimePosition()
+
+	if timepos < 0 {
+		timepos = 0
+	}
+
+	if duration <= 0 {
+		duration = 1
+	}
+
+	if timepos > duration {
+		timepos = duration
+	}
+
+	if timepos > 0 {
+		mtype = "(" + GetMPV().MediaType() + ")"
+	}
+
+	width /= 2
+	length := width * timepos / duration
+
+	endlength := width - length
+	if endlength < 0 {
+		endlength = width
+	}
+
+	currtime := FormatDuration(timepos)
+	totaltime := FormatDuration(duration)
+
+	if shuffle {
+		loop += " S"
+	}
+
+	if paused {
+		if eof {
+			state = "[]"
+		} else {
+			state = "||"
+		}
+	} else {
+		state = ">"
+	}
+
+	return title, (state + " " + currtime +
+		" |" + strings.Repeat("█", length) +
+		strings.Repeat(" ", endlength) + "| " +
+		totaltime + " " + loop + " " + mtype), nil
+}
+
+// IsValidURL checks if a URL is valid.
+func IsValidURL(uri string) (*url.URL, error) {
+	u, err := url.ParseRequestURI(uri)
+
+	return u, err
+}
+
+// GetDataFromURL parses specific url fields and returns their values.
+func GetDataFromURL(uri string) []string {
+	var data []string
+	u, err := IsValidURL(uri)
+	if err != nil {
+		return nil
+	}
+
+	for _, query := range []string{
+		"title",
+		"author",
+		"length",
+	} {
+		data = append(data, strings.Join(u.Query()[query], " "))
+	}
+
+	return data
+}
