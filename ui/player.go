@@ -27,11 +27,13 @@ var (
 	// Player displays the media player.
 	Player *tview.Flex
 
-	playPopup   *tview.Table
-	playerTitle *tview.TextView
-	playerDesc  *tview.TextView
-	playerChan  chan bool
-	playing     bool
+	playPopup     *tview.Table
+	playerTitle   *tview.TextView
+	playerDesc    *tview.TextView
+	playerChan    chan bool
+	playing       bool
+	playerEvent   chan struct{}
+	playlistEvent chan struct{}
 
 	monitorId    int
 	monitorMutex sync.RWMutex
@@ -65,6 +67,8 @@ func SetupPlayer() {
 
 	playerChan = make(chan bool)
 	monitorMap = make(map[int]string)
+	playerEvent = make(chan struct{})
+	playlistEvent = make(chan struct{})
 
 	addRateLimit = semaphore.NewWeighted(2)
 
@@ -130,40 +134,45 @@ func StartPlayer() {
 
 		pctx, pcancel = context.WithCancel(context.Background())
 
-		go func(ctx context.Context, cancel context.CancelFunc) {
-			for {
-				var done bool
+		go startPlayer(pctx, pcancel)
+	}
+}
 
-				select {
-				case <-ctx.Done():
-					RemovePlayer()
-					return
+// startPlayer is the player update loop.
+func startPlayer(ctx context.Context, cancel context.CancelFunc) {
+	t := time.NewTicker(1 * time.Second)
+	defer t.Stop()
 
-				default:
-				}
+	update := func() {
+		App.QueueUpdateDraw(func() {
+			_, _, width, _ := playerDesc.GetRect()
 
-				App.QueueUpdateDraw(func() {
-					_, _, width, _ := playerDesc.GetRect()
-
-					title, progressText, err := lib.GetProgress(width)
-					if err != nil {
-						cancel()
-						done = true
-
-						return
-					}
-
-					playerDesc.SetText(progressText)
-					playerTitle.SetText("[::b]" + tview.Escape(title))
-				})
-
-				if done {
-					continue
-				}
-
-				time.Sleep(1 * time.Second)
+			title, progressText, err := lib.GetProgress(width)
+			if err != nil {
+				cancel()
+				return
 			}
-		}(pctx, pcancel)
+
+			playerDesc.SetText(progressText)
+			playerTitle.SetText("[::b]" + tview.Escape(title))
+		})
+	}
+
+	for {
+		select {
+		case <-ctx.Done():
+			RemovePlayer()
+			return
+
+		case <-playerEvent:
+			update()
+			t.Reset(1 * time.Second)
+			continue
+
+		case <-t.C:
+			update()
+		}
+
 	}
 }
 
@@ -302,6 +311,7 @@ func playlistPopup() {
 
 	play := func() {
 		row, _ := playPopup.GetSelection()
+
 		lib.GetMPV().SetPlaylistPos(row)
 
 		lib.GetMPV().Play()
@@ -334,6 +344,7 @@ func playlistPopup() {
 		switch event.Key() {
 		case tcell.KeyEnter:
 			play()
+			playlistEvent <- struct{}{}
 
 		case tcell.KeyEscape:
 			exit()
@@ -373,84 +384,97 @@ func playlistPopup() {
 			Foreground(tcell.ColorDefault))
 	})
 
-	go func() {
-		var pos int
-		var focused bool
+	go startPlaylist(ctx, flex)
+}
 
-		for {
-			select {
-			case <-ctx.Done():
-				return
+// startPlaylist is the playlist update loop.
+func startPlaylist(ctx context.Context, flex *tview.Flex) {
+	var pos int
+	var focused bool
 
-			default:
-			}
+	t := time.NewTicker(1 * time.Second)
+	defer t.Stop()
 
-			pldata := updatePlaylist()
-			if len(pldata) == 0 {
-				App.QueueUpdateDraw(func() {
-					Pages.SwitchToPage("main")
-				})
-
-				return
-			}
-
+	update := func() {
+		pldata := updatePlaylist()
+		if len(pldata) == 0 {
 			App.QueueUpdateDraw(func() {
-				_, _, w, _ := playPopup.GetRect()
-				playPopup.SetSelectable(false, false)
-
-				for i, data := range pldata {
-					var marker string
-
-					if data.Playing {
-						pos = i
-						marker = " [white::b](playing)"
-					}
-
-					playPopup.SetCell(i, 1, tview.NewTableCell("[blue::b]"+tview.Escape(data.Title)+marker).
-						SetExpansion(1).
-						SetMaxWidth(w/5).
-						SetSelectable(false),
-					)
-
-					playPopup.SetCell(i, 2, tview.NewTableCell(" ").
-						SetSelectable(false),
-					)
-
-					playPopup.SetCell(i, 3, tview.NewTableCell("[purple::b]"+tview.Escape(data.Author)).
-						SetMaxWidth(w/5).
-						SetSelectable(false),
-					)
-
-					playPopup.SetCell(i, 4, tview.NewTableCell(" ").
-						SetSelectable(false),
-					)
-
-					playPopup.SetCell(i, 5, tview.NewTableCell("[pink::b]"+data.Duration).
-						SetSelectable(false),
-					)
-				}
-
-				playPopup.SetSelectable(true, false)
-
-				if !focused {
-					Pages.AddAndSwitchToPage(
-						"playlist",
-						statusmodal(flex, playPopup),
-						true,
-					).ShowPage("main")
-
-					App.SetFocus(playPopup)
-					playPopup.Select(pos, 0)
-
-					focused = true
-				}
-
-				resizemodal()
+				playPopup.Clear()
+				Pages.SwitchToPage("main")
 			})
 
-			time.Sleep(time.Second)
+			return
 		}
-	}()
+
+		App.QueueUpdateDraw(func() {
+			_, _, w, _ := playPopup.GetRect()
+			playPopup.SetSelectable(false, false)
+
+			for i, data := range pldata {
+				var marker string
+
+				if data.Playing {
+					pos = i
+					marker = " [white::b](playing)"
+				}
+
+				playPopup.SetCell(i, 1, tview.NewTableCell("[blue::b]"+tview.Escape(data.Title)+marker).
+					SetExpansion(1).
+					SetMaxWidth(w/5).
+					SetSelectable(false),
+				)
+
+				playPopup.SetCell(i, 2, tview.NewTableCell(" ").
+					SetSelectable(false),
+				)
+
+				playPopup.SetCell(i, 3, tview.NewTableCell("[purple::b]"+tview.Escape(data.Author)).
+					SetMaxWidth(w/5).
+					SetSelectable(false),
+				)
+
+				playPopup.SetCell(i, 4, tview.NewTableCell(" ").
+					SetSelectable(false),
+				)
+
+				playPopup.SetCell(i, 5, tview.NewTableCell("[pink::b]"+data.Duration).
+					SetSelectable(false),
+				)
+			}
+
+			playPopup.SetSelectable(true, false)
+
+			if !focused {
+				Pages.AddAndSwitchToPage(
+					"playlist",
+					statusmodal(flex, playPopup),
+					true,
+				).ShowPage("main")
+
+				App.SetFocus(playPopup)
+				playPopup.Select(pos, 0)
+
+				focused = true
+			}
+
+			resizemodal()
+		})
+	}
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+
+		case <-playlistEvent:
+			update()
+			t.Reset(1 * time.Second)
+			continue
+
+		case <-t.C:
+			update()
+		}
+	}
 }
 
 // capturePlayerEvent maps custom keybindings to the relevant
@@ -459,9 +483,11 @@ func capturePlayerEvent(event *tcell.EventKey) {
 	switch event.Key() {
 	case tcell.KeyRight:
 		lib.GetMPV().SeekForward()
+		playerEvent <- struct{}{}
 
 	case tcell.KeyLeft:
 		lib.GetMPV().SeekBackward()
+		playerEvent <- struct{}{}
 	}
 
 	switch event.Rune() {
@@ -479,23 +505,29 @@ func capturePlayerEvent(event *tcell.EventKey) {
 
 	case 'S':
 		SetPlayer(false)
+		playerEvent <- struct{}{}
 
 	case 'p':
 		playlistPopup()
 
 	case 'l':
 		lib.GetMPV().CycleLoop()
+		playerEvent <- struct{}{}
 
 	case 's':
 		lib.GetMPV().CycleShuffle()
+		playerEvent <- struct{}{}
 
 	case '<':
 		lib.GetMPV().Prev()
+		playerEvent <- struct{}{}
 
 	case '>':
 		lib.GetMPV().Next()
+		playerEvent <- struct{}{}
 
 	case ' ':
 		lib.GetMPV().CyclePaused()
+		playerEvent <- struct{}{}
 	}
 }
