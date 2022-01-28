@@ -302,6 +302,9 @@ func updatePlaylist() []EntryData {
 // playlistPopup loads the playlist, and displays a popup
 // with the playlist items.
 func playlistPopup() {
+	var moving bool
+	var prevrow int
+
 	if lib.GetMPV().PlaylistCount() == 0 {
 		InfoMessage("Playlist empty", false)
 		return
@@ -309,12 +312,29 @@ func playlistPopup() {
 
 	ctx, cancel := context.WithCancel(context.Background())
 
-	play := func() {
+	enter := func() {
 		row, _ := playPopup.GetSelection()
+
+		if moving {
+			if row > prevrow {
+				lib.GetMPV().PlaylistMove(prevrow, row+1)
+			} else {
+				lib.GetMPV().PlaylistMove(prevrow, row)
+			}
+
+			moving = false
+			playPopup.Select(row, 0)
+
+			playlistEvent <- struct{}{}
+			return
+		}
 
 		lib.GetMPV().SetPlaylistPos(row)
 
 		lib.GetMPV().Play()
+
+		playerEvent <- struct{}{}
+		playlistEvent <- struct{}{}
 	}
 
 	exit := func() {
@@ -323,6 +343,37 @@ func playlistPopup() {
 		popupStatus(false)
 		Pages.SwitchToPage("main")
 		App.SetFocus(ResultsList)
+	}
+
+	del := func() {
+		rows := playPopup.GetRowCount()
+		row, _ := playPopup.GetSelection()
+		lib.GetMPV().PlaylistDelete(row)
+		playPopup.RemoveRow(row)
+
+		switch {
+		case row >= rows:
+			playPopup.Select(rows-1, 0)
+
+		case row < rows && row > 0:
+			playPopup.Select(row-1, 0)
+
+		case row == 0:
+			playPopup.Select(row, 0)
+		}
+
+		pos := lib.GetMPV().PlaylistPos()
+		if pos == row {
+			playerEvent <- struct{}{}
+		}
+
+		playlistEvent <- struct{}{}
+	}
+
+	move := func() {
+		prevrow, _ = playPopup.GetSelection()
+		moving = true
+		playPopup.Select(prevrow, 0)
 	}
 
 	title := tview.NewTextView()
@@ -343,8 +394,7 @@ func playlistPopup() {
 	playPopup.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		switch event.Key() {
 		case tcell.KeyEnter:
-			play()
-			playlistEvent <- struct{}{}
+			enter()
 
 		case tcell.KeyEscape:
 			exit()
@@ -354,7 +404,17 @@ func playlistPopup() {
 		}
 
 		switch event.Rune() {
-		case '<', '>', ' ', 'l', 'S', 's':
+		case 'd':
+			del()
+
+		case 'm':
+			move()
+
+		case '<', '>':
+			ResultsList.InputHandler()(event, nil)
+			playlistEvent <- struct{}{}
+
+		case ' ', 'l', 'S', 's':
 			ResultsList.InputHandler()(event, nil)
 		}
 
@@ -362,7 +422,12 @@ func playlistPopup() {
 	})
 
 	playPopup.SetSelectionChangedFunc(func(row, col int) {
+		selector := ">"
 		rows := playPopup.GetRowCount()
+
+		if moving {
+			selector = "M"
+		}
 
 		for i := 0; i < rows; i++ {
 			cell := playPopup.GetCell(i, col)
@@ -372,7 +437,7 @@ func playlistPopup() {
 			}
 
 			if i == row {
-				cell.SetText(">")
+				cell.SetText(selector)
 				continue
 			}
 

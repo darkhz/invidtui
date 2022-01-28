@@ -346,6 +346,16 @@ func (c *Connector) SetPlaylistPos(pos int) {
 	c.Set("playlist-pos", pos)
 }
 
+// PlaylistDelete deletes an entry from the playlist.
+func (c *Connector) PlaylistDelete(entry int) {
+	c.Call("playlist-remove", entry)
+}
+
+// PlaylistMove moves an entry to a different index in the playlist.
+func (c *Connector) PlaylistMove(a, b int) {
+	c.Call("playlist-move", a, b)
+}
+
 // PlaylistClear clears the playlist.
 func (c *Connector) PlaylistClear() {
 	c.Call("playlist-clear")
