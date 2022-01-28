@@ -179,7 +179,6 @@ func startPlayer(ctx context.Context, cancel context.CancelFunc) {
 // StopPlayer finalizes the player before exit.
 func StopPlayer() {
 	SetPlayer(false)
-	close(playerChan)
 	lib.GetMPV().MPVStop(true)
 }
 
