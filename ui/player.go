@@ -320,7 +320,7 @@ func playlistPopup() {
 			moving = false
 			playPopup.Select(row, 0)
 
-			playlistEvent <- struct{}{}
+			sendPlaylistEvent()
 			return
 		}
 
@@ -328,8 +328,8 @@ func playlistPopup() {
 
 		lib.GetMPV().Play()
 
-		playerEvent <- struct{}{}
-		playlistEvent <- struct{}{}
+		sendPlayerEvent()
+		sendPlaylistEvent()
 	}
 
 	exit := func() {
@@ -359,10 +359,10 @@ func playlistPopup() {
 
 		pos := lib.GetMPV().PlaylistPos()
 		if pos == row {
-			playerEvent <- struct{}{}
+			sendPlayerEvent()
 		}
 
-		playlistEvent <- struct{}{}
+		sendPlaylistEvent()
 	}
 
 	move := func() {
@@ -407,7 +407,7 @@ func playlistPopup() {
 
 		case '<', '>':
 			ResultsList.InputHandler()(event, nil)
-			playlistEvent <- struct{}{}
+			sendPlaylistEvent()
 
 		case ' ', 'l', 'S', 's':
 			ResultsList.InputHandler()(event, nil)
@@ -513,7 +513,6 @@ func startPlaylist(ctx context.Context, flex *tview.Flex) {
 
 				App.SetFocus(playPopup)
 				playPopup.Select(pos, 0)
-
 				focused = true
 			}
 
@@ -543,11 +542,11 @@ func capturePlayerEvent(event *tcell.EventKey) {
 	switch event.Key() {
 	case tcell.KeyRight:
 		lib.GetMPV().SeekForward()
-		playerEvent <- struct{}{}
+		sendPlayerEvent()
 
 	case tcell.KeyLeft:
 		lib.GetMPV().SeekBackward()
-		playerEvent <- struct{}{}
+		sendPlayerEvent()
 	}
 
 	switch event.Rune() {
@@ -565,29 +564,49 @@ func capturePlayerEvent(event *tcell.EventKey) {
 
 	case 'S':
 		SetPlayer(false)
-		playerEvent <- struct{}{}
+		sendPlayerEvent()
 
 	case 'p':
 		playlistPopup()
 
 	case 'l':
 		lib.GetMPV().CycleLoop()
-		playerEvent <- struct{}{}
+		sendPlayerEvent()
 
 	case 's':
 		lib.GetMPV().CycleShuffle()
-		playerEvent <- struct{}{}
+		sendPlayerEvent()
 
 	case '<':
 		lib.GetMPV().Prev()
-		playerEvent <- struct{}{}
+		sendPlayerEvent()
 
 	case '>':
 		lib.GetMPV().Next()
-		playerEvent <- struct{}{}
+		sendPlayerEvent()
 
 	case ' ':
 		lib.GetMPV().CyclePaused()
-		playerEvent <- struct{}{}
+		sendPlayerEvent()
+	}
+}
+
+// sendPlayerEvent sends a player event.
+func sendPlayerEvent() {
+	select {
+	case playerEvent <- struct{}{}:
+		return
+
+	default:
+	}
+}
+
+// sendPlaylistEvent sends a playlist event.
+func sendPlaylistEvent() {
+	select {
+	case playlistEvent <- struct{}{}:
+		return
+
+	default:
 	}
 }
