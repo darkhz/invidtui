@@ -110,7 +110,7 @@ func startStatus() {
 
 			cleared = true
 
-			App.QueueUpdateDraw(func() {
+			App.QueueUpdate(func() {
 				MessageBox.SetText(text)
 			})
 		}

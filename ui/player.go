@@ -208,11 +208,7 @@ func PlaySelected(audio, current bool) {
 	monitorMap[monitorId] = title
 	monitorMutex.Unlock()
 
-	// We don't use InfoMessage here because if the user keeps on
-	// adding tracks to the playlist, InfoMessage would be called
-	// too many times, which will in turn invoke QueueUpdateDraw,
-	// and too many invocations will deadlock the application.
-	MessageBox.SetText("[::b]Loading " + media + " for " + title)
+	InfoMessage("Loading "+media+" for "+title, true)
 
 	go func() {
 		err := addRateLimit.Acquire(context.Background(), 1)
