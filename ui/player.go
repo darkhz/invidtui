@@ -444,11 +444,19 @@ func playlistPopup() {
 			Foreground(tcell.ColorDefault))
 	})
 
-	go startPlaylist(ctx, flex)
+	if playPopup.GetRowCount() == 0 {
+		playPopup.SetCell(0, 1, tview.NewTableCell("[::b]Loading...").
+			SetSelectable(false))
+	}
+
+	Pages.AddAndSwitchToPage("playlist", statusmodal(flex, playPopup), true).ShowPage("main")
+	App.SetFocus(playPopup)
+
+	go startPlaylist(ctx)
 }
 
 // startPlaylist is the playlist update loop.
-func startPlaylist(ctx context.Context, flex *tview.Flex) {
+func startPlaylist(ctx context.Context) {
 	var pos int
 	var focused bool
 
@@ -505,13 +513,6 @@ func startPlaylist(ctx context.Context, flex *tview.Flex) {
 			playPopup.SetSelectable(true, false)
 
 			if !focused {
-				Pages.AddAndSwitchToPage(
-					"playlist",
-					statusmodal(flex, playPopup),
-					true,
-				).ShowPage("main")
-
-				App.SetFocus(playPopup)
 				playPopup.Select(pos, 0)
 				focused = true
 			}
