@@ -239,6 +239,11 @@ func monitorErrors() {
 			monitorMutex.Unlock()
 
 			ErrorMessage(fmt.Errorf("Unable to play %s", title))
+
+			pcount := lib.GetMPV().PlaylistCount()
+			if pcount == 0 {
+				RemovePlayer()
+			}
 		}
 	}
 }
@@ -254,6 +259,9 @@ func capturePlayerEvent(event *tcell.EventKey) {
 	case tcell.KeyLeft:
 		lib.GetMPV().SeekBackward()
 		sendPlayerEvent()
+
+	case tcell.KeyCtrlO:
+		ShowFileBrowser("Open playlist:", plOpenReplace, plFbExit)
 	}
 
 	switch event.Rune() {

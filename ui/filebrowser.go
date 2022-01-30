@@ -62,6 +62,18 @@ func SetupFileBrowser() {
 		return event
 	})
 
+	browserList.SetSelectionChangedFunc(func(row, col int) {
+		sel, _ := browserList.GetSelection()
+		cell := browserList.GetCell(sel, 0)
+
+		if strings.Contains(cell.Text, "/") {
+			InputBox.SetText("")
+			return
+		}
+
+		InputBox.SetText(cell.Text)
+	})
+
 	isHidden = true
 	listLock = semaphore.NewWeighted(1)
 }
@@ -83,7 +95,13 @@ func ShowFileBrowser(
 			browserList.InputHandler()(e, nil)
 
 		case tcell.KeyEnter:
-			dofunc(InputBox.GetText())
+			text := InputBox.GetText()
+			if text == "" {
+				return e
+			}
+
+			exitfunc()
+			go dofunc(filepath.Join(currentPath, text))
 
 		case tcell.KeyEscape:
 			exitfunc()

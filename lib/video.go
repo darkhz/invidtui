@@ -74,7 +74,7 @@ func LoadVideo(video VideoResult, audio bool) error {
 
 		audioUrl += titleparam
 
-		err = GetMPV().Load(
+		err = GetMPV().LoadFile(
 			video.Title,
 			video.LengthSeconds,
 			audioUrl)
@@ -87,7 +87,7 @@ func LoadVideo(video VideoResult, audio bool) error {
 
 		videoUrl += titleparam
 
-		err = GetMPV().Load(
+		err = GetMPV().LoadFile(
 			video.Title,
 			video.LengthSeconds,
 			videoUrl, audioUrl)

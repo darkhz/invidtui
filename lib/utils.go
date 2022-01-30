@@ -78,8 +78,10 @@ func GetProgress(width int) (string, string, error) {
 		return "", "", fmt.Errorf("Empty playlist")
 	}
 
-	title := GetMPV().Title()
-	title = title[1 : len(title)-1]
+	filename := GetMPV().Filename(ppos)
+	data := GetDataFromURL(filename)
+
+	title := data[0]
 
 	eof := GetMPV().IsEOF()
 	paused := GetMPV().IsPaused()
@@ -101,9 +103,7 @@ func GetProgress(width int) (string, string, error) {
 		timepos = duration
 	}
 
-	if timepos > 0 {
-		mtype = "(" + GetMPV().MediaType() + ")"
-	}
+	mtype = "(" + GetMPV().MediaType() + ")"
 
 	width /= 2
 	length := width * timepos / duration
@@ -112,9 +112,6 @@ func GetProgress(width int) (string, string, error) {
 	if endlength < 0 {
 		endlength = width
 	}
-
-	currtime := FormatDuration(timepos)
-	totaltime := FormatDuration(duration)
 
 	if shuffle {
 		loop += " S"
@@ -129,6 +126,9 @@ func GetProgress(width int) (string, string, error) {
 	} else {
 		state = ">"
 	}
+
+	totaltime := data[2]
+	currtime := FormatDuration(timepos)
 
 	return title, (state + " " + currtime +
 		" |" + strings.Repeat("█", length) +

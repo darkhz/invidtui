@@ -172,11 +172,11 @@ func (c *Connector) Set(prop string, value interface{}) error {
 	return err
 }
 
-// Load loads the given file into mpv along with the relevant metadata.
+// LoadFile loads the given file into mpv along with the relevant metadata.
 // If the files parameter contains more than one filename argument, it
 // will consider the first entry as the video file and the second entry as
 // the audio file, set the relevant options and pass them to mpv.
-func (c *Connector) Load(title string, duration int, files ...string) error {
+func (c *Connector) LoadFile(title string, duration int, files ...string) error {
 	options := "title='" + title + "',length=" + strconv.Itoa(duration)
 
 	if len(files) == 2 {
@@ -186,6 +186,22 @@ func (c *Connector) Load(title string, duration int, files ...string) error {
 	_, err := c.Call("loadfile", files[0], "append-play", options)
 	if err != nil {
 		return fmt.Errorf("Unable to load %s", title)
+	}
+
+	return nil
+}
+
+// LoadPlaylist loads a playlist file. If replace is false, it appends the loaded
+// playlist to the current playlist, otherwise it replaces the current playlist.
+func (c *Connector) LoadPlaylist(plpath string, replace bool) error {
+	param := "replace"
+	if !replace {
+		param = "append-play"
+	}
+
+	_, err := c.Call("loadlist", plpath, param)
+	if err != nil {
+		return fmt.Errorf("Unable to load %s", plpath)
 	}
 
 	return nil
@@ -271,14 +287,10 @@ func (c *Connector) LoopType(file bool) string {
 	return ""
 }
 
-// Title returns the title of the currently playing file.
-func (c *Connector) Title() string {
-	title, err := c.Get("options/title")
-	if err != nil {
-		return "-"
-	}
-
-	return title.(string)
+// Filename returns the filename of the playlist entry.
+func (c *Connector) Filename(pos int) string {
+	filename, _ := c.Call("get_property_string", "playlist/"+strconv.Itoa(pos)+"/filename")
+	return filename.(string)
 }
 
 // TimePosition returns the current position in the file.

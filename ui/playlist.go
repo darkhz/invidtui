@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"time"
 
 	"github.com/darkhz/invidtui/lib"
@@ -62,6 +63,14 @@ func SetupPlaylist() {
 
 		case tcell.KeyLeft, tcell.KeyRight:
 			ResultsList.InputHandler()(event, nil)
+
+		case tcell.KeyCtrlS:
+			plExit()
+			ShowFileBrowser("Save as:", plSaveAs, plFbExit)
+
+		case tcell.KeyCtrlA:
+			plExit()
+			ShowFileBrowser("Append from:", plOpenAppend, plFbExit)
 		}
 
 		switch event.Rune() {
@@ -321,6 +330,73 @@ func plMove() {
 	prevrow, _ = plistPopup.GetSelection()
 	moving = true
 	plistPopup.Select(prevrow, 0)
+}
+
+// plOpenReplace opens a playlist file, and replaces the current playlist.
+func plOpenReplace(openpath string) {
+	err := lib.GetMPV().LoadPlaylist(openpath, true)
+	if err != nil {
+		return
+	}
+
+	if !playing {
+		AddPlayer()
+	}
+
+	App.QueueUpdateDraw(func() {
+		playlistPopup()
+	})
+}
+
+// plOpenAppend opens a playlist file, and appends to the current playlist.
+func plOpenAppend(openpath string) {
+	App.QueueUpdateDraw(func() {
+		playlistPopup()
+	})
+
+	err := lib.GetMPV().LoadPlaylist(openpath, false)
+	if err != nil {
+		ErrorMessage(err)
+		return
+	}
+}
+
+// plSaveAs saves a playlist to a file.
+func plSaveAs(savepath string) {
+	var entries string
+
+	savepath += ".m3u8"
+
+	list := updatePlaylist()
+	if len(list) == 0 {
+		return
+	}
+
+	entries += "#EXTM3U\n\n"
+	for i, data := range list {
+		entries += "#EXTINF:," + data.Title + "\n"
+		entries += data.Filename + "\n"
+
+		if i != len(list)-1 {
+			entries += "\n"
+		}
+	}
+
+	err := ioutil.WriteFile(savepath, []byte(entries), 0664)
+	if err != nil {
+		ErrorMessage(fmt.Errorf("Unable to save playlist"))
+		return
+	}
+
+	InfoMessage("Playlist saved in "+savepath, false)
+}
+
+// plFbExit exits the filebrowser.
+func plFbExit() {
+	popupStatus(false)
+	Pages.SwitchToPage("main")
+	Status.SwitchToPage("messages")
+	App.SetFocus(ResultsList)
 }
 
 // sendPlaylistEvent sends a playlist event.
