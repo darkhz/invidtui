@@ -80,11 +80,15 @@ func SetupPlaylist() {
 		case 'm':
 			plMove()
 
+		case 'S':
+			plExit()
+			fallthrough
+
 		case '<', '>':
 			ResultsList.InputHandler()(event, nil)
 			sendPlaylistEvent()
 
-		case ' ', 'l', 'S', 's':
+		case ' ', 'l', 's':
 			ResultsList.InputHandler()(event, nil)
 		}
 
