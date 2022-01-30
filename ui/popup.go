@@ -87,7 +87,8 @@ func statusmodal(v, t tview.Primitive) tview.Primitive {
 		AddItem(nil, 0, 1, false).
 		AddItem(vbox, 1, 0, false).
 		AddItem(v, screenHeight, 1, false).
-		AddItem(vbox, 2, 0, false).
+		AddItem(nil, 1, 0, false).
+		AddItem(vbox, 1, 0, false).
 		AddItem(nil, 3, 1, false).
 		SetDirection(tview.FlexRow)
 

@@ -96,6 +96,7 @@ func setupPrimitives() {
 	SetupMessageBox()
 	SetupStatus()
 	SetupPlayer()
+	SetupFileBrowser()
 
 	box := tview.NewBox().
 		SetBackgroundColor(tcell.ColorDefault)
