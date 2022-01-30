@@ -412,3 +412,7 @@ func sendPlaylistEvent() {
 	default:
 	}
 }
+
+func playlistFocused() bool {
+	return plistPopup.HasFocus()
+}

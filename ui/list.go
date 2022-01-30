@@ -151,7 +151,10 @@ func SearchAndList(text string) {
 		ResultsList.Select(pos, 0)
 		ResultsList.ScrollToEnd()
 
-		App.SetFocus(ResultsList)
+		if !inputFocused() && !playlistFocused() {
+			App.SetFocus(ResultsList)
+		}
+
 		ResultsList.SetSelectable(true, false)
 	})
 

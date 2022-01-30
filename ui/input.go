@@ -79,3 +79,7 @@ func SetInput(label string,
 	App.SetFocus(InputBox)
 	Status.SwitchToPage("input")
 }
+
+func inputFocused() bool {
+	return InputBox.HasFocus()
+}
