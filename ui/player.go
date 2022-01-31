@@ -3,7 +3,6 @@ package ui
 import (
 	"context"
 	"fmt"
-	"sync"
 	"time"
 
 	"github.com/darkhz/invidtui/lib"
@@ -22,10 +21,6 @@ var (
 	playing     bool
 	playingLock sync.Mutex
 	playerEvent chan struct{}
-
-	monitorId    int
-	monitorMutex sync.RWMutex
-	monitorMap   map[int]string
 
 	addRateLimit *semaphore.Weighted
 )
@@ -50,7 +45,6 @@ func SetupPlayer() {
 	playerDesc.SetBackgroundColor(tcell.ColorDefault)
 
 	playerChan = make(chan bool)
-	monitorMap = make(map[int]string)
 	playerEvent = make(chan struct{})
 
 	addRateLimit = semaphore.NewWeighted(2)
@@ -88,10 +82,6 @@ func RemovePlayer() {
 
 	lib.GetMPV().Stop()
 	lib.GetMPV().PlaylistClear()
-
-	monitorMutex.Lock()
-	monitorMap = make(map[int]string)
-	monitorMutex.Unlock()
 }
 
 // StartPlayer starts the player loop, which gets the information
@@ -192,11 +182,6 @@ func PlaySelected(audio, current bool) {
 		media = "video"
 	}
 
-	monitorMutex.Lock()
-	monitorId++
-	monitorMap[monitorId] = title
-	monitorMutex.Unlock()
-
 	InfoMessage("Loading "+media+" for "+title, true)
 
 	go func() {
@@ -249,24 +234,12 @@ func setPlaying(status bool) {
 func monitorErrors() {
 	for {
 		select {
-		case val, ok := <-lib.MPVErrChan:
+		case msg, ok := <-lib.MPVErrors:
 			if !ok {
 				return
 			}
 
-			monitorMutex.Lock()
-
-			title := monitorMap[val]
-			delete(monitorMap, val)
-
-			monitorMutex.Unlock()
-
-			ErrorMessage(fmt.Errorf("Unable to play %s", title))
-
-			pcount := lib.GetMPV().PlaylistCount()
-			if pcount == 0 {
-				RemovePlayer()
-			}
+			ErrorMessage(fmt.Errorf("Unable to play %s", msg))
 		}
 	}
 }

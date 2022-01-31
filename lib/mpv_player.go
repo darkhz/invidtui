@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/dexterlb/mpvipc"
@@ -21,8 +22,13 @@ var (
 	mpvcmd *exec.Cmd
 	mpvctl *Connector
 
-	// MPVErrChan is a channel to receive mpv error events.
-	MPVErrChan chan int
+	monitorMutex sync.Mutex
+	monitorMap   map[int]string
+	mpvInfoChan  chan int
+	mpvErrorChan chan int
+
+	// MPVErrors is a channel to receive mpv error messages.
+	MPVErrors chan string
 )
 
 const connRetries = 10
@@ -53,8 +59,13 @@ func MPVStart() error {
 		return err
 	}
 
-	MPVErrChan = make(chan int)
+	MPVErrors = make(chan string)
 	go mpvctl.eventListener()
+
+	mpvInfoChan = make(chan int, 100)
+	mpvErrorChan = make(chan int, 100)
+	monitorMap = make(map[int]string)
+	go monitorStart()
 
 	mpvctl.Call("keybind", "q", "")
 	mpvctl.Call("keybind", "Ctrl+q", "")
@@ -188,21 +199,26 @@ func (c *Connector) LoadFile(title string, duration int, files ...string) error 
 		return fmt.Errorf("Unable to load %s", title)
 	}
 
+	addToMonitor(title)
+
 	return nil
 }
 
 // LoadPlaylist loads a playlist file. If replace is false, it appends the loaded
 // playlist to the current playlist, otherwise it replaces the current playlist.
 func (c *Connector) LoadPlaylist(plpath string, replace bool) error {
-	param := "replace"
-	if !replace {
-		param = "append-play"
+	param := "append-play"
+	if replace {
+		param = "replace"
+		clearMonitor()
 	}
 
 	_, err := c.Call("loadlist", plpath, param)
 	if err != nil {
 		return fmt.Errorf("Unable to load %s", plpath)
 	}
+
+	addToMonitor("playlist entry")
 
 	return nil
 }
@@ -383,6 +399,8 @@ func (c *Connector) PlaylistMove(a, b int) {
 // PlaylistClear clears the playlist.
 func (c *Connector) PlaylistClear() {
 	c.Call("playlist-clear")
+
+	clearMonitor()
 }
 
 // PlaylistPlayLatest plays the latest entry in the playlist.
@@ -456,13 +474,61 @@ func (c *Connector) Prev() {
 	c.Call("playlist-prev")
 }
 
+// monitorStart starts the playlist monitor.
+func monitorStart() {
+	for {
+		select {
+		case id, ok := <-mpvErrorChan:
+			if !ok {
+				return
+			}
+
+			monitorMutex.Lock()
+
+			title := monitorMap[id]
+			delete(monitorMap, id)
+
+			monitorMutex.Unlock()
+
+			select {
+			case MPVErrors <- title:
+			default:
+			}
+
+		}
+	}
+}
+
+// addToMonitor adds a filename to the monitor.
+func addToMonitor(name string) {
+	select {
+	case id, _ := <-mpvInfoChan:
+		monitorMutex.Lock()
+		defer monitorMutex.Unlock()
+
+		monitorMap[id] = name
+
+	default:
+	}
+}
+
+// clearMonitor clears the monitor data.
+func clearMonitor() {
+	monitorMutex.Lock()
+	defer monitorMutex.Unlock()
+
+	monitorMap = make(map[int]string)
+}
+
 // eventListener listens for events from the mpv instance.
 func (c *Connector) eventListener() {
 	events, stopListening := c.conn.NewEventListener()
 
 	shutdown := func() {
 		c.conn.Close()
-		close(MPVErrChan)
+		close(MPVErrors)
+		close(mpvInfoChan)
+		close(mpvErrorChan)
 		stopListening <- struct{}{}
 	}
 
@@ -477,6 +543,13 @@ func (c *Connector) eventListener() {
 			}
 
 			switch event.Name {
+			case "start-file":
+				if len(event.ExtraData) > 0 {
+					val := event.ExtraData["playlist_entry_id"]
+
+					mpvInfoChan <- int(val.(float64))
+				}
+
 			case "end-file":
 				if len(event.ExtraData) > 0 {
 					err := event.ExtraData["file_error"]
@@ -484,7 +557,7 @@ func (c *Connector) eventListener() {
 
 					if err != nil && val != nil {
 						if err.(string) != "" {
-							MPVErrChan <- int(val.(float64))
+							mpvErrorChan <- int(val.(float64))
 						}
 					}
 				}
