@@ -30,8 +30,8 @@ var (
 
 	prevrow       int
 	moving        bool
-	ctx           context.Context
-	cancel        context.CancelFunc
+	pctx          context.Context
+	pcancel       context.CancelFunc
 	playlistEvent chan struct{}
 )
 
@@ -134,7 +134,7 @@ func playlistPopup() {
 		return
 	}
 
-	ctx, cancel = context.WithCancel(context.Background())
+	pctx, pcancel = context.WithCancel(context.Background())
 
 	if plistPopup.GetRowCount() == 0 {
 		plistPopup.SetCell(0, 1, tview.NewTableCell("[::b]Loading...").
@@ -149,11 +149,11 @@ func playlistPopup() {
 
 	App.SetFocus(plistPopup)
 
-	go startPlaylist(ctx)
+	go startPlaylist()
 }
 
 // startPlaylist is the playlist update loop.
-func startPlaylist(ctx context.Context) {
+func startPlaylist() {
 	var pos int
 	var focused bool
 
@@ -167,6 +167,8 @@ func startPlaylist(ctx context.Context) {
 				plistPopup.Clear()
 				Pages.SwitchToPage("main")
 			})
+
+			pcancel()
 
 			return
 		}
@@ -220,7 +222,7 @@ func startPlaylist(ctx context.Context) {
 
 	for {
 		select {
-		case <-ctx.Done():
+		case <-pctx.Done():
 			return
 
 		case <-playlistEvent:
@@ -296,7 +298,7 @@ func plEnter() {
 
 // plExit exits the playlist popup.
 func plExit() {
-	cancel()
+	pcancel()
 	plistPopup.Clear()
 	popupStatus(false)
 	Pages.SwitchToPage("main")
