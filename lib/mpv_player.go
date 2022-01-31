@@ -287,12 +287,6 @@ func (c *Connector) LoopType(file bool) string {
 	return ""
 }
 
-// Filename returns the filename of the playlist entry.
-func (c *Connector) Filename(pos int) string {
-	filename, _ := c.Call("get_property_string", "playlist/"+strconv.Itoa(pos)+"/filename")
-	return filename.(string)
-}
-
 // TimePosition returns the current position in the file.
 func (c *Connector) TimePosition() int {
 	timepos, err := c.Get("playback-time")
@@ -351,6 +345,24 @@ func (c *Connector) PlaylistPos() int {
 	}
 
 	return int(pos.(float64))
+}
+
+// PlaylistTitle returns the title, or filename of the playlist entry if
+// title is not available.
+func (c *Connector) PlaylistTitle(pos int) string {
+	pltitle, _ := c.Call("get_property_string", "playlist/"+strconv.Itoa(pos)+"/title")
+
+	if pltitle == nil {
+		plfile, _ := c.Call("get_property_string", "playlist/"+strconv.Itoa(pos)+"/filename")
+
+		if plfile == nil {
+			return "-"
+		}
+
+		return plfile.(string)
+	}
+
+	return pltitle.(string)
 }
 
 // SetPlaylistPos sets the playlist position.
