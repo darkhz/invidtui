@@ -107,17 +107,35 @@ func getVideoByItag(video VideoResult, audio bool) (string, string) {
 	// For video streams, itag 22 is 720p and itag 18 is 360p
 	// as of now in most invidious instances, may change.
 	if !audio && (*videoResolution == "720p" || *videoResolution == "360p") {
-		switch *videoResolution {
-		case "720p":
+		var itag22, itag18 bool
+
+		for _, format := range video.AdaptiveFormats {
+			if itag22 || itag18 {
+				break
+			}
+
+			switch format.Itag {
+			case "22":
+				itag22 = true
+
+			case "18":
+				itag18 = true
+			}
+		}
+
+		switch {
+		case itag22:
 			videoUrl = getLatestURL(video.VideoID, "22")
-		case "360p":
+		case itag18:
 			videoUrl = getLatestURL(video.VideoID, "18")
 		}
 
 		// audioUrl is blank since the audio stream is
 		// is already merged along with the video in
 		// videoUrl.
-		return videoUrl, audioUrl
+		if videoUrl != "" {
+			return videoUrl, audioUrl
+		}
 	}
 
 	for _, format := range video.AdaptiveFormats {

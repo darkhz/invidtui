@@ -3,6 +3,7 @@ package ui
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/darkhz/invidtui/lib"
