@@ -61,7 +61,7 @@ func statusmodal(v, t tview.Primitive) tview.Primitive {
 	screenHeight /= 4
 
 	pad := 1
-	if playing {
+	if isPlaying() {
 		pad += 2
 	}
 

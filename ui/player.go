@@ -20,6 +20,7 @@ var (
 	playerDesc  *tview.TextView
 	playerChan  chan bool
 	playing     bool
+	playingLock sync.Mutex
 	playerEvent chan struct{}
 
 	monitorId    int
@@ -60,12 +61,12 @@ func SetupPlayer() {
 
 // AddPlayer unhides the player view.
 func AddPlayer() {
-	if playing {
+	if isPlaying() {
 		return
 	}
 
-	playing = true
 	SetPlayer(true)
+	setPlaying(true)
 
 	App.QueueUpdateDraw(func() {
 		UIFlex.AddItem(Player, 2, 0, false)
@@ -74,12 +75,12 @@ func AddPlayer() {
 
 // RemovePlayer hides the player view and clears the playlist.
 func RemovePlayer() {
-	if !playing {
+	if !isPlaying() {
 		return
 	}
 
-	playing = false
 	SetPlayer(false)
+	setPlaying(false)
 
 	App.QueueUpdateDraw(func() {
 		UIFlex.RemoveItem(Player)
@@ -225,6 +226,22 @@ func PlaySelected(audio, current bool) {
 			lib.GetMPV().PlaylistPlayLatest()
 		}
 	}()
+}
+
+// isPlaying returns the currently playing status.
+func isPlaying() bool {
+	playingLock.Lock()
+	defer playingLock.Unlock()
+
+	return playing
+}
+
+// setPlaying sets the new playing status.
+func setPlaying(status bool) {
+	playingLock.Lock()
+	defer playingLock.Unlock()
+
+	playing = status
 }
 
 // monitorErrors monitors for errors related to loading media

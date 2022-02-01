@@ -348,9 +348,7 @@ func plOpenReplace(openpath string) {
 		return
 	}
 
-	if !playing {
-		AddPlayer()
-	}
+	AddPlayer()
 
 	App.QueueUpdateDraw(func() {
 		playlistPopup()
