@@ -60,6 +60,11 @@ func statusmodal(v, t tview.Primitive) tview.Primitive {
 	_, _, _, screenHeight := Pages.GetRect()
 	screenHeight /= 4
 
+	pad := 1
+	if playing {
+		pad += 2
+	}
+
 	vbox := tview.NewBox().
 		SetBackgroundColor(tcell.ColorDefault).
 		SetDrawFunc(func(
@@ -89,7 +94,7 @@ func statusmodal(v, t tview.Primitive) tview.Primitive {
 		AddItem(v, screenHeight, 1, false).
 		AddItem(nil, 1, 0, false).
 		AddItem(vbox, 1, 0, false).
-		AddItem(nil, 3, 1, false).
+		AddItem(nil, pad, 1, false).
 		SetDirection(tview.FlexRow)
 
 	stflex := tview.NewFlex().
