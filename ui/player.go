@@ -126,15 +126,21 @@ func startPlayer(ctx context.Context, cancel context.CancelFunc) {
 	defer t.Stop()
 
 	update := func() {
+		var err error
+		var width int
+		var title, progressText string
+
+		App.QueueUpdate(func() {
+			_, _, width, _ = playerDesc.GetRect()
+		})
+
+		title, progressText, err = lib.GetProgress(width)
+		if err != nil {
+			cancel()
+			return
+		}
+
 		App.QueueUpdateDraw(func() {
-			_, _, width, _ := playerDesc.GetRect()
-
-			title, progressText, err := lib.GetProgress(width)
-			if err != nil {
-				cancel()
-				return
-			}
-
 			playerDesc.SetText(progressText)
 			playerTitle.SetText("[::b]" + tview.Escape(title))
 		})
