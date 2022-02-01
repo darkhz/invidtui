@@ -1,19 +1,20 @@
 
 
+
 [![Go Report Card](https://goreportcard.com/badge/github.com/darkhz/invidtui)](https://goreportcard.com/report/github.com/darkhz/invidtui)
 # invidtui
 
 ![demo](demo/demo.gif)
 
-invidtui is an invidious client, which fetches data from invidious and displays a user interface in the terminal(TUI), and allows for selecting and playing Youtube audio and video.
+invidtui is an invidious client, which fetches data from invidious instances and displays a user interface in the terminal(TUI), and allows for selecting and playing Youtube audio and video.
 
 Currently, it is tested only on Linux.
 
 ## Features
-- Playlist viewer
 - Play audio or video
 - Search with history support
 - Control the video resolution
+- Ability to open, view, edit and save m3u8 playlists
 - Automatically queries the invidious API and selects the best instance
 
 ## Requirements
@@ -21,7 +22,7 @@ Currently, it is tested only on Linux.
 - Youtube-dl
 
 ## Installation
-` go install github.com/darkhz/invidtui@latest `
+```go install github.com/darkhz/invidtui@latest ```
 
 ## Usage
 
@@ -30,20 +31,20 @@ Currently, it is tested only on Linux.
     Flags:
       --video-res="720p"  Set the default video resolution.
       --close-instances   Close all currently running instances.
-*Note:* --close-instances should mainly be used if another invidtui instance may be using the socket, or if an error pops up like this:<br/>
-``` Error: Socket exists at /home/test/.config/invidtui/socket, is another instance running? ```
-
-And you want to ensure that all invidtui instances are closed before launching a new one.
 
 ## Keybindings
 |Operation                                        |Key                          |
 |-------------------------------------------------|-----------------------------|
 |Search                                           |<kbd>/</kbd>                 |
 |Open playlist                                    |<kbd>p</kbd>                 |
+|Open saved playlist                              |<kbd>Ctrl</kbd>+<kbd>o</kbd> |
+|Save current playlist                            |<kbd>Ctrl</kbd>+<kbd>s</kbd> |
 |Add audio to the playlist                        |<kbd>a</kbd>                 |
-|Add audio to the playlist and play               |<kbd>A</kbd>                 |
+|Add audio to the playlist and play               |<kbd>Shift</kbd>+<kbd>a</kbd>|
 |Add video to the playlist                        |<kbd>v</kbd>                 |
-|Add video to the playlist and play               |<kbd>V</kbd>                 |
+|Add video to the playlist and play               |<kbd>Shift</kbd>+<kbd>v</kbd>|
+|Move an item in playlist                         |<kbd>m</kbd>                 |
+|Delete an item in playlist                       |<kbd>d</kbd>                 |
 |Pause/unpause                                    |<kbd>Space</kbd>             |
 |Seek forward                                     |<kbd>Right</kbd>             |
 |Seek backward                                    |<kbd>Left</kbd>              |
@@ -60,3 +61,8 @@ And you want to ensure that all invidtui instances are closed before launching a
   `pacman -S noto-fonts noto-fonts-emoji noto-fonts-extra`<br/>
 
 - For the video mode, only MP4 videos will be played, and currently there is no way to modify this behavior. This will change in later versions.
+
+- The close-instances option should mainly be used if another invidtui instance may be using the socket, if there was an application crash, or if an error pops up like this: ``` Error: Socket exists at /home/test/.config/invidtui/socket, is another instance running?```.
+
+## Bugs
+- Video streams from an invidious instance that are other than 720p or 360p can't currently be played properly when loaded from a saved playlist (only video will be played, audio won't), since we need to merge the audio and video streams, and I have yet to find a way to do that via the m3u8 playlist spec.
