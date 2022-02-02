@@ -94,7 +94,7 @@ func MPVConnect(socket string, mpvexec bool) (*Connector, error) {
 	}
 
 	conn := mpvipc.NewConnection(socket)
-	for i := 0; i < *connretries; i++ {
+	for i := 1; i < *connretries; i++ {
 		err := conn.Open()
 		if err != nil {
 			time.Sleep(1 * time.Second)
@@ -109,12 +109,12 @@ func MPVConnect(socket string, mpvexec bool) (*Connector, error) {
 
 // CloseInstances sends a quit command to instances running on the socket.
 func CloseInstances(socket string) {
-	c, err := MPVConnect(socket, false)
-	if err != nil {
+	conn := mpvipc.NewConnection(socket)
+	if err := conn.Open(); err != nil {
 		return
 	}
 
-	c.MPVStop(false)
+	NewConnector(conn).MPVStop(false)
 
 	time.Sleep(2 * time.Second)
 }
