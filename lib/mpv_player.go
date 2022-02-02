@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/dexterlb/mpvipc"
+	"github.com/darkhz/mpvipc"
 )
 
 // Connector stores the mpvipc connection data.
