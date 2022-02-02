@@ -3,6 +3,7 @@ package lib
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 
 	"github.com/mitchellh/go-homedir"
@@ -13,6 +14,8 @@ var (
 	configPath string
 
 	videoResolution *string
+	mpvpath         *string
+	ytdlpath        *string
 	fcSocket        *bool
 )
 
@@ -21,12 +24,24 @@ func SetupFlags() error {
 	var validres bool
 
 	videoResolution = kingpin.Flag(
-		"video-res", "Set the default video resolution.").
-		Default("720p").String()
+		"video-res",
+		"Set the default video resolution.",
+	).Default("720p").String()
 
 	fcSocket = kingpin.Flag(
-		"close-instances", "Close all currently running instances.").
-		Default("false").Bool()
+		"close-instances",
+		"Close all currently running instances.",
+	).Default("false").Bool()
+
+	mpvpath = kingpin.Flag(
+		"mpv-path",
+		"Specify path to the mpv executable.",
+	).Default("mpv").String()
+
+	ytdlpath = kingpin.Flag(
+		"ytdl-path",
+		"Specify path to youtube-dl executable or its forks (yt-dlp, yt-dtlp_x86)",
+	).Default("youtube-dl").String()
 
 	kingpin.Parse()
 
@@ -48,6 +63,16 @@ func SetupFlags() error {
 
 	if !validres {
 		return fmt.Errorf("%s is not a valid video resolution", *videoResolution)
+	}
+
+	_, err := exec.LookPath(*mpvpath)
+	if err != nil {
+		return fmt.Errorf("Could not find the mpv executable")
+	}
+
+	_, err = exec.LookPath(*ytdlpath)
+	if err != nil {
+		return fmt.Errorf("Could not find the youtube-dl executable")
 	}
 
 	return nil

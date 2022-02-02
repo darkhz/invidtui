@@ -77,18 +77,8 @@ func MPVStart() error {
 // MPVConnect attempts to connect to the mpv instance.
 func MPVConnect(socket string, mpvexec bool) (*Connector, error) {
 	if mpvexec {
-		_, err := exec.LookPath("mpv")
-		if err != nil {
-			return nil, fmt.Errorf("Error: Could not find the mpv executable")
-		}
-
-		_, err = exec.LookPath("youtube-dl")
-		if err != nil {
-			return nil, fmt.Errorf("Error: Could not find the youtube-dl executable")
-		}
-
 		mpvcmd = exec.Command(
-			"mpv",
+			*mpvpath,
 			"--idle",
 			"--keep-open",
 			"--no-terminal",
@@ -96,9 +86,10 @@ func MPVConnect(socket string, mpvexec bool) (*Connector, error) {
 			"--no-input-terminal",
 			"--user-agent="+userAgent,
 			"--input-ipc-server="+socket,
+			"--script-opts=ytdl_hook-ytdl_path="+*ytdlpath,
 		)
 
-		err = mpvcmd.Start()
+		err := mpvcmd.Start()
 		if err != nil {
 			return nil, fmt.Errorf("Error: Could not start mpv")
 		}
