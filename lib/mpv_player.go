@@ -31,8 +31,6 @@ var (
 	MPVErrors chan string
 )
 
-const connRetries = 10
-
 // NewConnector returns a Connector with an active mpvipc connection.
 func NewConnector(conn *mpvipc.Connection) *Connector {
 	return &Connector{
@@ -96,7 +94,7 @@ func MPVConnect(socket string, mpvexec bool) (*Connector, error) {
 	}
 
 	conn := mpvipc.NewConnection(socket)
-	for i := 0; i < connRetries; i++ {
+	for i := 0; i < *connretries; i++ {
 		err := conn.Open()
 		if err != nil {
 			time.Sleep(1 * time.Second)
@@ -138,7 +136,7 @@ func (c *Connector) MPVStop(rm bool) {
 		return
 	}
 
-	os.Remove(socket)
+	os.Remove(sockPath)
 }
 
 // Call sends a command to the mpv instance.

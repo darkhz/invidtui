@@ -11,11 +11,13 @@ import (
 )
 
 var (
+	sockPath   string
 	configPath string
 
 	videoResolution *string
 	mpvpath         *string
 	ytdlpath        *string
+	connretries     *int
 	fcSocket        *bool
 )
 
@@ -42,6 +44,11 @@ func SetupFlags() error {
 		"ytdl-path",
 		"Specify path to youtube-dl executable or its forks (yt-dlp, yt-dtlp_x86)",
 	).Default("youtube-dl").String()
+
+	connretries = kingpin.Flag(
+		"num-retries",
+		"Set the number of retries for connecting to the socket.",
+	).Default("100").Int()
 
 	kingpin.Parse()
 
@@ -136,22 +143,23 @@ func SetupConfig() error {
 func ConfigPath(ftype string) (string, error) {
 	switch ftype {
 	case "socket":
-		spath := filepath.Join(configPath, "socket")
+		sockPath = filepath.Join(configPath, "socket")
+		socket := getSocket(sockPath)
 
-		if _, err := os.Stat(spath); err != nil {
-			_, err = os.Create(spath)
+		if _, err := os.Stat(sockPath); err != nil {
+			_, err = os.Create(sockPath)
 			if err != nil {
-				return "", fmt.Errorf("Cannot create socket file at %s", spath)
+				return "", fmt.Errorf("Cannot create socket file at %s", sockPath)
 			}
 		} else {
 			if !*fcSocket {
-				return "", fmt.Errorf("Socket exists at %s, is another instance running?", spath)
+				return "", fmt.Errorf("Socket exists at %s, is another instance running?", sockPath)
 			}
 
-			CloseInstances(spath)
+			CloseInstances(socket)
 		}
 
-		return spath, nil
+		return socket, nil
 
 	case "history":
 		hpath := filepath.Join(configPath, "history")
