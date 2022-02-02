@@ -3,15 +3,30 @@ project_name: invidtui
 builds:
   - env:
       - CGO_ENABLED=0 GOPROXY=https://proxy.golang.org GO111MODULE=on
+
     goos:
       - linux
       - darwin
+      - windows
+
+    ignore:
+      - goos: windows
+        goarch: arm64
+
 archives:
   - replacements:
       darwin: Darwin
       linux: Linux
+      windows: Windows
       386: i386
       amd64: x86_64
+
+    format_overrides:
+      - goos: windows
+        format: zip
+
+    files:
+      - LICENSE
 
 checksum:
   name_template: 'checksums.txt'
