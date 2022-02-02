@@ -66,7 +66,7 @@ func SetupFileBrowser() {
 		sel, _ := browserList.GetSelection()
 		cell := browserList.GetCell(sel, 0)
 
-		if strings.Contains(cell.Text, "/") {
+		if strings.Contains(cell.Text, string(os.PathSeparator)) {
 			InputBox.SetText("")
 			return
 		}
@@ -220,7 +220,7 @@ func createDirList(dlist []fs.FileInfo, cdBack bool) {
 					pos = row
 				}
 
-				name += "/"
+				name += string(os.PathSeparator)
 				color = tcell.ColorBlue
 			} else {
 				color = tcell.ColorWhite
@@ -248,11 +248,7 @@ func trimPath(testPath string, cdBack bool) string {
 		testPath = filepath.Dir(testPath)
 	}
 
-	if testPath != "/" {
-		testPath = testPath + "/"
-	}
-
-	return testPath
+	return filepath.FromSlash(testPath)
 }
 
 // getHidden checks if hidden files can be shown or not.
