@@ -212,6 +212,8 @@ func createDirList(dlist []fs.FileInfo, cdBack bool) {
 		browserList.Clear()
 
 		for row, entry := range dlist {
+			var color tcell.Color
+
 			name := entry.Name()
 			if entry.IsDir() {
 				if cdBack && name == prevDir {
@@ -219,11 +221,13 @@ func createDirList(dlist []fs.FileInfo, cdBack bool) {
 				}
 
 				name += "/"
+				color = tcell.ColorBlue
+			} else {
+				color = tcell.ColorWhite
 			}
 
 			browserList.SetCell(row, 0, tview.NewTableCell(name).
-				SetTextColor(tcell.ColorBlue).
-				SetAttributes(tcell.AttrBold))
+				SetTextColor(color))
 		}
 
 		browserTitle.SetText("[::bu]" + currentPath)
