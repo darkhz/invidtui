@@ -10,16 +10,19 @@ import (
 
 // VideoResult stores the video data.
 type VideoResult struct {
-	Title           string `json:"title"`
-	Author          string `json:"author"`
-	VideoID         string `json:"videoId"`
-	LengthSeconds   int    `json:"lengthSeconds"`
-	AdaptiveFormats []struct {
-		Type       string `json:"type"`
-		URL        string `json:"url"`
-		Itag       string `json:"itag"`
-		Resolution string `json:"resolution,omitempty"`
-	} `json:"adaptiveFormats"`
+	Title           string       `json:"title"`
+	Author          string       `json:"author"`
+	VideoID         string       `json:"videoId"`
+	LengthSeconds   int          `json:"lengthSeconds"`
+	AdaptiveFormats []FormatData `json:"adaptiveFormats"`
+}
+
+// FormatData stores the media format data.
+type FormatData struct {
+	Type       string `json:"type"`
+	URL        string `json:"url"`
+	Itag       string `json:"itag"`
+	Resolution string `json:"resolution,omitempty"`
 }
 
 const videoFields = "?fields=title,videoId,author,publishedText,lengthSeconds,adaptiveFormats"
@@ -102,7 +105,7 @@ func LoadVideo(video VideoResult, audio bool) error {
 // getVideoByItag gets the appropriate itag of the video format, and
 // returns a video and audio url using getLatestURL().
 func getVideoByItag(video VideoResult, audio bool) (string, string) {
-	var ftype, videoUrl, audioUrl string
+	var videoUrl, audioUrl string
 
 	// For video streams, itag 22 is 720p and itag 18 is 360p
 	// as of now in most invidious instances, may change.
@@ -138,54 +141,36 @@ func getVideoByItag(video VideoResult, audio bool) (string, string) {
 		}
 	}
 
-	for _, format := range video.AdaptiveFormats {
-		v := strings.Split(format.Type, ";")
-		p := strings.Split(v[0], "/")
+	videoUrl, audioUrl = loopFormats(
+		audio, video,
 
-		if (audio && audioUrl != "") || (!audio && videoUrl != "") {
-			break
-		}
+		func(v VideoResult, f FormatData) string {
+			return getLatestURL(v.VideoID, f.Itag)
+		},
 
-		if ftype == "" {
-			ftype = p[1]
-		}
-
-		if p[1] == ftype {
-			if p[0] == "audio" {
-				audioUrl = getLatestURL(video.VideoID, format.Itag)
-			} else if p[0] == "video" {
-				videoUrl = videoWithResolution(video, "itag")
-			}
-		}
-	}
+		func(v VideoResult, f FormatData) string {
+			return videoWithResolution(v, "itag")
+		},
+	)
 
 	return videoUrl, audioUrl
 }
 
 // getVideoByFormatURL returns a URL from a VideoResult's AdaptiveFormats.
 func getVideoByFormatURL(video VideoResult, audio bool) (string, string) {
-	var ftype, audioUrl, videoUrl string
+	var videoUrl, audioUrl string
 
-	for _, format := range video.AdaptiveFormats {
-		v := strings.Split(format.Type, ";")
-		p := strings.Split(v[0], "/")
+	videoUrl, audioUrl = loopFormats(
+		audio, video,
 
-		if (audio && audioUrl != "") || (!audio && videoUrl != "") {
-			break
-		}
+		func(v VideoResult, f FormatData) string {
+			return f.URL
+		},
 
-		if ftype == "" {
-			ftype = p[1]
-		}
-
-		if p[1] == ftype {
-			if p[0] == "audio" {
-				audioUrl = format.URL
-			} else if p[0] == "video" {
-				videoUrl = videoWithResolution(video, "url")
-			}
-		}
-	}
+		func(v VideoResult, f FormatData) string {
+			return videoWithResolution(v, "url")
+		},
+	)
 
 	return videoUrl, audioUrl
 }
@@ -221,6 +206,38 @@ func videoWithResolution(video VideoResult, vtype string) string {
 	}
 
 	return prevData
+}
+
+// loopFormats loops over a video's AdaptiveFormats data and gets the
+// audio/video URL according to the values returned by afunc/vfunc.
+func loopFormats(
+	audio bool, video VideoResult,
+	afunc, vfunc func(video VideoResult, format FormatData) string,
+) (string, string) {
+	var ftype, videoUrl, audioUrl string
+
+	for _, format := range video.AdaptiveFormats {
+		v := strings.Split(format.Type, ";")
+		p := strings.Split(v[0], "/")
+
+		if (audio && audioUrl != "") || (!audio && videoUrl != "") {
+			break
+		}
+
+		if ftype == "" {
+			ftype = p[1]
+		}
+
+		if p[1] == ftype {
+			if p[0] == "audio" {
+				audioUrl = afunc(video, format)
+			} else if p[0] == "video" {
+				videoUrl = vfunc(video, format)
+			}
+		}
+	}
+
+	return videoUrl, audioUrl
 }
 
 // getLatestURL appends the latest_version query to the current client's host URL.
