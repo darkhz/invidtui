@@ -147,10 +147,12 @@ func ConfigPath(ftype string) (string, error) {
 		socket := getSocket(sockPath)
 
 		if _, err := os.Stat(sockPath); err != nil {
-			_, err = os.Create(sockPath)
+			fd, err := os.Create(sockPath)
+			fd.Close()
 			if err != nil {
 				return "", fmt.Errorf("Cannot create socket file at %s", sockPath)
 			}
+
 		} else {
 			if !*fcSocket {
 				return "", fmt.Errorf("Socket exists at %s, is another instance running?", sockPath)
@@ -165,7 +167,8 @@ func ConfigPath(ftype string) (string, error) {
 		hpath := filepath.Join(configPath, "history")
 
 		if _, err := os.Stat(hpath); err != nil {
-			_, err = os.Create(hpath)
+			fd, err := os.Create(hpath)
+			fd.Close()
 			if err != nil {
 				return "", fmt.Errorf("Cannot create history file at %s", hpath)
 			}
@@ -178,7 +181,8 @@ func ConfigPath(ftype string) (string, error) {
 		cpath := filepath.Join(configPath, "config.yaml")
 
 		if _, err := os.Stat(cpath); err != nil {
-			_, err = os.Create(cpath)
+			fd, err := os.Create(cpath)
+			fd.Close()
 			if err != nil {
 				return "", fmt.Errorf("Cannot create config file at %s", cpath)
 			}
