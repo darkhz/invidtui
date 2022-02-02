@@ -8,7 +8,7 @@
 
 invidtui is an invidious client, which fetches data from invidious instances and displays a user interface in the terminal(TUI), and allows for selecting and playing Youtube audio and video.
 
-Currently, it is tested only on Linux.
+Currently, it is tested on Linux and Windows, and it should work on MacOS.
 
 ## Features
 - Play audio or video
@@ -22,7 +22,10 @@ Currently, it is tested only on Linux.
 - Youtube-dl
 
 ## Installation
+You can install the package either via the following command:
 ```go install github.com/darkhz/invidtui@latest ```
+
+or check the Releases page and download the binary that matches your OS and architecture.
 
 ## Usage
 
@@ -63,6 +66,8 @@ Currently, it is tested only on Linux.
 - For the video mode, only MP4 videos will be played, and currently there is no way to modify this behavior. This will change in later versions.
 
 - The close-instances option should mainly be used if another invidtui instance may be using the socket, if there was an application crash, or if an error pops up like this: ``` Error: Socket exists at /home/test/.config/invidtui/socket, is another instance running?```.
+
+- On Windows, using invidtui in Powershell/CMD will work, but use Windows Terminal for best results.
 
 ## Bugs
 - Video streams from an invidious instance that are other than 720p or 360p can't currently be played properly when loaded from a saved playlist (only video will be played, audio won't), since we need to merge the audio and video streams, and I have yet to find a way to do that via the m3u8 playlist spec.
