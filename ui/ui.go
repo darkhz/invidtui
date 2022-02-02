@@ -2,7 +2,6 @@ package ui
 
 import (
 	"fmt"
-	"syscall"
 
 	"github.com/darkhz/invidtui/lib"
 	"github.com/darkhz/tview"
@@ -81,9 +80,7 @@ func suspendUI(t tcell.Screen) {
 		return
 	}
 
-	t.Suspend()
-	syscall.Kill(syscall.Getpid(), syscall.SIGSTOP)
-	t.Resume()
+	lib.SuspendApp(t)
 
 	appSuspend = false
 }
