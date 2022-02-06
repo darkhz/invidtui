@@ -14,6 +14,7 @@ type VideoResult struct {
 	Author          string       `json:"author"`
 	VideoID         string       `json:"videoId"`
 	LengthSeconds   int          `json:"lengthSeconds"`
+	FormatStreams   []FormatData `json:"formatStreams"`
 	AdaptiveFormats []FormatData `json:"adaptiveFormats"`
 }
 
@@ -107,40 +108,6 @@ func LoadVideo(video VideoResult, audio bool) error {
 func getVideoByItag(video VideoResult, audio bool) (string, string) {
 	var videoUrl, audioUrl string
 
-	// For video streams, itag 22 is 720p and itag 18 is 360p
-	// as of now in most invidious instances, may change.
-	if !audio && (*videoResolution == "720p" || *videoResolution == "360p") {
-		var itag22, itag18 bool
-
-		for _, format := range video.AdaptiveFormats {
-			if itag22 || itag18 {
-				break
-			}
-
-			switch format.Itag {
-			case "22":
-				itag22 = true
-
-			case "18":
-				itag18 = true
-			}
-		}
-
-		switch {
-		case itag22:
-			videoUrl = getLatestURL(video.VideoID, "22")
-		case itag18:
-			videoUrl = getLatestURL(video.VideoID, "18")
-		}
-
-		// audioUrl is blank since the audio stream is
-		// is already merged along with the video in
-		// videoUrl.
-		if videoUrl != "" {
-			return videoUrl, audioUrl
-		}
-	}
-
 	videoUrl, audioUrl = loopFormats(
 		audio, video,
 
@@ -176,7 +143,8 @@ func getVideoByFormatURL(video VideoResult, audio bool) (string, string) {
 }
 
 // videoWithResolution returns a video URL that corresponds to the
-// videoResolution setting (passed via command line option --video-res=).
+// videoResolution setting (passed via command line option --video-res=), and
+// the resolutions listed in a video's AdaptiveFormats.
 func videoWithResolution(video VideoResult, vtype string) string {
 	var prevData string
 
@@ -216,6 +184,21 @@ func loopFormats(
 ) (string, string) {
 	var ftype, videoUrl, audioUrl string
 
+	// For videos, we loop through FormatStreams first and get the videoUrl.
+	// This works mainly for 720p, 360p and 144p video streams.
+	if !audio {
+		for _, format := range video.FormatStreams {
+			if format.Resolution == *videoResolution {
+				videoUrl = getLatestURL(video.VideoID, format.Itag)
+				return videoUrl, audioUrl
+			}
+		}
+	}
+
+	// If the required resolution wasn't found in FormatStreams, we loop through
+	// AdaptiveFormats and get a video of the required resolution, along with the
+	// audio stream so that MPV can merge them and play. Or if only audio is required,
+	// return a blank videoUrl and a non-empty audioUrl.
 	for _, format := range video.AdaptiveFormats {
 		v := strings.Split(format.Type, ";")
 		p := strings.Split(v[0], "/")
