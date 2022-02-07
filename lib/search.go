@@ -13,9 +13,11 @@ type SearchResult struct {
 	Type          string `json: "type"`
 	Title         string `json: "title"`
 	VideoID       string `json: "videoId"`
+	PlaylistID    string `json: "playlistId"`
 	Author        string `json: "author"`
-	PublishedText string `json: :publishedText"`
-	LengthSeconds int    `json:"lengthSeconds"`
+	PublishedText string `json: "publishedText"`
+	VideoCount    int    `json: "videoCount"`
+	LengthSeconds int    `json: "lengthSeconds"`
 }
 
 var (
@@ -25,13 +27,13 @@ var (
 	searchCancel context.CancelFunc
 )
 
-const searchField = "&fields=type,title,videoId,author,publishedText,lengthSeconds"
+const searchField = "&fields=type,title,videoId,playlistId,author,publishedText,videoCount,lengthSeconds,videos"
 
 // Search searches for the given string and returns a SearchResult slice.
 // It queries for two pages of results, and keeps a track of the number of
 // pages currently returned. If the getmore parameter is true, it will add
 // two more pages to the already tracked page number, and return the result.
-func (c *Client) Search(text string, getmore bool) ([]SearchResult, error) {
+func (c *Client) Search(stype, text string, getmore bool) ([]SearchResult, error) {
 	var oldpg, newpg int
 	var results []SearchResult
 
@@ -51,7 +53,7 @@ func (c *Client) Search(text string, getmore bool) ([]SearchResult, error) {
 		var s []SearchResult
 
 		query := "search?q=" + url.QueryEscape(text) + searchField +
-			"&page=" + strconv.Itoa(newpg)
+			"&page=" + strconv.Itoa(newpg) + "&type=" + stype
 
 		res, err := c.ClientRequest(searchCtx, query)
 		if err != nil {

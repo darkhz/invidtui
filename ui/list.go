@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/darkhz/invidtui/lib"
 	"github.com/darkhz/tview"
@@ -16,6 +17,7 @@ var (
 	listWidth    int
 	searchLock   *semaphore.Weighted
 	searchString string
+	stype        string
 )
 
 const loadingText = "Search still in progress, please wait"
@@ -55,6 +57,8 @@ func SetupList() {
 	})
 
 	searchLock = semaphore.NewWeighted(1)
+
+	toggleSearch()
 }
 
 // SearchAndList displays search results on the screen.
@@ -82,7 +86,7 @@ func SearchAndList(text string) {
 
 	InfoMessage(msg+" results for '"+tview.Escape(searchString)+"'", true)
 
-	results, err := lib.GetClient().Search(searchString, getmore)
+	results, err := lib.GetClient().Search(stype, searchString, getmore)
 	if err != nil {
 		ErrorMessage(err)
 		return
@@ -112,37 +116,46 @@ func SearchAndList(text string) {
 
 			ResultsList.SetCell(rows+i, 0, tview.NewTableCell("[blue::b]"+tview.Escape(result.Title)).
 				SetExpansion(1).
-				SetMaxWidth((width / 4)).
-				SetReference(result.VideoID),
+				SetReference(result).
+				SetMaxWidth((width / 4)),
 			)
 
-			ResultsList.SetCell(rows+i, 2, tview.NewTableCell(" ").
+			ResultsList.SetCell(rows+i, 1, tview.NewTableCell(" ").
 				SetSelectable(false).
 				SetAlign(tview.AlignRight),
 			)
 
-			ResultsList.SetCell(rows+i, 3, tview.NewTableCell("[purple::b]"+result.Author).
+			ResultsList.SetCell(rows+i, 2, tview.NewTableCell("[purple::b]"+result.Author).
 				SetSelectable(false).
 				SetMaxWidth((width / 4)).
 				SetAlign(tview.AlignLeft),
 			)
 
-			ResultsList.SetCell(rows+i, 4, tview.NewTableCell(" ").
+			ResultsList.SetCell(rows+i, 3, tview.NewTableCell(" ").
 				SetSelectable(false).
 				SetAlign(tview.AlignRight),
 			)
 
-			ResultsList.SetCell(rows+i, 5, tview.NewTableCell("[pink]"+lib.FormatDuration(result.LengthSeconds)).
+			if result.Type == "playlist" {
+				ResultsList.SetCell(rows+i, 4, tview.NewTableCell("[pink]"+strconv.Itoa(result.VideoCount)+" videos").
+					SetSelectable(false).
+					SetAlign(tview.AlignRight),
+				)
+
+				continue
+			}
+
+			ResultsList.SetCell(rows+i, 4, tview.NewTableCell("[pink]"+lib.FormatDuration(result.LengthSeconds)).
 				SetSelectable(false).
 				SetAlign(tview.AlignRight),
 			)
 
-			ResultsList.SetCell(rows+i, 6, tview.NewTableCell(" ").
+			ResultsList.SetCell(rows+i, 5, tview.NewTableCell(" ").
 				SetSelectable(false).
 				SetAlign(tview.AlignRight),
 			)
 
-			ResultsList.SetCell(rows+i, 7, tview.NewTableCell("[pink]"+lib.FormatPublished(result.PublishedText)).
+			ResultsList.SetCell(rows+i, 6, tview.NewTableCell("[pink]"+lib.FormatPublished(result.PublishedText)).
 				SetSelectable(false).
 				SetAlign(tview.AlignRight),
 			)
@@ -166,11 +179,19 @@ func captureListEvents(event *tcell.EventKey) {
 	switch event.Key() {
 	case tcell.KeyEnter:
 		loadMoreResults()
+
+	case tcell.KeyCtrlX:
+		App.SetFocus(ResultsList)
+		ResultsList.SetSelectable(true, false)
+		lib.GetClient().Playlist("", true)
 	}
 
 	switch event.Rune() {
 	case '/':
 		searchText()
+
+	case 'i':
+		ViewPlaylist(true, event.Modifiers() == tcell.ModAlt)
 
 	case 'q':
 		confirmQuit()
@@ -244,12 +265,31 @@ func searchText() {
 			if t != "" {
 				InputBox.SetText(t)
 			}
+
+		case tcell.KeyCtrlE:
+			InputBox.SetLabel(toggleSearch())
 		}
 
 		return e
 	}
 
-	SetInput("Search:", 0, sfunc, ifunc)
+	SetInput("Search ("+stype+"):", 0, sfunc, ifunc)
+}
+
+// toggleSearch toggles the search type.
+func toggleSearch() string {
+	switch stype {
+	case "video":
+		stype = "playlist"
+
+	case "playlist":
+		fallthrough
+
+	default:
+		stype = "video"
+	}
+
+	return "[::b]Search (" + stype + "): "
 }
 
 // loadMoreResults appends more search results to ResultsList
@@ -258,29 +298,39 @@ func loadMoreResults() {
 }
 
 // getListReference gets a saved reference from a selected TableCell.
-func getListReference() (string, string, error) {
-	if !searchLock.TryAcquire(1) {
-		return "", "", fmt.Errorf(loadingText)
-	}
-	defer searchLock.Release(1)
+func getListReference() (lib.SearchResult, error) {
+	var table *tview.Table
 
-	row, _ := ResultsList.GetSelection()
-	rows := ResultsList.GetRowCount()
+	rlistTableFocused := ResultsList.HasFocus()
+
+	if rlistTableFocused {
+		if !searchLock.TryAcquire(1) {
+			return lib.SearchResult{}, fmt.Errorf(loadingText)
+		}
+		defer searchLock.Release(1)
+
+		table = ResultsList
+	} else {
+		table = plistTable
+	}
+
+	row, _ := table.GetSelection()
+	rows := table.GetRowCount()
 	err := fmt.Errorf("Cannot select this entry")
 
 	if row+1 < rows {
-		ResultsList.Select(row+1, 0)
+		table.Select(row+1, 0)
 	}
 
-	cell := ResultsList.GetCell(row, 0)
+	cell := table.GetCell(row, 0)
 	if cell == nil {
-		return "", "", err
+		return lib.SearchResult{}, err
 	}
 
 	ref := cell.GetReference()
 	if ref == nil {
-		return "", "", err
+		return lib.SearchResult{}, err
 	}
 
-	return cell.Text, ref.(string), nil
+	return ref.(lib.SearchResult), nil
 }

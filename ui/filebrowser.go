@@ -110,11 +110,11 @@ func ShowFileBrowser(
 		return e
 	}
 
-	Pages.AddAndSwitchToPage(
+	MPage.AddAndSwitchToPage(
 		"filebrowser",
 		statusmodal(FileBrowser, browserList),
 		true,
-	).ShowPage("main")
+	).ShowPage("ui")
 
 	SetInput(inputText, 0, dofunc, ifunc)
 

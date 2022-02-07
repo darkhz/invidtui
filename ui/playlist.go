@@ -3,13 +3,16 @@ package ui
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
+	"strings"
 	"time"
 
 	"github.com/darkhz/invidtui/lib"
 	"github.com/darkhz/tview"
 	"github.com/gdamore/tcell/v2"
+	"golang.org/x/sync/semaphore"
 )
 
 // EntryData stores playlist entry data.
@@ -28,15 +31,96 @@ var (
 	plistPopup *tview.Table
 	plistTitle *tview.TextView
 
+	plViewFlex   *tview.Flex
+	plistTable   *tview.Table
+	plTableTitle *tview.TextView
+	plTableDesc  *tview.TextView
+	plTableVBox  *tview.Box
+
 	prevrow       int
 	moving        bool
 	pctx          context.Context
 	pcancel       context.CancelFunc
 	playlistEvent chan struct{}
+
+	plistIdMap  map[string]struct{}
+	plRateLimit *semaphore.Weighted
 )
 
 // SetupPlaylist sets up the playlist popup.
 func SetupPlaylist() {
+	setupViewPlaylist()
+	setupPlaylistPopup()
+
+	playlistEvent = make(chan struct{})
+	plistIdMap = make(map[string]struct{})
+
+	plRateLimit = semaphore.NewWeighted(1)
+}
+
+// setupViewPlaylist sets up the playlist view page.
+func setupViewPlaylist() {
+	plistTable = tview.NewTable()
+	plistTable.SetSelectorWrap(true)
+	plistTable.SetBackgroundColor(tcell.ColorDefault)
+
+	plTableTitle = tview.NewTextView()
+	plTableTitle.SetDynamicColors(true)
+	plTableTitle.SetTextAlign(tview.AlignCenter)
+	plTableTitle.SetBackgroundColor(tcell.ColorDefault)
+
+	plTableDesc = tview.NewTextView()
+	plTableDesc.SetDynamicColors(true)
+	plTableDesc.SetTextAlign(tview.AlignCenter)
+	plTableDesc.SetBackgroundColor(tcell.ColorDefault)
+
+	plTableVBox = getVbox()
+
+	plViewFlex = tview.NewFlex().
+		SetDirection(tview.FlexRow)
+
+	plistTable.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		capturePlayerEvent(event)
+
+		switch event.Key() {
+		case tcell.KeyEnter:
+			loadMorePlistResults()
+
+		case tcell.KeyEscape:
+			VPage.SwitchToPage("main")
+			App.SetFocus(ResultsList)
+			ResultsList.SetSelectable(true, false)
+			fallthrough
+
+		case tcell.KeyCtrlX:
+			lib.GetClient().Playlist("", true)
+		}
+
+		return event
+	})
+
+	plistTable.SetSelectionChangedFunc(func(row, col int) {
+		rows := plistTable.GetRowCount()
+
+		if row < 0 || row > rows {
+			return
+		}
+
+		cell := plistTable.GetCell(row, col)
+
+		if cell == nil {
+			return
+		}
+
+		plistTable.SetSelectedStyle(tcell.Style{}.
+			Background(tcell.ColorBlue).
+			Foreground(tcell.ColorWhite).
+			Attributes(cell.Attributes | tcell.AttrBold))
+	})
+}
+
+// setupPlaylistPopup sets up the playlist popup.
+func setupPlaylistPopup() {
 	plistTitle := tview.NewTextView()
 	plistTitle.SetDynamicColors(true)
 	plistTitle.SetTextColor(tcell.ColorBlue)
@@ -122,8 +206,6 @@ func SetupPlaylist() {
 			Background(tcell.ColorDefault).
 			Foreground(tcell.ColorDefault))
 	})
-
-	playlistEvent = make(chan struct{})
 }
 
 // playlistPopup loads the playlist, and displays a popup
@@ -141,11 +223,11 @@ func playlistPopup() {
 			SetSelectable(false))
 	}
 
-	Pages.AddAndSwitchToPage(
+	MPage.AddAndSwitchToPage(
 		"playlist",
 		statusmodal(Playlist, plistPopup),
 		true,
-	).ShowPage("main")
+	).ShowPage("ui")
 
 	App.SetFocus(plistPopup)
 
@@ -164,8 +246,8 @@ func startPlaylist() {
 		pldata := updatePlaylist()
 		if len(pldata) == 0 {
 			App.QueueUpdateDraw(func() {
+				exitFocus()
 				plistPopup.Clear()
-				Pages.SwitchToPage("main")
 			})
 
 			pcancel()
@@ -236,6 +318,163 @@ func startPlaylist() {
 	}
 }
 
+// loadMorePlistResults appends more playlist results to the playlist
+// view table.
+func loadMorePlistResults() {
+	ViewPlaylist(false, false)
+}
+
+// ViewPlaylist shows the playlist contents after loading the playlist URL.
+func ViewPlaylist(newlist, noload bool) {
+	var err error
+	var info lib.SearchResult
+
+	if noload {
+		if plistTable.GetRowCount() == 0 {
+			InfoMessage("No playlist entries", false)
+			return
+		}
+
+		VPage.SwitchToPage("playlistview")
+		App.SetFocus(plistTable)
+
+		return
+	}
+
+	if newlist {
+		info, err = getListReference()
+
+		if err != nil {
+			ErrorMessage(err)
+			return
+		}
+
+		if info.Type != "playlist" {
+			ErrorMessage(fmt.Errorf("Cannot load playlist from video type"))
+			return
+		}
+	}
+
+	go viewPlaylist(info, newlist)
+}
+
+// viewPlaylist loads the playlist URL and shows the playlist contents.
+func viewPlaylist(info lib.SearchResult, newlist bool) {
+	var err error
+
+	InfoMessage("Loading playlist entries", false)
+	ResultsList.SetSelectable(false, false)
+
+	if !plRateLimit.TryAcquire(1) {
+		InfoMessage("Playlist fetch in progress, please wait", false)
+		return
+	}
+	defer plRateLimit.Release(1)
+
+	result, err := lib.GetClient().Playlist(info.PlaylistID, false)
+	if err != nil {
+		if errors.Is(err, context.Canceled) {
+			InfoMessage("Loading cancelled", false)
+		}
+
+		return
+	}
+
+	App.QueueUpdateDraw(func() {
+		var skipped int
+
+		pos := -1
+
+		_, _, width, _ := ResultsList.GetRect()
+
+		if newlist {
+			plViewFlex.Clear()
+			plistTable.Clear()
+			plistIdMap = make(map[string]struct{})
+
+			desc := strings.ReplaceAll(result.Description, "\n", " ")
+			desclen := len(desc)
+
+			plViewFlex.AddItem(plTableTitle, 1, 0, false)
+
+			if desclen > 0 {
+				s := 2
+				if desclen >= width {
+					s++
+				} else {
+					s--
+				}
+
+				plViewFlex.AddItem(plTableVBox, 1, 0, false)
+				plViewFlex.AddItem(plTableDesc, s, 0, false)
+				plViewFlex.AddItem(plTableVBox, 1, 0, false)
+			}
+
+			plViewFlex.AddItem(plistTable, 0, 10, true)
+
+			plTableDesc.SetText(desc)
+			plTableTitle.SetText("[::bu]" + result.Title)
+
+			VPage.AddAndSwitchToPage("playlistview", plViewFlex, true)
+		}
+
+		rows := plistTable.GetRowCount()
+		plistTable.SetSelectable(false, false)
+
+		for i, v := range result.Videos {
+			select {
+			case <-lib.PlistCtx.Done():
+				return
+
+			default:
+			}
+
+			if pos < 0 {
+				pos = (rows + i) - skipped
+			}
+
+			_, ok := plistIdMap[v.VideoID]
+			if ok {
+				skipped++
+				continue
+			}
+
+			sref := lib.SearchResult{
+				Type:    "video",
+				Title:   v.Title,
+				VideoID: v.VideoID,
+			}
+
+			plistTable.SetCell((rows+i)-skipped, 0, tview.NewTableCell("[blue::b]"+tview.Escape(v.Title)).
+				SetExpansion(1).
+				SetReference(sref).
+				SetMaxWidth((width / 4)),
+			)
+
+			plistTable.SetCell((rows+i)-skipped, 1, tview.NewTableCell("[pink]"+lib.FormatDuration(v.LengthSeconds)).
+				SetSelectable(false).
+				SetAlign(tview.AlignRight),
+			)
+
+			plistIdMap[v.VideoID] = struct{}{}
+		}
+
+		if skipped == len(result.Videos) {
+			InfoMessage("No more results", false)
+			plistTable.SetSelectable(true, false)
+			return
+		}
+
+		InfoMessage("Playlist entries loaded", false)
+
+		plistTable.Select(pos, 0)
+
+		plistTable.ScrollToEnd()
+		plistTable.SetSelectable(true, false)
+		App.SetFocus(plistTable)
+	})
+}
+
 // updatePlaylist returns updated playlist data from mpv.
 func updatePlaylist() []EntryData {
 	var data []EntryData
@@ -302,10 +541,10 @@ func plEnter() {
 // plExit exits the playlist popup.
 func plExit() {
 	pcancel()
+	exitFocus()
 	plistPopup.Clear()
 	popupStatus(false)
-	Pages.SwitchToPage("main")
-	App.SetFocus(ResultsList)
+	ResultsList.SetSelectable(true, false)
 }
 
 // plDelete deletes an entry from the playlist
@@ -400,10 +639,18 @@ func plSaveAs(savepath string) {
 
 // plFbExit exits the filebrowser.
 func plFbExit() {
+	exitFocus()
 	popupStatus(false)
-	Pages.SwitchToPage("main")
 	Status.SwitchToPage("messages")
-	App.SetFocus(ResultsList)
+}
+
+func exitFocus() {
+	name, list := VPage.GetFrontPage()
+
+	MPage.SwitchToPage("ui")
+	VPage.SwitchToPage(name)
+
+	App.SetFocus(list)
 }
 
 // sendPlaylistEvent sends a playlist event.

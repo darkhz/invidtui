@@ -15,8 +15,13 @@ var (
 	// UIFlex contains the arranged UI elements.
 	UIFlex *tview.Flex
 
-	// Pages enables switching between pages.
-	Pages *tview.Pages
+	// VPage holds the ResultsList and other list views
+	// like the playlist view for example.
+	VPage *tview.Pages
+
+	// MPage holds the entire UI Flexbox. This is needed to
+	// align and display popups properly.
+	MPage *tview.Pages
 
 	appSuspend  bool
 	detectClose chan struct{}
@@ -28,8 +33,8 @@ const initMessage = "Invidtui loaded. Press / to search."
 func SetupUI() error {
 	setupPrimitives()
 
-	Pages = tview.NewPages()
-	Pages.AddPage("main", UIFlex, true, true)
+	MPage = tview.NewPages()
+	MPage.AddPage("ui", UIFlex, true, true)
 
 	App = tview.NewApplication()
 	App.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
@@ -59,7 +64,7 @@ func SetupUI() error {
 	detectClose = make(chan struct{})
 	go detectMPVClose()
 
-	if err := App.SetRoot(Pages, true).Run(); err != nil {
+	if err := App.SetRoot(MPage, true).SetFocus(ResultsList).Run(); err != nil {
 		panic(err)
 	}
 
@@ -96,11 +101,14 @@ func setupPrimitives() {
 	SetupFileBrowser()
 	SetupPlaylist()
 
+	VPage = tview.NewPages()
+	VPage.AddPage("main", ResultsList, true, true)
+
 	box := tview.NewBox().
 		SetBackgroundColor(tcell.ColorDefault)
 
 	UIFlex = tview.NewFlex().
-		AddItem(ResultsList, 0, 10, true).
+		AddItem(VPage, 0, 10, false).
 		AddItem(box, 1, 0, false).
 		AddItem(Status, 1, 0, false).
 		SetDirection(tview.FlexRow)

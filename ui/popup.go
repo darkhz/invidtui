@@ -43,7 +43,7 @@ func resizePopup(width int) {
 func resizemodal() {
 	height := popup.table.GetRowCount()
 
-	_, _, screenWidth, screenHeight := Pages.GetRect()
+	_, _, screenWidth, screenHeight := UIFlex.GetRect()
 	screenHeight /= 4
 
 	if height > screenHeight {
@@ -57,7 +57,7 @@ func resizemodal() {
 
 // statusmodal creates a new popup modal.
 func statusmodal(v, t tview.Primitive) tview.Primitive {
-	_, _, _, screenHeight := Pages.GetRect()
+	_, _, _, screenHeight := UIFlex.GetRect()
 	screenHeight /= 4
 
 	pad := 1
@@ -65,28 +65,7 @@ func statusmodal(v, t tview.Primitive) tview.Primitive {
 		pad += 2
 	}
 
-	vbox := tview.NewBox().
-		SetBackgroundColor(tcell.ColorDefault).
-		SetDrawFunc(func(
-			screen tcell.Screen,
-			x, y, width, height int) (int, int, int, int) {
-
-			centerY := y + height/2
-			for cx := x; cx < x+width; cx++ {
-				screen.SetContent(
-					cx,
-					centerY,
-					tview.BoxDrawingsLightHorizontal,
-					nil,
-					tcell.StyleDefault.Foreground(tcell.ColorWhite),
-				)
-			}
-
-			return x + 1,
-				centerY + 1,
-				width - 2,
-				height - (centerY + 1 - y)
-		})
+	vbox := getVbox()
 
 	stmodal := tview.NewFlex().
 		AddItem(nil, 0, 1, false).
@@ -112,4 +91,29 @@ func statusmodal(v, t tview.Primitive) tview.Primitive {
 	resizemodal()
 
 	return stflex
+}
+
+func getVbox() *tview.Box {
+	return tview.NewBox().
+		SetBackgroundColor(tcell.ColorDefault).
+		SetDrawFunc(func(
+			screen tcell.Screen,
+			x, y, width, height int) (int, int, int, int) {
+
+			centerY := y + height/2
+			for cx := x; cx < x+width; cx++ {
+				screen.SetContent(
+					cx,
+					centerY,
+					tview.BoxDrawingsLightHorizontal,
+					nil,
+					tcell.StyleDefault.Foreground(tcell.ColorWhite),
+				)
+			}
+
+			return x + 1,
+				centerY + 1,
+				width - 2,
+				height - (centerY + 1 - y)
+		})
 }

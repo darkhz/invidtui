@@ -172,7 +172,7 @@ func SetPlayer(play bool) {
 func PlaySelected(audio, current bool) {
 	var media string
 
-	title, id, err := getListReference()
+	info, err := getListReference()
 	if err != nil {
 		return
 	}
@@ -183,7 +183,7 @@ func PlaySelected(audio, current bool) {
 		media = "video"
 	}
 
-	InfoMessage("Loading "+media+" for "+title, true)
+	InfoMessage("Loading "+media+" for "+info.Type+" "+info.Title, true)
 
 	go func() {
 		err := addRateLimit.Acquire(context.Background(), 1)
@@ -192,23 +192,26 @@ func PlaySelected(audio, current bool) {
 		}
 		defer addRateLimit.Release(1)
 
-		video, err := lib.GetClient().Video(id)
+		switch info.Type {
+		case "playlist":
+			err = lib.LoadPlaylist(info.PlaylistID, audio)
+
+		case "video":
+			err = lib.LoadVideo(info.VideoID, audio)
+		}
 		if err != nil {
-			ErrorMessage(err)
+			if err.Error() != "Rate-limit exceeded" {
+				ErrorMessage(err)
+			}
+
 			return
 		}
-
-		err = lib.LoadVideo(video, audio)
-		if err != nil {
-			ErrorMessage(err)
-			return
-		}
-
-		InfoMessage("Added "+title, false)
 
 		AddPlayer()
 
-		if current {
+		InfoMessage("Added "+info.Title, false)
+
+		if current && info.Type == "video" {
 			lib.GetMPV().PlaylistPlayLatest()
 		}
 	}()
@@ -259,6 +262,7 @@ func capturePlayerEvent(event *tcell.EventKey) {
 
 	case tcell.KeyCtrlO:
 		ShowFileBrowser("Open playlist:", plOpenReplace, plFbExit)
+
 	}
 
 	switch event.Rune() {

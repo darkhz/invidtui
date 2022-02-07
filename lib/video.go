@@ -46,12 +46,17 @@ func (c *Client) Video(id string) (VideoResult, error) {
 	return result, nil
 }
 
-// LoadVideo takes a VideoResult, determines whether to play
+// LoadVideo takes a video ID, determines whether to play
 // video or just audio (according to the audio parameter), and
 // appropriately loads the URLs into mpv.
-func LoadVideo(video VideoResult, audio bool) error {
+func LoadVideo(id string, audio bool) error {
 	var err error
 	var audioUrl, videoUrl string
+
+	video, err := GetClient().Video(id)
+	if err != nil {
+		return err
+	}
 
 	videoUrl, audioUrl = getVideoByItag(video, audio)
 
