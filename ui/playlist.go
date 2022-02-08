@@ -162,7 +162,7 @@ func setupPlaylistPopup() {
 		case 'd':
 			plDelete()
 
-		case 'm':
+		case 'M':
 			plMove()
 
 		case 'S':

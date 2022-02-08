@@ -88,6 +88,7 @@ func GetProgress(width int) (string, string, error) {
 	paused := GetMPV().IsPaused()
 	shuffle := GetMPV().IsShuffle()
 	loop := GetMPV().LoopType(true)
+	mute := GetMPV().IsMuted()
 
 	duration := GetMPV().Duration()
 	timepos := GetMPV().TimePosition()
@@ -117,6 +118,12 @@ func GetProgress(width int) (string, string, error) {
 	if shuffle {
 		loop += " S"
 	}
+
+	if mute {
+		loop += " M"
+	}
+
+	loop = strings.TrimPrefix(loop, " ")
 
 	if paused {
 		if eof {

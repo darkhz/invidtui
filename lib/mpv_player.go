@@ -232,6 +232,16 @@ func (c *Connector) IsShuffle() bool {
 	return shuffle.(bool)
 }
 
+// IsMuted checks if playback is muted.
+func (c *Connector) IsMuted() bool {
+	mute, err := c.Get("mute")
+	if err != nil {
+		return false
+	}
+
+	return mute.(bool)
+}
+
 // IsEOF checks if an already loaded file has finished playback.
 func (c *Connector) IsEOF() bool {
 	eof, err := c.Get("eof-reached")
@@ -411,6 +421,11 @@ func (c *Connector) CyclePaused() {
 // CycleShuffle cycles the playlist's shuffle state.
 func (c *Connector) CycleShuffle() {
 	c.Call("cycle", "shuffle")
+}
+
+// CycleMute toggles the playback mute state.
+func (c *Connector) CycleMute() {
+	c.Call("cycle", "mute")
 }
 
 // CycleLoop toggles between looping a file, playlist or none.

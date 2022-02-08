@@ -301,6 +301,10 @@ func capturePlayerEvent(event *tcell.EventKey) {
 		lib.GetMPV().CycleShuffle()
 		sendPlayerEvent()
 
+	case 'm':
+		lib.GetMPV().CycleMute()
+		sendPlayerEvent()
+
 	case '<':
 		lib.GetMPV().Prev()
 		sendPlayerEvent()
