@@ -259,18 +259,11 @@ func monitorErrors() {
 // capturePlayerEvent maps custom keybindings to the relevant
 // mpv commands. This function is attached to ResultsList's InputCapture.
 func capturePlayerEvent(event *tcell.EventKey) {
+	captureSendPlayerEvent(event)
+
 	switch event.Key() {
-	case tcell.KeyRight:
-		lib.GetMPV().SeekForward()
-		sendPlayerEvent()
-
-	case tcell.KeyLeft:
-		lib.GetMPV().SeekBackward()
-		sendPlayerEvent()
-
 	case tcell.KeyCtrlO:
 		ShowFileBrowser("Open playlist:", plOpenReplace, plFbExit)
-
 	}
 
 	switch event.Rune() {
@@ -286,35 +279,54 @@ func capturePlayerEvent(event *tcell.EventKey) {
 	case 'V':
 		PlaySelected(false, true)
 
-	case 'S':
-		SetPlayer(false)
-		sendPlayerEvent()
-
 	case 'p':
 		playlistPopup()
+	}
+}
+
+// captureSendPlayerEvent maps custom keybindings to
+// the relevant mpv commands and sends a player event.
+func captureSendPlayerEvent(event *tcell.EventKey) {
+	var nokey, norune bool
+
+	switch event.Key() {
+	case tcell.KeyRight:
+		lib.GetMPV().SeekForward()
+
+	case tcell.KeyLeft:
+		lib.GetMPV().SeekBackward()
+
+	default:
+		nokey = true
+	}
+
+	switch event.Rune() {
+	case 'S':
+		SetPlayer(false)
 
 	case 'l':
 		lib.GetMPV().CycleLoop()
-		sendPlayerEvent()
 
 	case 's':
 		lib.GetMPV().CycleShuffle()
-		sendPlayerEvent()
 
 	case 'm':
 		lib.GetMPV().CycleMute()
-		sendPlayerEvent()
 
 	case '<':
 		lib.GetMPV().Prev()
-		sendPlayerEvent()
 
 	case '>':
 		lib.GetMPV().Next()
-		sendPlayerEvent()
 
 	case ' ':
 		lib.GetMPV().CyclePaused()
+
+	default:
+		norune = true
+	}
+
+	if !nokey || !norune {
 		sendPlayerEvent()
 	}
 }
