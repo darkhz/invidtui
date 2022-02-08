@@ -183,6 +183,11 @@ func PlaySelected(audio, current bool) {
 		media = "video"
 	}
 
+	if info.Type == "channel" {
+		ErrorMessage(fmt.Errorf("Cannot play %s for channel type", media))
+		return
+	}
+
 	InfoMessage("Loading "+media+" for "+info.Type+" "+info.Title, true)
 
 	go func() {
@@ -198,6 +203,9 @@ func PlaySelected(audio, current bool) {
 
 		case "video":
 			err = lib.LoadVideo(info.VideoID, audio)
+
+		default:
+			return
 		}
 		if err != nil {
 			if err.Error() != "Rate-limit exceeded" {

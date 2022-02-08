@@ -12,6 +12,7 @@ import (
 type SearchResult struct {
 	Type          string `json: "type"`
 	Title         string `json: "title"`
+	AuthorID      string `json: "authorId"`
 	VideoID       string `json: "videoId"`
 	PlaylistID    string `json: "playlistId"`
 	Author        string `json: "author"`
@@ -27,7 +28,7 @@ var (
 	searchCancel context.CancelFunc
 )
 
-const searchField = "&fields=type,title,videoId,playlistId,author,publishedText,videoCount,lengthSeconds,videos"
+const searchField = "&fields=type,title,videoId,playlistId,author,authorId,publishedText,videoCount,lengthSeconds,videos"
 
 // Search searches for the given string and returns a SearchResult slice.
 // It queries for two pages of results, and keeps a track of the number of

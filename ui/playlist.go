@@ -38,6 +38,8 @@ var (
 	plTableVBox  *tview.Box
 
 	prevrow       int
+	prevpage      string
+	previtem      tview.Primitive
 	moving        bool
 	pctx          context.Context
 	pcancel       context.CancelFunc
@@ -50,6 +52,7 @@ var (
 // SetupPlaylist sets up the playlist popup.
 func SetupPlaylist() {
 	setupViewPlaylist()
+	setupViewChannel()
 	setupPlaylistPopup()
 
 	playlistEvent = make(chan struct{})
@@ -87,10 +90,8 @@ func setupViewPlaylist() {
 			loadMorePlistResults()
 
 		case tcell.KeyEscape:
-			VPage.SwitchToPage("main")
-			App.SetFocus(ResultsList)
-			ResultsList.SetSelectable(true, false)
-			fallthrough
+			VPage.SwitchToPage(prevpage)
+			App.SetFocus(previtem)
 
 		case tcell.KeyCtrlX:
 			lib.GetClient().Playlist("", true)
@@ -124,7 +125,7 @@ func setupPlaylistPopup() {
 	plistTitle := tview.NewTextView()
 	plistTitle.SetDynamicColors(true)
 	plistTitle.SetTextColor(tcell.ColorBlue)
-	plistTitle.SetText("[white::bu]Playlist")
+	plistTitle.SetText("[white::bu]Queue")
 	plistTitle.SetTextAlign(tview.AlignCenter)
 	plistTitle.SetBackgroundColor(tcell.ColorDefault)
 
@@ -350,10 +351,12 @@ func ViewPlaylist(newlist, noload bool) {
 		}
 
 		if info.Type != "playlist" {
-			ErrorMessage(fmt.Errorf("Cannot load playlist from video type"))
+			ErrorMessage(fmt.Errorf("Cannot load playlist from %s type", info.Type))
 			return
 		}
 	}
+
+	prevpage, previtem = VPage.GetFrontPage()
 
 	go viewPlaylist(info, newlist)
 }
@@ -364,6 +367,7 @@ func viewPlaylist(info lib.SearchResult, newlist bool) {
 
 	InfoMessage("Loading playlist entries", false)
 	ResultsList.SetSelectable(false, false)
+	defer ResultsList.SetSelectable(true, false)
 
 	if !plRateLimit.TryAcquire(1) {
 		InfoMessage("Playlist fetch in progress, please wait", false)
@@ -413,7 +417,7 @@ func viewPlaylist(info lib.SearchResult, newlist bool) {
 			plViewFlex.AddItem(plistTable, 0, 10, true)
 
 			plTableDesc.SetText(desc)
-			plTableTitle.SetText("[::bu]" + result.Title)
+			plTableTitle.SetText("[::bu]Playlist: " + result.Title)
 
 			VPage.AddAndSwitchToPage("playlistview", plViewFlex, true)
 		}
@@ -467,11 +471,17 @@ func viewPlaylist(info lib.SearchResult, newlist bool) {
 
 		InfoMessage("Playlist entries loaded", false)
 
-		plistTable.Select(pos, 0)
+		if pos > 0 {
+			plistTable.Select(pos, 0)
+		}
 
 		plistTable.ScrollToEnd()
 		plistTable.SetSelectable(true, false)
-		App.SetFocus(plistTable)
+
+		name, _ := VPage.GetFrontPage()
+		if name == "playlistview" {
+			App.SetFocus(plistTable)
+		}
 	})
 }
 

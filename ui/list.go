@@ -75,16 +75,16 @@ func SearchAndList(text string) {
 		return
 	}
 
-	msg := "Fetching"
+	msg := "Fetching "
 	if text != "" {
 		getmore = false
 		searchString = text
 	} else {
 		getmore = true
-		msg += " more"
+		msg += "more "
 	}
 
-	InfoMessage(msg+" results for '"+tview.Escape(searchString)+"'", true)
+	InfoMessage(msg+stype+" results for '"+tview.Escape(searchString)+"'", true)
 
 	results, err := lib.GetClient().Search(stype, searchString, getmore)
 	if err != nil {
@@ -114,6 +114,11 @@ func SearchAndList(text string) {
 				pos = rows + i
 			}
 
+			if result.Title == "" {
+				result.Title = result.Author
+				result.Author = ""
+			}
+
 			ResultsList.SetCell(rows+i, 0, tview.NewTableCell("[blue::b]"+tview.Escape(result.Title)).
 				SetExpansion(1).
 				SetReference(result).
@@ -136,7 +141,7 @@ func SearchAndList(text string) {
 				SetAlign(tview.AlignRight),
 			)
 
-			if result.Type == "playlist" {
+			if result.Type == "playlist" || result.Type == "channel" {
 				ResultsList.SetCell(rows+i, 4, tview.NewTableCell("[pink]"+strconv.Itoa(result.VideoCount)+" videos").
 					SetSelectable(false).
 					SetAlign(tview.AlignRight),
@@ -193,6 +198,12 @@ func captureListEvents(event *tcell.EventKey) {
 	case 'i':
 		ViewPlaylist(true, event.Modifiers() == tcell.ModAlt)
 
+	case 'u':
+		ViewChannel("video", true, event.Modifiers() == tcell.ModAlt)
+
+	case 'U':
+		ViewChannel("playlist", true, event.Modifiers() == tcell.ModAlt)
+
 	case 'q':
 		confirmQuit()
 	}
@@ -240,6 +251,8 @@ func searchText() {
 
 		if text != "" {
 			lib.AddToHistory(text)
+		} else {
+			return
 		}
 
 		go SearchAndList(text)
@@ -283,6 +296,9 @@ func toggleSearch() string {
 		stype = "playlist"
 
 	case "playlist":
+		stype = "channel"
+
+	case "channel":
 		fallthrough
 
 	default:
@@ -301,17 +317,17 @@ func loadMoreResults() {
 func getListReference() (lib.SearchResult, error) {
 	var table *tview.Table
 
-	rlistTableFocused := ResultsList.HasFocus()
-
-	if rlistTableFocused {
+	if ResultsList.HasFocus() {
 		if !searchLock.TryAcquire(1) {
 			return lib.SearchResult{}, fmt.Errorf(loadingText)
 		}
 		defer searchLock.Release(1)
 
 		table = ResultsList
-	} else {
+	} else if plistTable.HasFocus() {
 		table = plistTable
+	} else {
+		table = chanTable
 	}
 
 	row, _ := table.GetSelection()
