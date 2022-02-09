@@ -227,6 +227,8 @@ func viewChannel(info lib.SearchResult, vtype string, newlist bool) {
 
 // loadChannelVideos loads and displays videos from a channel.
 func loadChannelVideos(info lib.SearchResult, pos, rows, width int, result lib.ChannelResult) int {
+	var skipped int
+
 	if len(result.Videos) == 0 {
 		InfoMessage("No more results", false)
 		return pos
@@ -241,7 +243,12 @@ func loadChannelVideos(info lib.SearchResult, pos, rows, width int, result lib.C
 		}
 
 		if pos < 0 {
-			pos = (rows + i)
+			pos = (rows + i) - skipped
+		}
+
+		if v.LengthSeconds == 0 {
+			skipped++
+			continue
 		}
 
 		sref := lib.SearchResult{

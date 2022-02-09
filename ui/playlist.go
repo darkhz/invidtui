@@ -437,6 +437,11 @@ func viewPlaylist(info lib.SearchResult, newlist bool) {
 				pos = (rows + i) - skipped
 			}
 
+			if v.LengthSeconds == 0 {
+				skipped++
+				continue
+			}
+
 			_, ok := plistIdMap[v.VideoID]
 			if ok {
 				skipped++
