@@ -69,9 +69,9 @@ func FormatPublished(published string) string {
 	return ptext[0]
 }
 
-// GetProgress renders a progress bar.
+// GetProgress renders a progress bar and media data.
 func GetProgress(width int) (string, string, error) {
-	var state, mtype string
+	var state, mtype, totaltime string
 
 	ppos := GetMPV().PlaylistPos()
 	if ppos == -1 {
@@ -79,11 +79,6 @@ func GetProgress(width int) (string, string, error) {
 	}
 
 	title := GetMPV().PlaylistTitle(ppos)
-	data := GetDataFromURL(title)
-	if data != nil && data[0] != "" {
-		title = data[0]
-	}
-
 	eof := GetMPV().IsEOF()
 	paused := GetMPV().IsPaused()
 	shuffle := GetMPV().IsShuffle()
@@ -92,6 +87,7 @@ func GetProgress(width int) (string, string, error) {
 
 	duration := GetMPV().Duration()
 	timepos := GetMPV().TimePosition()
+	currtime := FormatDuration(timepos)
 
 	if timepos < 0 {
 		timepos = 0
@@ -105,7 +101,26 @@ func GetProgress(width int) (string, string, error) {
 		timepos = duration
 	}
 
-	mtype = "(" + GetMPV().MediaType() + ")"
+	data := GetDataFromURL(title)
+	if data != nil {
+		if data[0] != "" {
+			title = data[0]
+		}
+
+		if data[2] != "" {
+			totaltime = data[2]
+		} else {
+			totaltime = FormatDuration(duration)
+		}
+
+		if data[3] != "" {
+			mtype = data[3]
+		} else {
+			mtype = GetMPV().MediaType()
+		}
+
+		mtype = "(" + mtype + ")"
+	}
 
 	width /= 2
 	length := width * timepos / duration
@@ -134,9 +149,6 @@ func GetProgress(width int) (string, string, error) {
 	} else {
 		state = ">"
 	}
-
-	currtime := FormatDuration(timepos)
-	totaltime := FormatDuration(duration)
 
 	return title, (state + " " + currtime +
 		" |" + strings.Repeat("█", length) +
