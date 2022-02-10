@@ -51,7 +51,7 @@ func (c *Client) Video(id string) (VideoResult, error) {
 // appropriately loads the URLs into mpv.
 func LoadVideo(id string, audio bool) error {
 	var err error
-	var audioUrl, videoUrl string
+	var mtype, audioUrl, videoUrl string
 
 	video, err := GetClient().Video(id)
 	if err != nil {
@@ -68,11 +68,18 @@ func LoadVideo(id string, audio bool) error {
 		return fmt.Errorf("Could not find a video stream")
 	}
 
+	if audio {
+		mtype = "Audio"
+	} else {
+		mtype = "Video"
+	}
+
 	// A data parameter is appended to audioUrl/videoUrl so that
 	// updatePlaylist() can display media data.
 	// MPV does not return certain track data like author and duration.
 	titleparam := "&title=" + url.QueryEscape(video.Title)
 	titleparam += "&author=" + url.QueryEscape(video.Author)
+	titleparam += "&mediatype=" + url.QueryEscape(mtype)
 	titleparam += "&length=" + url.QueryEscape(FormatDuration(video.LengthSeconds))
 
 	if audio {

@@ -163,6 +163,7 @@ func GetDataFromURL(uri string) []string {
 		"title",
 		"author",
 		"length",
+		"mediatype",
 	} {
 		data = append(data, strings.Join(u.Query()[query], " "))
 	}

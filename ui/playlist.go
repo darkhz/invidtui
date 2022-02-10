@@ -23,6 +23,7 @@ type EntryData struct {
 	Title    string
 	Author   string
 	Duration string
+	Type     string
 }
 
 var (
@@ -270,7 +271,7 @@ func startPlaylist() {
 
 				plistPopup.SetCell(i, 1, tview.NewTableCell("[blue::b]"+tview.Escape(data.Title)+marker).
 					SetExpansion(1).
-					SetMaxWidth(w/5).
+					SetMaxWidth(w/7).
 					SetSelectable(false),
 				)
 
@@ -287,7 +288,16 @@ func startPlaylist() {
 					SetSelectable(false),
 				)
 
-				plistPopup.SetCell(i, 5, tview.NewTableCell("[pink::b]"+data.Duration).
+				plistPopup.SetCell(i, 5, tview.NewTableCell("[pink::b]"+tview.Escape(data.Type)).
+					SetMaxWidth(w/5).
+					SetSelectable(false),
+				)
+
+				plistPopup.SetCell(i, 6, tview.NewTableCell(" ").
+					SetSelectable(false),
+				)
+
+				plistPopup.SetCell(i, 7, tview.NewTableCell("[pink::b]"+data.Duration).
 					SetSelectable(false),
 				)
 			}
@@ -515,12 +525,14 @@ func updatePlaylist() []EntryData {
 			data[i].Title = lib.GetMPV().PlaylistTitle(i)
 			data[i].Author = "-"
 			data[i].Duration = "-"
+			data[i].Type = "-"
 			continue
 		}
 
 		data[i].Title = urlData[0]
 		data[i].Author = urlData[1]
 		data[i].Duration = urlData[2]
+		data[i].Type = urlData[3]
 	}
 
 	return data
