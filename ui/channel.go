@@ -20,8 +20,11 @@ var (
 	chTableDesc  *tview.TextView
 	chTableVBox  *tview.Box
 
-	currType    string
-	chRateLimit *semaphore.Weighted
+	chanID         string
+	currType       string
+	chSearchString string
+	chSearching    bool
+	chRateLimit    *semaphore.Weighted
 )
 
 func setupViewChannel() {
@@ -63,6 +66,9 @@ func setupViewChannel() {
 		switch event.Rune() {
 		case 'i':
 			ViewPlaylist(true, event.Modifiers() == tcell.ModAlt)
+
+		case '/':
+			searchText(true)
 		}
 
 		return event
@@ -93,7 +99,114 @@ func setupViewChannel() {
 // loadMoreChannelResults appends more playlist results to the playlist
 // view table.
 func loadMoreChannelResults() {
+	if chSearching {
+		go SearchChannel("")
+		return
+	}
+
 	ViewChannel(currType, false, false)
+}
+
+// SearchChannel displays search results from the channel to the screen.
+func SearchChannel(text string) {
+	var getmore bool
+
+	chSearching = true
+	lib.GetClient().Playlist("", true)
+
+	if !chRateLimit.TryAcquire(1) {
+		InfoMessage("Channel fetch in progress, please wait", false)
+		return
+	}
+	defer chRateLimit.Release(1)
+
+	if text == "" && chSearchString == "" {
+		return
+	}
+
+	msg := "Fetching "
+	if text != "" {
+		getmore = false
+		chSearchString = text
+	} else {
+		getmore = true
+		msg += "more "
+	}
+
+	InfoMessage(msg+"search results for '"+tview.Escape(chSearchString)+"'", true)
+
+	results, err := lib.GetClient().Search(stype, chSearchString, getmore, chanID)
+	if err != nil {
+		ErrorMessage(err)
+		return
+	}
+
+	if results == nil {
+		ErrorMessage(fmt.Errorf("No more results"))
+		return
+	}
+
+	App.QueueUpdateDraw(func() {
+		pos := -1
+
+		if text != "" {
+			chSearchString = text
+			chanTable.Clear()
+			chanTable.SetSelectable(false, false)
+		}
+
+		rows := chanTable.GetRowCount()
+		_, _, width, _ := chanTable.GetRect()
+
+		for i, result := range results {
+			if pos < 0 {
+				pos = rows + i
+			}
+
+			if result.Title == "" {
+				result.Title = result.Author
+				result.Author = ""
+			}
+
+			chanTable.SetCell(rows+i, 0, tview.NewTableCell("[blue::b]"+tview.Escape(result.Title)).
+				SetExpansion(1).
+				SetReference(result).
+				SetMaxWidth((width / 4)),
+			)
+
+			chanTable.SetCell(rows+i, 1, tview.NewTableCell(" ").
+				SetSelectable(false).
+				SetAlign(tview.AlignRight),
+			)
+
+			chanTable.SetCell(rows+i, 2, tview.NewTableCell("[purple::b]"+result.Author).
+				SetSelectable(false).
+				SetMaxWidth((width / 4)).
+				SetAlign(tview.AlignLeft),
+			)
+
+			chanTable.SetCell(rows+i, 3, tview.NewTableCell(" ").
+				SetSelectable(false).
+				SetAlign(tview.AlignRight),
+			)
+
+			chanTable.SetCell(rows+i, 4, tview.NewTableCell("[pink]"+result.Type).
+				SetSelectable(false).
+				SetAlign(tview.AlignRight),
+			)
+		}
+
+		chanTable.Select(pos, 0)
+		chanTable.ScrollToEnd()
+
+		if !inputFocused() && !playlistFocused() {
+			App.SetFocus(chanTable)
+		}
+
+		chanTable.SetSelectable(true, false)
+	})
+
+	InfoMessage("Results fetched", false)
 }
 
 // ViewChannel shows the playlist contents after loading the playlist URL.
@@ -147,6 +260,10 @@ func viewChannel(info lib.SearchResult, vtype string, newlist bool) {
 		return
 	}
 	defer chRateLimit.Release(1)
+
+	if info.AuthorID != "" {
+		chanID = info.AuthorID
+	}
 
 	_, _, width, _ := ResultsList.GetRect()
 

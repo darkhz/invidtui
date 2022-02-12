@@ -20,6 +20,7 @@ type ChannelResult struct {
 
 var (
 	chanpage  int
+	chanspage int
 	chanid    string
 	chantype  string
 	chanMutex sync.Mutex
@@ -124,12 +125,17 @@ func (c *Client) chandecode(query, dectype string) (interface{}, error) {
 // ChannelVideos loads only the videos present in the channel.
 func (c *Client) ChannelVideos(id string, cancel bool) (ChannelResult, error) {
 	if id == "" {
-		incChanPage()
+		incChanPage(false)
 	} else {
-		setChanPage(1)
+		setChanPage(1, false)
 	}
 
-	return c.Channel(id, "videos", videoFields+"&page="+getChanPage(), cancel)
+	return c.Channel(
+		id,
+		"videos",
+		videoFields+"&page="+strconv.Itoa(getChanPage(false)),
+		cancel,
+	)
 }
 
 // ChannelPlaylists loads only the playlists present in the channel.
@@ -137,23 +143,44 @@ func (c *Client) ChannelPlaylists(id string, cancel bool) (ChannelResult, error)
 	return c.Channel(id, "playlists", "?fields=playlists", cancel)
 }
 
-func getChanPage() string {
-	chanMutex.Lock()
-	defer chanMutex.Unlock()
-
-	return strconv.Itoa(chanpage)
+// ChannelSearch searches for a query string in the channel.
+func (c *Client) ChannelSearch(id, query string, getmore bool) ([]SearchResult, error) {
+	return c.Search("channel", query, getmore, id)
 }
 
-func setChanPage(pg int) {
+func getChanPage(search bool) int {
 	chanMutex.Lock()
 	defer chanMutex.Unlock()
 
-	chanpage = pg
+	var page int
+
+	if search {
+		page = chanspage
+	} else {
+		page = chanpage
+	}
+
+	return page
 }
 
-func incChanPage() {
+func setChanPage(pg int, search bool) {
 	chanMutex.Lock()
 	defer chanMutex.Unlock()
 
-	chanpage++
+	if search {
+		chanspage = pg
+	} else {
+		chanpage = pg
+	}
+}
+
+func incChanPage(search bool) {
+	chanMutex.Lock()
+	defer chanMutex.Unlock()
+
+	if search {
+		chanspage++
+	} else {
+		chanpage++
+	}
 }

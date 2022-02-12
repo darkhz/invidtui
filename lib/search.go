@@ -34,18 +34,34 @@ const searchField = "&fields=type,title,videoId,playlistId,author,authorId,publi
 // It queries for two pages of results, and keeps a track of the number of
 // pages currently returned. If the getmore parameter is true, it will add
 // two more pages to the already tracked page number, and return the result.
-func (c *Client) Search(stype, text string, getmore bool) ([]SearchResult, error) {
+func (c *Client) Search(stype, text string, getmore bool, chanid ...string) ([]SearchResult, error) {
 	var oldpg, newpg int
 	var results []SearchResult
+
+	setpg := func(i int) {
+		if chanid != nil {
+			setChanPage(i, true)
+		} else {
+			setPage(i)
+		}
+	}
+
+	getpg := func() int {
+		if chanid != nil {
+			return getChanPage(true)
+		}
+
+		return getPage()
+	}
 
 	if searchCtx != nil {
 		searchCancel()
 	}
 
 	if !getmore {
-		setPage(0)
+		setpg(0)
 	} else {
-		oldpg = getPage()
+		oldpg = getpg()
 	}
 
 	searchCtx, searchCancel = context.WithCancel(context.Background())
@@ -53,8 +69,14 @@ func (c *Client) Search(stype, text string, getmore bool) ([]SearchResult, error
 	for newpg = oldpg + 1; newpg <= oldpg+2; newpg++ {
 		var s []SearchResult
 
-		query := "search?q=" + url.QueryEscape(text) + searchField +
-			"&page=" + strconv.Itoa(newpg) + "&type=" + stype
+		query := "?q=" + url.QueryEscape(text) + searchField +
+			"&page=" + strconv.Itoa(newpg)
+
+		if chanid != nil {
+			query = "channels/search/" + chanid[0] + query
+		} else {
+			query = "search" + query + "&type=" + stype
+		}
 
 		res, err := c.ClientRequest(searchCtx, query)
 		if err != nil {
@@ -71,7 +93,7 @@ func (c *Client) Search(stype, text string, getmore bool) ([]SearchResult, error
 		res.Body.Close()
 	}
 
-	setPage(newpg)
+	setpg(newpg)
 
 	return results, nil
 }

@@ -193,7 +193,7 @@ func captureListEvents(event *tcell.EventKey) {
 
 	switch event.Rune() {
 	case '/':
-		searchText()
+		searchText(false)
 
 	case 'i':
 		ViewPlaylist(true, event.Modifiers() == tcell.ModAlt)
@@ -244,10 +244,24 @@ func resizeListEntries(width int) {
 
 // searchText takes the search string from user input,
 // clears ResultsList, and displays new search results.
-func searchText() {
-	sfunc := func(text string) {
-		App.SetFocus(ResultsList)
+func searchText(channel bool) {
+	srchfn := func(text string) {
+		if channel {
+			SearchChannel(text)
+		} else {
+			SearchAndList(text)
+		}
+	}
+
+	srchfocus := func() {
+		_, item := VPage.GetFrontPage()
+
+		App.SetFocus(item)
 		Status.SwitchToPage("messages")
+	}
+
+	sfunc := func(text string) {
+		srchfocus()
 
 		if text != "" {
 			lib.AddToHistory(text)
@@ -255,7 +269,7 @@ func searchText() {
 			return
 		}
 
-		go SearchAndList(text)
+		go srchfn(text)
 	}
 
 	ifunc := func(e *tcell.EventKey) *tcell.EventKey {
@@ -264,8 +278,7 @@ func searchText() {
 			sfunc(InputBox.GetText())
 
 		case tcell.KeyEscape:
-			App.SetFocus(ResultsList)
-			Status.SwitchToPage("messages")
+			srchfocus()
 
 		case tcell.KeyUp:
 			t := lib.HistoryReverse()
@@ -280,13 +293,25 @@ func searchText() {
 			}
 
 		case tcell.KeyCtrlE:
+			if channel {
+				return nil
+			}
+
 			InputBox.SetLabel(toggleSearch())
 		}
 
 		return e
 	}
 
-	SetInput("Search ("+stype+"):", 0, sfunc, ifunc)
+	label := "Search"
+
+	if channel {
+		label += " channel:"
+	} else {
+		label += " (" + stype + "):"
+	}
+
+	SetInput(label, 0, sfunc, ifunc)
 }
 
 // toggleSearch toggles the search type.
