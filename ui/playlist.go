@@ -409,6 +409,16 @@ func viewPlaylist(info lib.SearchResult, newlist bool) {
 			desc := strings.ReplaceAll(result.Description, "\n", " ")
 			desclen := len(desc)
 
+			header := tview.NewTextView()
+			header.SetRegions(true)
+			header.SetDynamicColors(true)
+			header.SetBackgroundColor(tcell.ColorDefault)
+			header.SetText(
+				`[::b]Playlist[-:-:-] ["video"][darkcyan]Videos[""]`,
+			)
+			header.Highlight("video")
+
+			plViewFlex.AddItem(header, 1, 0, false)
 			plViewFlex.AddItem(plTableTitle, 1, 0, false)
 
 			if desclen > 0 {
@@ -427,7 +437,7 @@ func viewPlaylist(info lib.SearchResult, newlist bool) {
 			plViewFlex.AddItem(plistTable, 0, 10, true)
 
 			plTableDesc.SetText(desc)
-			plTableTitle.SetText("[::bu]Playlist: " + result.Title)
+			plTableTitle.SetText("[::bu]" + result.Title)
 
 			VPage.AddAndSwitchToPage("playlistview", plViewFlex, true)
 		}

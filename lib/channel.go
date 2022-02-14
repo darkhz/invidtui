@@ -57,9 +57,10 @@ func (c *Client) Channel(id, stype, params string, cancel bool) (ChannelResult, 
 	// contents immediately.
 	PlistCtx, PlistCancel = context.WithCancel(context.Background())
 
+	chantype = stype
+
 	if id != "" {
 		chanid = id
-		chantype = stype
 
 		query := "channels/" + chanid + channelFields
 

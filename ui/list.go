@@ -193,7 +193,7 @@ func captureListEvents(event *tcell.EventKey) {
 
 	switch event.Rune() {
 	case '/':
-		searchText(false)
+		searchText(event.Modifiers() == tcell.ModAlt)
 
 	case 'i':
 		ViewPlaylist(true, event.Modifiers() == tcell.ModAlt)
@@ -254,9 +254,12 @@ func searchText(channel bool) {
 	}
 
 	srchfocus := func() {
-		_, item := VPage.GetFrontPage()
+		if channel {
+			App.SetFocus(chSearchTable)
+		} else {
+			App.SetFocus(ResultsList)
+		}
 
-		App.SetFocus(item)
 		Status.SwitchToPage("messages")
 	}
 
@@ -307,6 +310,13 @@ func searchText(channel bool) {
 
 	if channel {
 		label += " channel:"
+		if ResultsList.HasFocus() {
+			err := ViewChannel("search", true, false)
+			if err != nil {
+				ErrorMessage(err)
+				return
+			}
+		}
 	} else {
 		label += " (" + stype + "):"
 	}
@@ -352,7 +362,8 @@ func getListReference() (lib.SearchResult, error) {
 	} else if plistTable.HasFocus() {
 		table = plistTable
 	} else {
-		table = chanTable
+		_, item := chPages.GetFrontPage()
+		table = item.(*tview.Table)
 	}
 
 	row, _ := table.GetSelection()
