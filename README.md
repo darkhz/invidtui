@@ -12,17 +12,17 @@ Currently, it is tested on Linux and Windows, and it should work on MacOS.
 
 ## Features
 - Play audio or video
-- Search with history support
 - Control the video resolution
 - Ability to open, view, edit and save m3u8 playlists
 - Automatically queries the invidious API and selects the best instance
+- Search for and browse videos, playlists and channels, with history support
 
 ## Requirements
 - MPV
 - Youtube-dl
 
 ## Installation
-You can install the package either via the following command:
+You can install the package either via the following command:<br />
 ```go install github.com/darkhz/invidtui@latest ```
 
 or check the Releases page and download the binary that matches your OS and architecture.
@@ -38,11 +38,23 @@ or check the Releases page and download the binary that matches your OS and arch
       --ytdl-path="youtube-dl"  Specify path to youtube-dl executable or its forks (yt-dlp, yt-dtlp_x86)
       --num-retries=100         Set the number of retries for connecting to the socket.
 
+## Configuration file
+Typing `invidtui --help` will show you the location of the config file.<br />
+Config file definitions are in the form of a simple `name=value` or `name value` pair.<br /><br />
+For example:
+```
+video-res=720p
+mpv-path=/home/user/mycustompath/mpv
+ytdl-path=/home/user/mycustompath/ytdl
+num-retries=10
+```
+
 ## Keybindings
 
 ### Search
 
-> <kbd>/</kbd><br /> Show search input<br />
+> <kbd>/</kbd><br /> Show search input. To search a channel from the main screen
+> immediately instead of loading it first, press <kbd>Alt</kbd>+<kbd>/</kbd>.<br />
 >
 > <kbd>Ctrl</kbd> + <kbd>e</kbd><br /> Switch between search modes
 > (video, playlist, channel)<br />
@@ -56,7 +68,7 @@ or check the Releases page and download the binary that matches your OS and arch
 >
 > <kbd>Ctrl</kbd>+<kbd>s</kbd><br /> Save current playlist queue<br />
 >
-> <kbd>m</kbd><br /> Move an item in playlist queue. To cancel a move,
+> <kbd>Shift</kbd>+<kbd>m</kbd><br /> Move an item in playlist queue. To cancel a move,
 > just press <kbd>Enter</kbd> in the same position the move operation
 > was started.<br />
 >
@@ -107,6 +119,14 @@ Note: These controls will work across all pages (search, playlist or channel pag
 > <kbd>Enter</kbd><br />
 > This control works on the search, playlist, channel video and channel playlist pages.<br />
 > Fetches more results.<br />
+>
+> <kbd>Tab</kbd><br />
+> This control works on the channel video, channel playlist and channel search pages<br />
+> Switches the channel page being shown.<br />
+>
+> <kbd>/</kbd><br />
+> This control works on the search and channel search pages.<br />
+> Refer to the search keybindings above.<br />
 >
 > <kbd>a</kbd><br />
 > This control works on the search, playlist and channel video list pages.<br />
