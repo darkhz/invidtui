@@ -80,7 +80,7 @@ func MPVStart() error {
 func MPVConnect(socket string, mpvexec bool) (*Connector, error) {
 	if mpvexec {
 		mpvcmd = exec.Command(
-			*mpvpath,
+			mpvpath,
 			"--idle",
 			"--keep-open",
 			"--no-terminal",
@@ -88,7 +88,7 @@ func MPVConnect(socket string, mpvexec bool) (*Connector, error) {
 			"--no-input-terminal",
 			"--user-agent="+userAgent,
 			"--input-ipc-server="+socket,
-			"--script-opts=ytdl_hook-ytdl_path="+*ytdlpath,
+			"--script-opts=ytdl_hook-ytdl_path="+ytdlpath,
 		)
 
 		err := mpvcmd.Start()
@@ -98,7 +98,7 @@ func MPVConnect(socket string, mpvexec bool) (*Connector, error) {
 	}
 
 	conn := mpvipc.NewConnection(socket)
-	for i := 1; i < *connretries; i++ {
+	for i := 1; i < connretries; i++ {
 		err := conn.Open()
 		if err != nil {
 			time.Sleep(1 * time.Second)

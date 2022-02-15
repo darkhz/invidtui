@@ -160,7 +160,7 @@ func getVideoByFormatURL(video VideoResult, audio bool) (string, string) {
 func videoWithResolution(video VideoResult, vtype string) string {
 	var prevData string
 
-	vq := *videoResolution
+	vq := videoResolution
 
 	for _, format := range video.AdaptiveFormats {
 		q := format.Resolution
@@ -200,7 +200,7 @@ func loopFormats(
 	// This works mainly for 720p, 360p and 144p video streams.
 	if !audio {
 		for _, format := range video.FormatStreams {
-			if format.Resolution == *videoResolution {
+			if format.Resolution == videoResolution {
 				videoUrl = getLatestURL(video.VideoID, format.Itag)
 				return videoUrl, audioUrl
 			}

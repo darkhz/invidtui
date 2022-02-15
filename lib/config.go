@@ -5,52 +5,98 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
+	"github.com/jnovack/flag"
 	"github.com/mitchellh/go-homedir"
-	"gopkg.in/alecthomas/kingpin.v2"
 )
 
 var (
 	sockPath   string
 	configPath string
 
-	videoResolution *string
-	mpvpath         *string
-	ytdlpath        *string
-	connretries     *int
-	fcSocket        *bool
+	videoResolution string
+	mpvpath         string
+	ytdlpath        string
+	connretries     int
+	fcSocket        bool
 )
 
 // SetupFlags sets up the commandline flags
 func SetupFlags() error {
 	var validres bool
 
-	videoResolution = kingpin.Flag(
+	flag.StringVar(
+		&videoResolution,
 		"video-res",
+		"720p",
 		"Set the default video resolution.",
-	).Default("720p").String()
+	)
 
-	fcSocket = kingpin.Flag(
+	flag.BoolVar(
+		&fcSocket,
 		"close-instances",
+		false,
 		"Close all currently running instances.",
-	).Default("false").Bool()
+	)
 
-	mpvpath = kingpin.Flag(
+	flag.StringVar(
+		&mpvpath,
 		"mpv-path",
+		"mpv",
 		"Specify path to the mpv executable.",
-	).Default("mpv").String()
+	)
 
-	ytdlpath = kingpin.Flag(
+	flag.StringVar(
+		&ytdlpath,
 		"ytdl-path",
+		"youtube-dl",
 		"Specify path to youtube-dl executable or its forks (yt-dlp, yt-dtlp_x86)",
-	).Default("youtube-dl").String()
+	)
 
-	connretries = kingpin.Flag(
+	flag.IntVar(
+		&connretries,
 		"num-retries",
+		100,
 		"Set the number of retries for connecting to the socket.",
-	).Default("100").Int()
+	)
 
-	kingpin.Parse()
+	config, err := ConfigPath("config")
+	if err != nil {
+		return err
+	}
+	flag.CommandLine.ParseFile(config)
+
+	flag.Usage = func() {
+		fmt.Fprintf(
+			flag.CommandLine.Output(),
+			"invidtui [<flags>]\n\nConfig file is %s\n\nFlags:\n",
+			config,
+		)
+
+		flag.CommandLine.VisitAll(func(f *flag.Flag) {
+			s := fmt.Sprintf("  --%s", f.Name)
+
+			if len(s) <= 4 {
+				s += "\t"
+			} else {
+				s += "\n    \t"
+			}
+			s += strings.ReplaceAll(f.Usage, "\n", "\n    \t")
+
+			if f.Name != "close-instances" {
+				if f.Name != "num-retries" {
+					s += fmt.Sprintf(" (default %q)", f.DefValue)
+				} else {
+					s += fmt.Sprintf(" (default %v)", f.DefValue)
+				}
+			}
+
+			fmt.Fprint(flag.CommandLine.Output(), s, "\n")
+		})
+	}
+
+	flag.Parse()
 
 	for _, q := range []string{
 		"144p",
@@ -62,22 +108,22 @@ func SetupFlags() error {
 		"1440p",
 		"2160p",
 	} {
-		if q == *videoResolution {
+		if q == videoResolution {
 			validres = true
 			break
 		}
 	}
 
 	if !validres {
-		return fmt.Errorf("%s is not a valid video resolution", *videoResolution)
+		return fmt.Errorf("%s is not a valid video resolution", videoResolution)
 	}
 
-	_, err := exec.LookPath(*mpvpath)
+	_, err = exec.LookPath(mpvpath)
 	if err != nil {
 		return fmt.Errorf("Could not find the mpv executable")
 	}
 
-	_, err = exec.LookPath(*ytdlpath)
+	_, err = exec.LookPath(ytdlpath)
 	if err != nil {
 		return fmt.Errorf("Could not find the youtube-dl executable")
 	}
@@ -154,7 +200,7 @@ func ConfigPath(ftype string) (string, error) {
 			}
 
 		} else {
-			if !*fcSocket {
+			if !fcSocket {
 				return "", fmt.Errorf("Socket exists at %s, is another instance running?", sockPath)
 			}
 
@@ -176,9 +222,8 @@ func ConfigPath(ftype string) (string, error) {
 
 		return hpath, nil
 
-	// TODO: Implement config.yaml
 	case "config":
-		cpath := filepath.Join(configPath, "config.yaml")
+		cpath := filepath.Join(configPath, "config")
 
 		if _, err := os.Stat(cpath); err != nil {
 			fd, err := os.Create(cpath)

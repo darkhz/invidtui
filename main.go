@@ -19,14 +19,13 @@ func infoMessage(info string) {
 func main() {
 	var err error
 
-	err = lib.SetupFlags()
+	err = lib.SetupConfig()
 	if err != nil {
 		errMessage(err.Error())
 		return
 	}
 
-	infoMessage("Loading configuration...")
-	err = lib.SetupConfig()
+	err = lib.SetupFlags()
 	if err != nil {
 		errMessage(err.Error())
 		return
