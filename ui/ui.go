@@ -44,6 +44,15 @@ func SetupUI() error {
 
 		case tcell.KeyCtrlZ:
 			appSuspend = true
+
+		case tcell.KeyCtrlX:
+			lib.GetClient().Playlist("", true)
+		}
+
+		switch event.Rune() {
+		case 'q':
+			confirmQuit()
+			return nil
 		}
 
 		return event
@@ -118,16 +127,34 @@ func setupPrimitives() {
 
 // confirmQuit shows a confirmation message before exiting.
 func confirmQuit() {
+	p := App.GetFocus()
+
+	qfocus := func() {
+		App.SetFocus(p)
+		Status.SwitchToPage("messages")
+	}
+
 	qfunc := func(text string) {
 		if text == "y" {
 			StopUI()
 		} else {
-			App.SetFocus(ResultsList)
-			Status.SwitchToPage("messages")
+			qfocus()
 		}
 	}
 
-	SetInput("Quit? (y/n)", 1, qfunc, nil)
+	ifunc := func(e *tcell.EventKey) *tcell.EventKey {
+		switch e.Key() {
+		case tcell.KeyEnter:
+			qfunc(InputBox.GetText())
+
+		case tcell.KeyEscape:
+			qfocus()
+		}
+
+		return e
+	}
+
+	SetInput("Quit? (y/n)", 1, qfunc, ifunc)
 }
 
 // detectMPVClose detects if MPV has exited unexpectedly,

@@ -93,9 +93,6 @@ func setupViewPlaylist() {
 		case tcell.KeyEscape:
 			VPage.SwitchToPage(prevpage)
 			App.SetFocus(previtem)
-
-		case tcell.KeyCtrlX:
-			lib.GetClient().Playlist("", true)
 		}
 
 		return event

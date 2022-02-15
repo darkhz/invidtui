@@ -184,11 +184,6 @@ func captureListEvents(event *tcell.EventKey) {
 	switch event.Key() {
 	case tcell.KeyEnter:
 		loadMoreResults()
-
-	case tcell.KeyCtrlX:
-		App.SetFocus(ResultsList)
-		ResultsList.SetSelectable(true, false)
-		lib.GetClient().Playlist("", true)
 	}
 
 	switch event.Rune() {
@@ -203,9 +198,6 @@ func captureListEvents(event *tcell.EventKey) {
 
 	case 'U':
 		ViewChannel("playlist", true, event.Modifiers() == tcell.ModAlt)
-
-	case 'q':
-		confirmQuit()
 	}
 }
 

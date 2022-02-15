@@ -476,9 +476,6 @@ func chTableEvents(event *tcell.EventKey) {
 		VPage.SwitchToPage("main")
 		App.SetFocus(ResultsList)
 		ResultsList.SetSelectable(true, false)
-
-	case tcell.KeyCtrlX:
-		lib.GetClient().Playlist("", true)
 	}
 
 	switch event.Rune() {
