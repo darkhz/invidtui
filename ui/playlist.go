@@ -332,7 +332,7 @@ func startPlaylist() {
 // loadMorePlistResults appends more playlist results to the playlist
 // view table.
 func loadMorePlistResults() {
-	ViewPlaylist(false, false)
+	go viewPlaylist(lib.SearchResult{}, false)
 }
 
 // ViewPlaylist shows the playlist contents after loading the playlist URL.
