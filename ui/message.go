@@ -34,7 +34,7 @@ func SetupStatus() {
 	Status.AddPage("input", InputBox, true, true)
 	Status.AddPage("messages", MessageBox, true, true)
 
-	msgchan = make(chan message)
+	msgchan = make(chan message, 10)
 	sctx, scancel = context.WithCancel(context.Background())
 
 	go startStatus()
@@ -56,7 +56,12 @@ func SetupMessageBox() {
 
 // InfoMessage sends an info message to the status bar.
 func InfoMessage(text string, persist bool) {
-	msgchan <- message{"[white::b]" + text, persist}
+	select {
+	case msgchan <- message{"[white::b]" + text, persist}:
+		return
+
+	default:
+	}
 }
 
 // ErrorMessage sends an error message to the status bar.
@@ -65,7 +70,12 @@ func ErrorMessage(err error) {
 		return
 	}
 
-	msgchan <- message{"[red::b]" + err.Error(), false}
+	select {
+	case msgchan <- message{"[red::b]" + err.Error(), false}:
+		return
+
+	default:
+	}
 }
 
 // startStatus starts the message event loop
@@ -110,7 +120,7 @@ func startStatus() {
 
 			cleared = true
 
-			App.QueueUpdate(func() {
+			App.QueueUpdateDraw(func() {
 				MessageBox.SetText(text)
 			})
 		}
