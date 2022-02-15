@@ -29,6 +29,9 @@ var (
 
 	// MPVErrors is a channel to receive mpv error messages.
 	MPVErrors chan string
+
+	// MPVFileLoaded is a channel to receive file-loaded events.
+	MPVFileLoaded chan struct{}
 )
 
 // NewConnector returns a Connector with an active mpvipc connection.
@@ -58,6 +61,7 @@ func MPVStart() error {
 	}
 
 	MPVErrors = make(chan string)
+	MPVFileLoaded = make(chan struct{}, 100)
 	go mpvctl.eventListener()
 
 	mpvInfoChan = make(chan int, 100)
@@ -565,6 +569,9 @@ func (c *Connector) eventListener() {
 						}
 					}
 				}
+
+			case "file-loaded":
+				MPVFileLoaded <- struct{}{}
 
 			case "shutdown":
 				shutdown()

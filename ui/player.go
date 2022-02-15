@@ -252,6 +252,13 @@ func monitorErrors() {
 			}
 
 			ErrorMessage(fmt.Errorf("Unable to play %s", msg))
+
+		case _, ok := <-lib.MPVFileLoaded:
+			if !ok {
+				return
+			}
+
+			AddPlayer()
 		}
 	}
 }
