@@ -8,6 +8,7 @@ import (
 type popupModal struct {
 	width      int
 	open       bool
+	playing    bool
 	table      *tview.Table
 	modal      *tview.Flex
 	origFlex   *tview.Flex
@@ -50,6 +51,19 @@ func resizemodal() {
 		height = screenHeight
 	}
 
+	pad := 1
+	playing := isPlaying()
+	if popup.playing != playing {
+		if playing {
+			pad += 2
+		}
+
+		popup.modal.RemoveItemIndex(popup.modal.GetItemCount() - 1)
+		popup.modal.AddItem(nil, pad, 1, false)
+
+		popup.playing = playing
+	}
+
 	popup.origFlex.ResizeItem(popup.table, height, 0)
 	popup.modal.ResizeItem(popup.origFlex, height, 0)
 	popup.statusFlex.ResizeItem(popup.modal, screenWidth, 0)
@@ -61,7 +75,8 @@ func statusmodal(v, t tview.Primitive) tview.Primitive {
 	screenHeight /= 4
 
 	pad := 1
-	if isPlaying() {
+	playing := isPlaying()
+	if playing {
 		pad += 2
 	}
 
@@ -80,6 +95,8 @@ func statusmodal(v, t tview.Primitive) tview.Primitive {
 		AddItem(nil, 0, 1, false).
 		AddItem(stmodal, 10, 1, false).
 		AddItem(nil, 0, 1, false)
+
+	popup.playing = playing
 
 	popup.modal = stmodal
 	popup.table = t.(*tview.Table)
