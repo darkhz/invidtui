@@ -42,8 +42,7 @@ var (
 	prevpage      string
 	previtem      tview.Primitive
 	moving        bool
-	pctx          context.Context
-	pcancel       context.CancelFunc
+	playlistExit  chan struct{}
 	playlistEvent chan struct{}
 
 	plistIdMap  map[string]struct{}
@@ -56,6 +55,7 @@ func SetupPlaylist() {
 	setupViewChannel()
 	setupPlaylistPopup()
 
+	playlistExit = make(chan struct{})
 	playlistEvent = make(chan struct{})
 	plistIdMap = make(map[string]struct{})
 
@@ -215,8 +215,6 @@ func playlistPopup() {
 		return
 	}
 
-	pctx, pcancel = context.WithCancel(context.Background())
-
 	if plistPopup.GetRowCount() == 0 {
 		plistPopup.SetCell(0, 1, tview.NewTableCell("[::b]Loading...").
 			SetSelectable(false))
@@ -249,7 +247,7 @@ func startPlaylist() {
 				plistPopup.Clear()
 			})
 
-			pcancel()
+			playlistExit <- struct{}{}
 
 			return
 		}
@@ -312,7 +310,7 @@ func startPlaylist() {
 
 	for {
 		select {
-		case <-pctx.Done():
+		case <-playlistExit:
 			return
 
 		case <-playlistEvent:
@@ -363,6 +361,7 @@ func ViewPlaylist(newlist, noload bool) {
 		}
 	}
 
+	ResultsList.SetSelectable(false, false)
 	prevpage, previtem = VPage.GetFrontPage()
 
 	go viewPlaylist(info, newlist)
@@ -373,8 +372,6 @@ func viewPlaylist(info lib.SearchResult, newlist bool) {
 	var err error
 
 	InfoMessage("Loading playlist entries", false)
-	ResultsList.SetSelectable(false, false)
-	defer ResultsList.SetSelectable(true, false)
 
 	if !plRateLimit.TryAcquire(1) {
 		InfoMessage("Playlist fetch in progress, please wait", false)
@@ -499,6 +496,7 @@ func viewPlaylist(info lib.SearchResult, newlist bool) {
 
 		plistTable.ScrollToEnd()
 		plistTable.SetSelectable(true, false)
+		ResultsList.SetSelectable(true, false)
 
 		name, _ := VPage.GetFrontPage()
 		if name == "playlistview" {
@@ -574,7 +572,8 @@ func plEnter() {
 
 // plExit exits the playlist popup.
 func plExit() {
-	pcancel()
+	playlistExit <- struct{}{}
+
 	exitFocus()
 	plistPopup.Clear()
 	popupStatus(false)
