@@ -485,6 +485,8 @@ func chTableEvents(event *tcell.EventKey) {
 
 	case '/':
 		setCurrType("search")
+		chPageMark.Highlight("search")
+		chPages.SwitchToPage("search")
 		searchText(true)
 	}
 }
