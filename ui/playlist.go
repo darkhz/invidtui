@@ -137,6 +137,8 @@ func setupPlaylistPopup() {
 		SetDirection(tview.FlexRow)
 
 	plistPopup.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		captureSendPlayerEvent(event)
+
 		switch event.Key() {
 		case tcell.KeyEnter:
 			plEnter()
@@ -165,14 +167,6 @@ func setupPlaylistPopup() {
 
 		case 'S':
 			plExit()
-			fallthrough
-
-		case '<', '>':
-			ResultsList.InputHandler()(event, nil)
-			sendPlaylistEvent()
-
-		case ' ', 'l', 's':
-			ResultsList.InputHandler()(event, nil)
 		}
 
 		return event
