@@ -12,7 +12,6 @@ import (
 	"github.com/darkhz/invidtui/lib"
 	"github.com/darkhz/tview"
 	"github.com/gdamore/tcell/v2"
-	"golang.org/x/sync/semaphore"
 )
 
 // EntryData stores playlist entry data.
@@ -45,8 +44,7 @@ var (
 	playlistExit  chan struct{}
 	playlistEvent chan struct{}
 
-	plistIdMap  map[string]struct{}
-	plRateLimit *semaphore.Weighted
+	plistIdMap map[string]struct{}
 )
 
 // SetupPlaylist sets up the playlist popup.
@@ -58,8 +56,6 @@ func SetupPlaylist() {
 	playlistExit = make(chan struct{})
 	playlistEvent = make(chan struct{})
 	plistIdMap = make(map[string]struct{})
-
-	plRateLimit = semaphore.NewWeighted(1)
 }
 
 // setupViewPlaylist sets up the playlist view page.
@@ -364,14 +360,9 @@ func ViewPlaylist(newlist, noload bool) {
 // viewPlaylist loads the playlist URL and shows the playlist contents.
 func viewPlaylist(info lib.SearchResult, newlist bool) {
 	var err error
+	var cancel bool
 
 	InfoMessage("Loading playlist entries", false)
-
-	if !plRateLimit.TryAcquire(1) {
-		InfoMessage("Playlist fetch in progress, please wait", false)
-		return
-	}
-	defer plRateLimit.Release(1)
 
 	result, err := lib.GetClient().Playlist(info.PlaylistID, false)
 	if err != nil {
@@ -379,10 +370,15 @@ func viewPlaylist(info lib.SearchResult, newlist bool) {
 			InfoMessage("Loading cancelled", false)
 		}
 
-		return
+		cancel = true
 	}
 
 	App.QueueUpdateDraw(func() {
+		if cancel {
+			ResultsList.SetSelectable(true, false)
+			return
+		}
+
 		var skipped int
 
 		pos := -1

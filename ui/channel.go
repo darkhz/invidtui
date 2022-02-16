@@ -161,7 +161,7 @@ func ViewChannel(vtype string, newlist, noload bool) error {
 // viewChannel loads the playlist URL and shows the channel contents.
 func viewChannel(info lib.SearchResult, vtype string, newlist bool) {
 	var err error
-	var qsrch bool
+	var qsrch, cancel bool
 	var result lib.ChannelResult
 	var resfunc func(pos, rows, width int) int
 
@@ -197,7 +197,7 @@ func viewChannel(info lib.SearchResult, vtype string, newlist bool) {
 			InfoMessage("Loading cancelled", false)
 		}
 
-		return
+		cancel = true
 	}
 
 	rmdesc := func() {
@@ -218,6 +218,11 @@ func viewChannel(info lib.SearchResult, vtype string, newlist bool) {
 	}
 
 	App.QueueUpdateDraw(func() {
+		if cancel {
+			ResultsList.SetSelectable(true, false)
+			return
+		}
+
 		_, item := chPages.GetFrontPage()
 		chTable := item.(*tview.Table)
 
