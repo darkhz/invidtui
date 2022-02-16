@@ -102,15 +102,14 @@ func ViewChannel(vtype string, newlist, noload bool) error {
 	var info lib.SearchResult
 
 	if noload {
-		VPage.SwitchToPage("channelview")
-
 		_, item := chPages.GetFrontPage()
-		if item == nil {
+		if !VPage.HasPage("channelview") || item == nil {
 			err = fmt.Errorf("Channel not loaded")
 			InfoMessage(err.Error(), false)
 			return err
 		}
 
+		VPage.SwitchToPage("channelview")
 		App.SetFocus(item)
 
 		return nil
@@ -244,7 +243,9 @@ func viewChannel(info lib.SearchResult, vtype string, newlist bool) {
 			chDesc.SetText(desc)
 			chTitle.SetText("[::bu]" + result.Author)
 
-			VPage.AddPage("channelview", chViewFlex, true, false)
+			if !VPage.HasPage("channelview") {
+				VPage.AddPage("channelview", chViewFlex, true, true)
+			}
 		}
 
 		chTable.SetSelectable(false, false)
