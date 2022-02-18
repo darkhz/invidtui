@@ -39,6 +39,10 @@ or check the Releases page and download the binary that matches your OS and arch
       --num-retries=100         Set the number of retries for connecting to the socket.
 
 ## Configuration file
+Generally, invidtui will work out-of-the-box, with no configuration required.<br />
+
+In case you need to specify settings without using command-line options, a config file can be used.<br />
+
 Typing `invidtui --help` will show you the location of the config file.<br />
 Config file definitions are in the form of a simple `name=value` or `name value` pair.<br /><br />
 For example:
@@ -78,6 +82,10 @@ num-retries=10
 Note: These controls will work across all pages (search, playlist or channel pages)<br /><br />
 
 > <kbd>Space</kbd><br /> Pause/unpause<br />
+>
+> <kbd>=</kbd><br /> Increase volume<br />
+>
+> <kbd>-</kbd><br /> Decrease volume<br />
 >
 > <kbd>Right</kbd><br /> Seek forward<br />
 >
