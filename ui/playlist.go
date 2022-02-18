@@ -237,7 +237,7 @@ func startPlaylist() {
 				plistPopup.Clear()
 			})
 
-			playlistExit <- struct{}{}
+			sendPlaylistExit()
 
 			return
 		}
@@ -565,7 +565,7 @@ func plEnter() {
 
 // plExit exits the playlist popup.
 func plExit() {
-	playlistExit <- struct{}{}
+	sendPlaylistExit()
 
 	exitFocus()
 	plistPopup.Clear()
@@ -683,6 +683,16 @@ func exitFocus() {
 func sendPlaylistEvent() {
 	select {
 	case playlistEvent <- struct{}{}:
+		return
+
+	default:
+	}
+}
+
+// sendPlaylistExit sends a playlist exit event.
+func sendPlaylistExit() {
+	select {
+	case playlistExit <- struct{}{}:
 		return
 
 	default:

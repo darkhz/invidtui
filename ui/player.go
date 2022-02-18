@@ -165,7 +165,12 @@ func StopPlayer() {
 // SetPlayer sends a signal to StartPlayer on whether to
 // start or stop the playback loop.
 func SetPlayer(play bool) {
-	playerChan <- play
+	select {
+	case playerChan <- play:
+		return
+
+	default:
+	}
 }
 
 // PlaySelected plays the current selection.
