@@ -71,6 +71,7 @@ func FormatPublished(published string) string {
 
 // GetProgress renders a progress bar and media data.
 func GetProgress(width int) (string, string, error) {
+	var lhs, rhs string
 	var state, mtype, totaltime, vol string
 
 	ppos := GetMPV().PlaylistPos()
@@ -139,14 +140,12 @@ func GetProgress(width int) (string, string, error) {
 	}
 
 	if shuffle {
-		loop += " S"
+		lhs += " S"
 	}
 
 	if mute {
-		loop += " M"
+		lhs += " M"
 	}
-
-	loop = strings.TrimPrefix(loop, " ")
 
 	if paused {
 		if eof {
@@ -158,10 +157,14 @@ func GetProgress(width int) (string, string, error) {
 		state = ">"
 	}
 
-	return title, (state + " " + currtime +
-		" |" + strings.Repeat("█", length) +
-		strings.Repeat(" ", endlength) + "| " +
-		totaltime + " " + loop + " " + vol + " " + mtype), nil
+	rhs = " " + vol + " " + mtype
+	lhs = loop + lhs + " " + state + " "
+	progress := currtime + " |" + strings.Repeat("█", length) + strings.Repeat(" ", endlength) + "| " + totaltime
+
+	strings.TrimPrefix(lhs, " ")
+	strings.TrimPrefix(rhs, " ")
+
+	return title, (lhs + progress + rhs), nil
 }
 
 // IsValidURL checks if a URL is valid.
