@@ -58,14 +58,12 @@ func SetupUI() error {
 		return event
 	})
 
-	App.SetBeforeDrawFunc(func(t tcell.Screen) bool {
+	App.SetAfterDrawFunc(func(t tcell.Screen) {
 		width, _ := t.Size()
 
 		suspendUI(t)
 		resizePopup(width)
 		resizeListEntries(width)
-
-		return false
 	})
 
 	InfoMessage(initMessage, true)
