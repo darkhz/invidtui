@@ -22,6 +22,7 @@ var (
 	playing     bool
 	playingLock sync.Mutex
 	playerEvent chan struct{}
+	playerWidth int
 
 	addRateLimit *semaphore.Weighted
 )
@@ -347,6 +348,16 @@ func captureSendPlayerEvent(event *tcell.EventKey) {
 	if !nokey || !norune {
 		sendPlayerEvent()
 	}
+}
+
+func resizePlayer(width int) {
+	if width == playerWidth {
+		return
+	}
+
+	sendPlayerEvent()
+
+	playerWidth = width
 }
 
 // sendPlayerEvent sends a player event.

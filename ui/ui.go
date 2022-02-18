@@ -65,6 +65,7 @@ func SetupUI() error {
 
 		suspendUI(t)
 		resizePopup(width)
+		resizePlayer(width)
 		resizeListEntries(width)
 	})
 
