@@ -51,8 +51,10 @@ func SetupUI() error {
 
 		switch event.Rune() {
 		case 'q':
-			confirmQuit()
-			return nil
+			if !InputBox.HasFocus() {
+				confirmQuit()
+				return nil
+			}
 		}
 
 		return event
