@@ -336,6 +336,16 @@ func (c *Connector) Duration() int {
 	return int(duration.(float64))
 }
 
+// Volume returns the current volume.
+func (c *Connector) Volume() int {
+	vol, err := c.Get("volume")
+	if err != nil {
+		return -1
+	}
+
+	return int(vol.(float64))
+}
+
 // PlaylistData return the current playlist data.
 func (c *Connector) PlaylistData() string {
 	list, err := c.Call("get_property_string", "playlist")
@@ -460,6 +470,26 @@ func (c *Connector) Play() {
 // Stop stops the playback.
 func (c *Connector) Stop() {
 	c.Call("stop")
+}
+
+// VolumeIncrease increases the volume.
+func (c *Connector) VolumeIncrease() {
+	vol := c.Volume()
+	if vol == -1 {
+		return
+	}
+
+	c.Set("volume", vol+1)
+}
+
+// VolumeDecrease decreases the volume.
+func (c *Connector) VolumeDecrease() {
+	vol := c.Volume()
+	if vol == -1 {
+		return
+	}
+
+	c.Set("volume", vol-1)
 }
 
 // SeekForward seeks the track forward.

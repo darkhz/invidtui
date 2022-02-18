@@ -325,6 +325,12 @@ func captureSendPlayerEvent(event *tcell.EventKey) {
 	case 'm':
 		lib.GetMPV().CycleMute()
 
+	case '=':
+		lib.GetMPV().VolumeIncrease()
+
+	case '-':
+		lib.GetMPV().VolumeDecrease()
+
 	case '<':
 		lib.GetMPV().Prev()
 
