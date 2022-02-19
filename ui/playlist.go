@@ -1,9 +1,7 @@
 package ui
 
 import (
-	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"strings"
@@ -366,10 +364,6 @@ func viewPlaylist(info lib.SearchResult, newlist bool) {
 
 	result, err := lib.GetClient().Playlist(info.PlaylistID, false)
 	if err != nil {
-		if errors.Is(err, context.Canceled) {
-			InfoMessage("Loading cancelled", false)
-		}
-
 		cancel = true
 	}
 

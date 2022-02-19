@@ -47,6 +47,7 @@ func SetupUI() error {
 
 		case tcell.KeyCtrlX:
 			lib.GetClient().Playlist("", true)
+			InfoMessage("Loading canceled", false)
 		}
 
 		switch event.Rune() {

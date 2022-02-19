@@ -1,8 +1,6 @@
 package ui
 
 import (
-	"context"
-	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -193,10 +191,6 @@ func viewChannel(info lib.SearchResult, vtype string, newlist bool) {
 		return
 	}
 	if err != nil {
-		if errors.Is(err, context.Canceled) {
-			InfoMessage("Loading cancelled", false)
-		}
-
 		cancel = true
 	}
 
