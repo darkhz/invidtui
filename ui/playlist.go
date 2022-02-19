@@ -698,7 +698,3 @@ func sendPlaylistExit() {
 	default:
 	}
 }
-
-func playlistFocused() bool {
-	return plistPopup.HasFocus()
-}
