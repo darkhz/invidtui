@@ -254,7 +254,12 @@ func viewChannel(info lib.SearchResult, vtype string, newlist bool) {
 
 			if pos >= 0 {
 				chTable.Select(pos, 0)
-				chTable.ScrollToEnd()
+
+				if pos == 0 {
+					chTable.ScrollToBeginning()
+				} else {
+					chTable.ScrollToEnd()
+				}
 			}
 
 			if !getChExited() {

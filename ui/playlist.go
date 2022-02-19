@@ -474,8 +474,14 @@ func viewPlaylist(info lib.SearchResult, newlist bool) {
 
 		InfoMessage("Playlist entries loaded", false)
 
-		if pos > 0 {
+		if pos >= 0 {
 			plistTable.Select(pos, 0)
+
+			if pos == 0 {
+				plistTable.ScrollToBeginning()
+			} else {
+				plistTable.ScrollToEnd()
+			}
 		}
 
 		plistTable.ScrollToEnd()
