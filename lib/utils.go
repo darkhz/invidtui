@@ -69,6 +69,31 @@ func FormatPublished(published string) string {
 	return ptext[0]
 }
 
+// FormatNumber takes a number and represents it in the
+// billions(B), millions(M), or thousands(K) format, with
+// one decimal place. If there is a zero after the decimal,
+// it is removed.
+func FormatNumber(num int) string {
+	for i, n := range []int{
+		1000000000,
+		1000000,
+		1000,
+	} {
+		if num >= n {
+			str := fmt.Sprintf("%.1f%c", float64(num)/float64(n), "BMK"[i])
+
+			split := strings.Split(str, ".")
+			if strings.Contains(split[1], "0") {
+				str = split[0]
+			}
+
+			return str
+		}
+	}
+
+	return strconv.Itoa(num)
+}
+
 // GetProgress renders a progress bar and media data.
 func GetProgress(width int) (string, string, error) {
 	var lhs, rhs string
