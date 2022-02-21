@@ -180,8 +180,16 @@ func (c *Connector) Set(prop string, value interface{}) error {
 // If the files parameter contains more than one filename argument, it
 // will consider the first entry as the video file and the second entry as
 // the audio file, set the relevant options and pass them to mpv.
-func (c *Connector) LoadFile(title string, duration int, files ...string) error {
-	options := "title='" + title + "',length=" + strconv.Itoa(duration)
+func (c *Connector) LoadFile(title string, duration int, liveaudio bool, files ...string) error {
+	options := "title='" + title
+
+	if duration > 0 {
+		options += "',length=" + strconv.Itoa(duration)
+	}
+
+	if liveaudio {
+		options += ",vid=no"
+	}
 
 	if len(files) == 2 {
 		options += ",audio-file=" + files[1]

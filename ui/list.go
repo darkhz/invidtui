@@ -110,6 +110,8 @@ func SearchAndList(text string) {
 		_, _, width, _ := ResultsList.GetRect()
 
 		for i, result := range results {
+			var lentext string
+
 			if pos < 0 {
 				pos = rows + i
 			}
@@ -117,6 +119,12 @@ func SearchAndList(text string) {
 			if result.Title == "" {
 				result.Title = result.Author
 				result.Author = ""
+			}
+
+			if result.LiveNow {
+				lentext = "Live"
+			} else {
+				lentext = lib.FormatDuration(result.LengthSeconds)
 			}
 
 			ResultsList.SetCell(rows+i, 0, tview.NewTableCell("[blue::b]"+tview.Escape(result.Title)).
@@ -147,7 +155,7 @@ func SearchAndList(text string) {
 					SetAlign(tview.AlignRight),
 				)
 			} else {
-				ResultsList.SetCell(rows+i, 4, tview.NewTableCell("[pink]"+lib.FormatDuration(result.LengthSeconds)).
+				ResultsList.SetCell(rows+i, 4, tview.NewTableCell("[pink]"+lentext).
 					SetSelectable(false).
 					SetAlign(tview.AlignRight),
 				)

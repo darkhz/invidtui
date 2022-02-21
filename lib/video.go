@@ -5,7 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
+	"strconv"
 	"strings"
+
+	"github.com/etherlabsio/go-m3u8/m3u8"
 )
 
 // VideoResult stores the video data.
@@ -13,7 +16,9 @@ type VideoResult struct {
 	Title           string       `json:"title"`
 	Author          string       `json:"author"`
 	VideoID         string       `json:"videoId"`
+	HlsURL          string       `json:"hlsUrl"`
 	LengthSeconds   int          `json:"lengthSeconds"`
+	LiveNow         bool         `json:"liveNow"`
 	FormatStreams   []FormatData `json:"formatStreams"`
 	AdaptiveFormats []FormatData `json:"adaptiveFormats"`
 }
@@ -26,7 +31,7 @@ type FormatData struct {
 	Resolution string `json:"resolution,omitempty"`
 }
 
-const videoFields = "?fields=title,videoId,author,publishedText,lengthSeconds,adaptiveFormats"
+const videoFields = "?fields=title,videoId,author,hlsUrl,publishedText,lengthSeconds,adaptiveFormats,liveNow"
 
 // Video gets the video with the given ID and returns a VideoResult.
 func (c *Client) Video(id string) (VideoResult, error) {
@@ -51,14 +56,29 @@ func (c *Client) Video(id string) (VideoResult, error) {
 // appropriately loads the URLs into mpv.
 func LoadVideo(id string, audio bool) error {
 	var err error
-	var mtype, audioUrl, videoUrl string
+	var liveaudio bool
+	var mtype, lentext, audioUrl, videoUrl string
 
 	video, err := GetClient().Video(id)
 	if err != nil {
 		return err
 	}
 
-	videoUrl, audioUrl = getVideoByItag(video, audio)
+	if audio {
+		mtype = "Audio"
+	} else {
+		mtype = "Video"
+	}
+
+	if video.LiveNow {
+		liveaudio = audio && video.LiveNow
+		audio = false
+		lentext = "Live"
+		videoUrl, audioUrl = getLiveVideo(video, audio)
+	} else {
+		lentext = FormatDuration(video.LengthSeconds)
+		videoUrl, audioUrl = getVideoByItag(video, audio)
+	}
 
 	if audio && audioUrl == "" {
 		return fmt.Errorf("Could not find an audio stream")
@@ -68,19 +88,13 @@ func LoadVideo(id string, audio bool) error {
 		return fmt.Errorf("Could not find a video stream")
 	}
 
-	if audio {
-		mtype = "Audio"
-	} else {
-		mtype = "Video"
-	}
-
 	// A data parameter is appended to audioUrl/videoUrl so that
 	// updatePlaylist() can display media data.
 	// MPV does not return certain track data like author and duration.
 	titleparam := "&title=" + url.QueryEscape(video.Title)
 	titleparam += "&author=" + url.QueryEscape(video.Author)
 	titleparam += "&mediatype=" + url.QueryEscape(mtype)
-	titleparam += "&length=" + url.QueryEscape(FormatDuration(video.LengthSeconds))
+	titleparam += "&length=" + url.QueryEscape(lentext)
 
 	if audio {
 		_, err = IsValidURL(audioUrl + titleparam)
@@ -93,6 +107,7 @@ func LoadVideo(id string, audio bool) error {
 		err = GetMPV().LoadFile(
 			video.Title,
 			video.LengthSeconds,
+			liveaudio,
 			audioUrl)
 
 	} else {
@@ -106,6 +121,7 @@ func LoadVideo(id string, audio bool) error {
 		err = GetMPV().LoadFile(
 			video.Title,
 			video.LengthSeconds,
+			liveaudio,
 			videoUrl, audioUrl)
 	}
 	if err != nil {
@@ -113,6 +129,46 @@ func LoadVideo(id string, audio bool) error {
 	}
 
 	return nil
+}
+
+// getLiveVideo gets the hls playlist, parses and finds the appropriate
+// live video stream.
+func getLiveVideo(video VideoResult, audio bool) (string, string) {
+	var videoUrl, audioUrl string
+
+	if video.HlsURL == "" {
+		return "", ""
+	}
+
+	url, _ := IsValidURL(video.HlsURL)
+	res, err := SendRequest(context.Background(), GetClient(), url.RequestURI())
+	if err != nil {
+		return "", ""
+	}
+	defer res.Body.Close()
+
+	pl, err := m3u8.Read(res.Body)
+	if err != nil {
+		return "", ""
+	}
+
+	for _, p := range pl.Playlists() {
+		height := strconv.Itoa(p.Resolution.Height) + "p"
+
+		// Since the retrieved HLS playlist is sorted in ascending order of resolutions,
+		// for the audio stream, we grab the first stream (with the lowest quality),
+		// and instruct mpv not to play video for the audio stream. For the video stream,
+		// we grab the stream where the playlist entry's resolution and the required
+		// resolution are equal.
+		if audio || (!audio && height == videoResolution) {
+			url, _ := IsValidURL(p.URI)
+			videoUrl = "https://manifest.googlevideo.com" + url.RequestURI() + "/?"
+
+			break
+		}
+	}
+
+	return videoUrl, audioUrl
 }
 
 // getVideoByItag gets the appropriate itag of the video format, and
