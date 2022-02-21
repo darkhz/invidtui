@@ -161,6 +161,10 @@ func searchAndList(results []lib.SearchResult) {
 				SetSelectable(false).
 				SetAlign(tview.AlignRight),
 			)
+
+			if result.Type == "playlist" {
+				continue
+			}
 		} else {
 			ResultsList.SetCell(rows+i, 4, tview.NewTableCell("[pink]"+lentext).
 				SetSelectable(false).
