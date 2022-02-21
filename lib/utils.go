@@ -152,9 +152,12 @@ func GetProgress(width int) (string, string, error) {
 		} else {
 			mtype = GetMPV().MediaType()
 		}
-
-		mtype = "(" + mtype + ")"
+	} else {
+		totaltime = FormatDuration(duration)
+		mtype = GetMPV().MediaType()
 	}
+
+	mtype = "(" + mtype + ")"
 
 	width /= 2
 	length := width * timepos / duration
