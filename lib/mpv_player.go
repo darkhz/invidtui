@@ -266,6 +266,16 @@ func (c *Connector) IsIdle() bool {
 	return idle.(bool)
 }
 
+// IsBuffering checks if the media is buffering.
+func (c *Connector) IsBuffering() bool {
+	buf, err := c.Get("paused-for-cache")
+	if err != nil {
+		return true
+	}
+
+	return buf.(bool)
+}
+
 // IsClosed checks if mpv has exited.
 func (c *Connector) IsClosed() bool {
 	return c.conn.IsClosed()
