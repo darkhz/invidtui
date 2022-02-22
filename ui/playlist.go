@@ -516,21 +516,26 @@ func updatePlaylist() []EntryData {
 
 	for i := range data {
 		urlData := lib.GetDataFromURL(data[i].Filename)
-		for j, udata := range urlData {
-			if j == 0 && udata == "" {
-				urlData[j] = lib.GetMPV().PlaylistTitle(i)
+		for _, udata := range []string{
+			"title",
+			"author",
+			"length",
+			"mediatype",
+		} {
+			if udata == "title" && urlData.Get(udata) == "" {
+				urlData.Set(udata, lib.GetMPV().PlaylistTitle(i))
 				continue
 			}
 
-			if udata == "" {
-				urlData[j] = "-"
+			if urlData.Get(udata) == "" {
+				urlData.Set(udata, "-")
 			}
 		}
 
-		data[i].Title = urlData[0]
-		data[i].Author = urlData[1]
-		data[i].Duration = urlData[2]
-		data[i].Type = urlData[3]
+		data[i].Title = urlData.Get("title")
+		data[i].Author = urlData.Get("author")
+		data[i].Duration = urlData.Get("length")
+		data[i].Type = urlData.Get("mediatype")
 	}
 
 	return data

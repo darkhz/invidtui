@@ -139,18 +139,18 @@ func GetProgress(width int) (string, string, error) {
 
 	data := GetDataFromURL(title)
 	if data != nil {
-		if data[0] != "" {
-			title = data[0]
+		if t := data.Get("title"); t != "" {
+			title = t
 		}
 
-		if data[2] != "" {
-			totaltime = data[2]
+		if l := data.Get("length"); l != "" {
+			totaltime = l
 		} else {
 			totaltime = FormatDuration(duration)
 		}
 
-		if data[3] != "" {
-			mtype = data[3]
+		if m := data.Get("mediatype"); m != "" {
+			mtype = m
 		} else {
 			mtype = GetMPV().MediaType()
 		}
@@ -207,21 +207,11 @@ func IsValidURL(uri string) (*url.URL, error) {
 }
 
 // GetDataFromURL parses specific url fields and returns their values.
-func GetDataFromURL(uri string) []string {
-	var data []string
+func GetDataFromURL(uri string) url.Values {
 	u, err := IsValidURL(uri)
 	if err != nil {
 		return nil
 	}
 
-	for _, query := range []string{
-		"title",
-		"author",
-		"length",
-		"mediatype",
-	} {
-		data = append(data, strings.Join(u.Query()[query], " "))
-	}
-
-	return data
+	return u.Query()
 }
