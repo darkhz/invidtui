@@ -128,6 +128,11 @@ func SetupFlags() error {
 		return fmt.Errorf("Could not find the youtube-dl executable")
 	}
 
+	_, err = exec.LookPath("ffmpeg")
+	if err != nil {
+		return fmt.Errorf("Could not find the ffmpeg executable")
+	}
+
 	return nil
 }
 
