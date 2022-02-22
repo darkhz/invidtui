@@ -1,10 +1,13 @@
 package lib
 
 import (
+	"bufio"
 	"fmt"
+	"net/url"
 	"os"
 	"os/exec"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -195,6 +198,7 @@ func (c *Connector) LoadFile(title string, duration int, liveaudio bool, files .
 		options += ",audio-file=" + files[1]
 	}
 
+	files[0] += "&options=" + url.QueryEscape(options)
 	_, err := c.Call("loadfile", files[0], "append-play", options)
 	if err != nil {
 		return fmt.Errorf("Unable to load %s", title)
@@ -214,12 +218,42 @@ func (c *Connector) LoadPlaylist(plpath string, replace bool) error {
 		clearMonitor()
 	}
 
-	_, err := c.Call("loadlist", plpath, param)
+	pl, err := os.Open(plpath)
 	if err != nil {
-		return fmt.Errorf("Unable to load %s", plpath)
+		return fmt.Errorf("Unable to open %s", plpath)
 	}
 
-	addToMonitor("playlist entry")
+	// We implement a simple playlist parser instead of relying on
+	// the m3u8 package here, since that package deals with mainly
+	// HLS playlists, and it seems to panic when certain EXTINF fields
+	// are blank. With this method, we can parse the URLs from the playlist
+	// directly, and pass the relevant options to mpv as well.
+	scanner := bufio.NewScanner(pl)
+	scanner.Split(bufio.ScanLines)
+
+	for scanner.Scan() {
+		var title, options string
+
+		line := scanner.Text()
+
+		if strings.HasPrefix(line, "#") || line == "" {
+			continue
+		}
+
+		data := GetDataFromURL(line)
+		if t := data.Get("title"); t != "" {
+			title = t
+		}
+		if o := data.Get("options"); o != "" {
+			options, _ = url.QueryUnescape(o)
+		}
+
+		c.Call("loadfile", line, param, options)
+
+		param = "append-play"
+
+		addToMonitor(title)
+	}
 
 	return nil
 }
