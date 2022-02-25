@@ -23,6 +23,9 @@ var (
 	// align and display popups properly.
 	MPage *tview.Pages
 
+	mainStyle tcell.Style
+	auxStyle  tcell.Style
+
 	appSuspend  bool
 	detectClose chan struct{}
 )
@@ -32,6 +35,14 @@ const initMessage = "Invidtui loaded. Press / to search."
 // SetupUI sets up the UI and starts the application.
 func SetupUI() error {
 	setupPrimitives()
+
+	mainStyle = tcell.Style{}.
+		Foreground(tcell.ColorBlue).
+		Background(tcell.ColorWhite).
+		Attributes(tcell.AttrBold)
+
+	auxStyle = tcell.Style{}.
+		Attributes(tcell.AttrBold)
 
 	MPage = tview.NewPages()
 	MPage.AddPage("ui", UIFlex, true, true)

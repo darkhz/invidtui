@@ -313,12 +313,14 @@ func listChannelVideos(info lib.SearchResult, pos, rows, width int, result lib.C
 		chVideoTable.SetCell((rows+i)-skipped, 0, tview.NewTableCell("[blue::b]"+tview.Escape(v.Title)).
 			SetExpansion(1).
 			SetReference(sref).
-			SetMaxWidth((width / 4)),
+			SetMaxWidth((width / 4)).
+			SetSelectedStyle(mainStyle),
 		)
 
 		chVideoTable.SetCell((rows+i)-skipped, 1, tview.NewTableCell("[pink]"+lib.FormatDuration(v.LengthSeconds)).
-			SetSelectable(false).
-			SetAlign(tview.AlignRight),
+			SetSelectable(true).
+			SetAlign(tview.AlignRight).
+			SetSelectedStyle(auxStyle),
 		)
 	}
 
@@ -355,12 +357,14 @@ func listChannelPlaylists(info lib.SearchResult, pos, rows, width int, result li
 		chPlistTable.SetCell((rows + i), 0, tview.NewTableCell("[blue::b]"+tview.Escape(p.Title)).
 			SetExpansion(1).
 			SetReference(sref).
-			SetMaxWidth((width / 4)),
+			SetMaxWidth((width / 4)).
+			SetSelectedStyle(mainStyle),
 		)
 
 		chPlistTable.SetCell((rows + i), 1, tview.NewTableCell("[pink]"+strconv.Itoa(p.VideoCount)+" videos").
-			SetSelectable(false).
-			SetAlign(tview.AlignRight),
+			SetSelectable(true).
+			SetAlign(tview.AlignRight).
+			SetSelectedStyle(auxStyle),
 		)
 	}
 
@@ -424,17 +428,20 @@ func SearchChannel(text string) {
 			chSearchTable.SetCell(rows+i, 0, tview.NewTableCell("[blue::b]"+tview.Escape(result.Title)).
 				SetExpansion(1).
 				SetReference(result).
-				SetMaxWidth((width / 4)),
+				SetMaxWidth((width / 4)).
+				SetSelectedStyle(mainStyle),
 			)
 
 			chSearchTable.SetCell(rows+i, 1, tview.NewTableCell(" ").
 				SetSelectable(false).
-				SetAlign(tview.AlignRight),
+				SetAlign(tview.AlignRight).
+				SetSelectedStyle(auxStyle),
 			)
 
 			chSearchTable.SetCell(rows+i, 2, tview.NewTableCell("[pink]"+result.Type).
-				SetSelectable(false).
-				SetAlign(tview.AlignRight),
+				SetSelectable(true).
+				SetAlign(tview.AlignRight).
+				SetSelectedStyle(auxStyle),
 			)
 		}
 

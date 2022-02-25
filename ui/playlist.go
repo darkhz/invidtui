@@ -27,7 +27,6 @@ var (
 	// Playlist shows the playlist popup
 	Playlist   *tview.Flex
 	plistPopup *tview.Table
-	plistTitle *tview.TextView
 
 	plViewFlex   *tview.Flex
 	plistTable   *tview.Table
@@ -90,25 +89,6 @@ func setupViewPlaylist() {
 		}
 
 		return event
-	})
-
-	plistTable.SetSelectionChangedFunc(func(row, col int) {
-		rows := plistTable.GetRowCount()
-
-		if row < 0 || row > rows {
-			return
-		}
-
-		cell := plistTable.GetCell(row, col)
-
-		if cell == nil {
-			return
-		}
-
-		plistTable.SetSelectedStyle(tcell.Style{}.
-			Background(tcell.ColorBlue).
-			Foreground(tcell.ColorWhite).
-			Attributes(cell.Attributes | tcell.AttrBold))
 	})
 }
 
@@ -175,10 +155,10 @@ func setupPlaylistPopup() {
 		}
 
 		for i := 0; i < rows; i++ {
-			cell := plistPopup.GetCell(i, col)
+			cell := plistPopup.GetCell(i, 0)
 			if cell == nil {
 				cell = tview.NewTableCell("")
-				plistPopup.SetCell(i, col, cell)
+				plistPopup.SetCell(i, 0, cell)
 			}
 
 			if i == row {
@@ -188,10 +168,6 @@ func setupPlaylistPopup() {
 
 			cell.SetText("")
 		}
-
-		plistPopup.SetSelectedStyle(tcell.Style{}.
-			Background(tcell.ColorDefault).
-			Foreground(tcell.ColorDefault))
 	})
 }
 
@@ -255,7 +231,8 @@ func startPlaylist() {
 				plistPopup.SetCell(i, 1, tview.NewTableCell("[blue::b]"+tview.Escape(data.Title)+marker).
 					SetExpansion(1).
 					SetMaxWidth(w/7).
-					SetSelectable(false),
+					SetSelectable(true).
+					SetSelectedStyle(auxStyle),
 				)
 
 				plistPopup.SetCell(i, 2, tview.NewTableCell(" ").
@@ -264,7 +241,8 @@ func startPlaylist() {
 
 				plistPopup.SetCell(i, 3, tview.NewTableCell("[purple::b]"+tview.Escape(data.Author)).
 					SetMaxWidth(w/5).
-					SetSelectable(false),
+					SetSelectable(true).
+					SetSelectedStyle(auxStyle),
 				)
 
 				plistPopup.SetCell(i, 4, tview.NewTableCell(" ").
@@ -273,7 +251,8 @@ func startPlaylist() {
 
 				plistPopup.SetCell(i, 5, tview.NewTableCell("[pink::b]"+tview.Escape(data.Type)).
 					SetMaxWidth(w/5).
-					SetSelectable(false),
+					SetSelectable(true).
+					SetSelectedStyle(auxStyle),
 				)
 
 				plistPopup.SetCell(i, 6, tview.NewTableCell(" ").
@@ -281,7 +260,8 @@ func startPlaylist() {
 				)
 
 				plistPopup.SetCell(i, 7, tview.NewTableCell("[pink::b]"+data.Duration).
-					SetSelectable(false),
+					SetSelectable(true).
+					SetSelectedStyle(auxStyle),
 				)
 			}
 
@@ -455,12 +435,14 @@ func viewPlaylist(info lib.SearchResult, newlist bool) {
 			plistTable.SetCell((rows+i)-skipped, 0, tview.NewTableCell("[blue::b]"+tview.Escape(v.Title)).
 				SetExpansion(1).
 				SetReference(sref).
-				SetMaxWidth((width / 4)),
+				SetMaxWidth((width / 4)).
+				SetSelectedStyle(mainStyle),
 			)
 
 			plistTable.SetCell((rows+i)-skipped, 1, tview.NewTableCell("[pink]"+lib.FormatDuration(v.LengthSeconds)).
-				SetSelectable(false).
-				SetAlign(tview.AlignRight),
+				SetSelectable(true).
+				SetAlign(tview.AlignRight).
+				SetSelectedStyle(auxStyle),
 			)
 
 			plistIdMap[v.VideoID] = struct{}{}

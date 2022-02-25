@@ -3,6 +3,8 @@ github.com/darkhz/mpvipc v0.0.0-20220202153421-58758ad355dd h1:8sCjVwv+r8j49dGqR
 github.com/darkhz/mpvipc v0.0.0-20220202153421-58758ad355dd/go.mod h1:pr6hYjxmWUEZs8f92wYfp7AK8P7b3Tl6RbjDxVWDm78=
 github.com/darkhz/tview v0.0.0-20220216135137-9a3b68dc437a h1:cnK7bVKKd/jhXpSoYII2aHOVambMmqp2DZwPN3AbfXM=
 github.com/darkhz/tview v0.0.0-20220216135137-9a3b68dc437a/go.mod h1:DEWp7u1h+s4JU/+LXJaRG37zuOyo+LGC1NjRat3GY3U=
+github.com/darkhz/tview v0.0.0-20220225064222-8c990a9ff11c h1:0tKY6g1OBNSOmXkXqMUBeEX5FUBwxvbVJ59t5Hq20nc=
+github.com/darkhz/tview v0.0.0-20220225064222-8c990a9ff11c/go.mod h1:DEWp7u1h+s4JU/+LXJaRG37zuOyo+LGC1NjRat3GY3U=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/etherlabsio/go-m3u8 v0.1.2 h1:tjCE535+DzB75G7ke8Z4nCnS0GZLjRpUa/yOLJHrq8A=
 github.com/etherlabsio/go-m3u8 v0.1.2/go.mod h1:MO16rOZ2zO3nLoLovCuQKSB/RFXgGdY4dFxuOW6rkDE=

@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	github.com/darkhz/mpvipc v0.0.0-20220202153421-58758ad355dd
-	github.com/darkhz/tview v0.0.0-20220216135137-9a3b68dc437a
+	github.com/darkhz/tview v0.0.0-20220225064222-8c990a9ff11c
 	github.com/etherlabsio/go-m3u8 v0.1.2
 	github.com/gdamore/tcell/v2 v2.4.1-0.20210905002822-f057f0a857a1
 	github.com/jnovack/flag v1.16.0
