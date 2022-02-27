@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -599,6 +600,8 @@ func plMove() {
 
 // plOpenReplace opens a playlist file, and replaces the current playlist.
 func plOpenReplace(openpath string) {
+	InfoMessage("Loading "+filepath.Base(openpath), false)
+
 	err := lib.GetMPV().LoadPlaylist(openpath, true)
 	if err != nil {
 		return
@@ -613,6 +616,8 @@ func plOpenReplace(openpath string) {
 
 // plOpenAppend opens a playlist file, and appends to the current playlist.
 func plOpenAppend(openpath string) {
+	InfoMessage("Loading "+filepath.Base(openpath), false)
+
 	App.QueueUpdateDraw(func() {
 		playlistPopup()
 	})
