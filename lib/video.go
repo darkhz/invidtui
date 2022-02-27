@@ -131,6 +131,24 @@ func LoadVideo(id string, audio bool) error {
 	return nil
 }
 
+// refreshLiveURL gets the video ID from an expired live video URL,
+// and loads the latest URL for the live video.
+func refreshLiveURL(uri string, audio bool) {
+	var id string
+
+	// Get the id value from the uri path.
+	uriSplit := strings.Split(uri, "/")
+	for i, v := range uriSplit {
+		if v == "id" {
+			// Remove the dot separator and everything after it.
+			id = strings.Split(uriSplit[i+1], ".")[0]
+			break
+		}
+	}
+
+	LoadVideo(id, audio)
+}
+
 // getLiveVideo gets the hls playlist, parses and finds the appropriate
 // live video stream.
 func getLiveVideo(video VideoResult, audio bool) (string, string) {

@@ -212,9 +212,10 @@ func (c *Connector) LoadFile(title string, duration int, liveaudio bool, files .
 // LoadPlaylist loads a playlist file. If replace is false, it appends the loaded
 // playlist to the current playlist, otherwise it replaces the current playlist.
 func (c *Connector) LoadPlaylist(plpath string, replace bool) error {
-	param := "append-play"
 	if replace {
-		param = "replace"
+		c.Call("playlist-clear")
+		c.Call("playlist-remove", "current")
+
 		clearMonitor()
 	}
 
@@ -247,10 +248,14 @@ func (c *Connector) LoadPlaylist(plpath string, replace bool) error {
 		if o := data.Get("options"); o != "" {
 			options, _ = url.QueryUnescape(o)
 		}
+		if l := data.Get("length"); l == "Live" {
+			audio := data.Get("mediatype") == "Audio"
+			refreshLiveURL(line, audio)
 
-		c.Call("loadfile", line, param, options)
+			continue
+		}
 
-		param = "append-play"
+		c.Call("loadfile", line, "append-play", options)
 
 		addToMonitor(title)
 	}
