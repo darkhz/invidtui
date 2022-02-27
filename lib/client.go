@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
 	"strings"
 	"time"
@@ -62,7 +63,7 @@ func SendRequest(ctx context.Context, c *Client, param string) (*http.Response, 
 
 	res, err := c.client.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, clientError(err)
 	}
 
 	if res.StatusCode == http.StatusNotFound || res.StatusCode != http.StatusOK {
@@ -116,4 +117,19 @@ func queryInstances() (*Client, error) {
 	}
 
 	return NewClient(bestInstance), nil
+}
+
+// clientError returns a suitable error message for common http errors.
+func clientError(err error) error {
+	if err, ok := err.(net.Error); ok {
+		e := err.(net.Error)
+		switch {
+		case e.Timeout():
+			return fmt.Errorf("Connection has timed out")
+		case e.Temporary():
+			return fmt.Errorf("Temporary failure in name resolution")
+		}
+	}
+
+	return err
 }
