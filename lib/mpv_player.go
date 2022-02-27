@@ -250,9 +250,9 @@ func (c *Connector) LoadPlaylist(plpath string, replace bool) error {
 		}
 		if l := data.Get("length"); l == "Live" {
 			audio := data.Get("mediatype") == "Audio"
-			refreshLiveURL(line, audio)
-
-			continue
+			if refresh := refreshLiveURL(line, audio); refresh {
+				continue
+			}
 		}
 
 		c.Call("loadfile", line, "append-play", options)

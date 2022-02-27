@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/etherlabsio/go-m3u8/m3u8"
 )
@@ -133,20 +134,30 @@ func LoadVideo(id string, audio bool) error {
 
 // refreshLiveURL gets the video ID from an expired live video URL,
 // and loads the latest URL for the live video.
-func refreshLiveURL(uri string, audio bool) {
+func refreshLiveURL(uri string, audio bool) bool {
 	var id string
 
-	// Get the id value from the uri path.
+	// Split the uri parameters.
 	uriSplit := strings.Split(uri, "/")
 	for i, v := range uriSplit {
+		if v == "expire" {
+			// Return if the uri is not expired.
+			exptime, err := strconv.ParseInt(uriSplit[i+1], 10, 64)
+			if err == nil && time.Now().Unix() < exptime {
+				return false
+			}
+		}
+
 		if v == "id" {
-			// Remove the dot separator and everything after it.
+			// Get the id value from the uri path.
 			id = strings.Split(uriSplit[i+1], ".")[0]
 			break
 		}
 	}
 
 	LoadVideo(id, audio)
+
+	return true
 }
 
 // getLiveVideo gets the hls playlist, parses and finds the appropriate
