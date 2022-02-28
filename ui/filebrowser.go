@@ -91,6 +91,9 @@ func ShowFileBrowser(
 		case tcell.KeyRight, tcell.KeyLeft:
 			fallthrough
 
+		case tcell.KeyPgUp, tcell.KeyPgDn:
+			fallthrough
+
 		case tcell.KeyCtrlH:
 			browserList.InputHandler()(e, nil)
 
