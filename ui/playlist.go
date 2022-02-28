@@ -649,7 +649,9 @@ func plSaveAs(savepath string) {
 	cancelled := make(chan bool, 1)
 	flags := os.O_CREATE | os.O_WRONLY
 
-	savepath += ".m3u8"
+	if filepath.Ext(savepath) != ".m3u8" {
+		savepath += ".m3u8"
+	}
 
 	list := updatePlaylist()
 	if len(list) == 0 {
