@@ -196,6 +196,13 @@ func dirList(testPath string) ([]fs.FileInfo, bool) {
 			continue
 		}
 
+		if !entry.IsDir() {
+			ename := filepath.Join(testPath, entry.Name())
+			if filepath.Ext(ename) != ".m3u8" {
+				continue
+			}
+		}
+
 		dlist = append(dlist, entry)
 	}
 
