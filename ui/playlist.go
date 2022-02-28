@@ -51,8 +51,9 @@ func SetupPlaylist() {
 	setupViewChannel()
 	setupPlaylistPopup()
 
-	playlistExit = make(chan struct{})
-	playlistEvent = make(chan struct{})
+	playlistExit = make(chan struct{}, 1)
+	playlistEvent = make(chan struct{}, 100)
+
 	plistIdMap = make(map[string]struct{})
 }
 
