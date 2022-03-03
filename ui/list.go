@@ -11,8 +11,12 @@ import (
 )
 
 var (
+	// ResultsFlex contains the arranged page marker
+	// and ResultsList table elements.
+	ResultsFlex *tview.Flex
 	// ResultsList is a table to display results.
-	ResultsList *tview.Table
+	ResultsList    *tview.Table
+	resultPageMark *tview.TextView
 
 	listWidth    int
 	searchLock   *semaphore.Weighted
@@ -25,10 +29,29 @@ const loadingText = "Search still in progress, please wait"
 // SetupList sets up a table to display search results.
 func SetupList() {
 	ResultsList = tview.NewTable()
-
 	ResultsList.SetBorder(false)
 	ResultsList.SetSelectorWrap(true)
 	ResultsList.SetBackgroundColor(tcell.ColorDefault)
+
+	resultPageMark = tview.NewTextView()
+	resultPageMark.SetWrap(false)
+	resultPageMark.SetRegions(true)
+	resultPageMark.SetDynamicColors(true)
+	resultPageMark.SetBackgroundColor(tcell.ColorDefault)
+	resultPageMark.SetText(
+		`[::b]Search[-:-:-] ["video"][darkcyan]Videos[""] ["playlist"][darkcyan]Playlists[""] ["channel"][darkcyan]Channels[""]`,
+	)
+
+	box := tview.NewBox().
+		SetBackgroundColor(tcell.ColorDefault)
+
+	ResultsFlex = tview.NewFlex().
+		AddItem(resultPageMark, 1, 0, false).
+		AddItem(box, 1, 0, false).
+		AddItem(ResultsList, 0, 10, true).
+		SetDirection(tview.FlexRow)
+
+	ResultsFlex.SetBackgroundColor(tcell.ColorDefault)
 
 	ResultsList.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		captureListEvents(event)
@@ -55,6 +78,8 @@ func SearchAndList(text string) {
 	if text == "" && searchString == "" {
 		return
 	}
+
+	resultPageMark.Highlight(stype)
 
 	msg := "Fetching "
 	if text != "" {

@@ -124,7 +124,7 @@ func setupPrimitives() {
 	SetupPlaylist()
 
 	VPage = tview.NewPages()
-	VPage.AddPage("main", ResultsList, true, true)
+	VPage.AddPage("main", ResultsFlex, true, true)
 
 	box := tview.NewBox().
 		SetBackgroundColor(tcell.ColorDefault)
