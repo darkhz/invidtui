@@ -104,12 +104,6 @@ func SearchAndList(text string) {
 	}
 
 	App.QueueUpdateDraw(func() {
-		if text != "" {
-			searchString = text
-			ResultsList.Clear()
-			ResultsList.SetSelectable(false, false)
-		}
-
 		searchAndList(results)
 	})
 
@@ -274,21 +268,28 @@ func searchText(channel bool) {
 		}
 	}
 
-	srchfocus := func() {
+	srchfocus := func() *tview.Table {
+		var table *tview.Table
+
 		if channel {
-			App.SetFocus(chSearchTable)
+			table = chSearchTable
 		} else {
-			App.SetFocus(ResultsList)
+			table = ResultsList
 		}
 
+		App.SetFocus(table)
 		Status.SwitchToPage("messages")
+
+		return table
 	}
 
 	sfunc := func(text string) {
-		srchfocus()
+		table := srchfocus()
 
 		if text != "" {
 			lib.AddToHistory(text)
+			table.Clear()
+			table.SetSelectable(false, false)
 		} else {
 			return
 		}

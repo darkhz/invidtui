@@ -406,12 +406,6 @@ func SearchChannel(text string) {
 	App.QueueUpdateDraw(func() {
 		pos := -1
 
-		if text != "" {
-			chSearchString = text
-			chSearchTable.Clear()
-			chSearchTable.SetSelectable(false, false)
-		}
-
 		rows := chSearchTable.GetRowCount()
 		_, _, width, _ := chSearchTable.GetRect()
 
