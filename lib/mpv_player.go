@@ -63,7 +63,7 @@ func MPVStart() error {
 		return err
 	}
 
-	MPVErrors = make(chan string)
+	MPVErrors = make(chan string, 100)
 	MPVFileLoaded = make(chan struct{}, 100)
 	go mpvctl.eventListener()
 
