@@ -20,6 +20,7 @@ var (
 	ytdlpath        string
 	connretries     int
 	fcSocket        bool
+	currInstance    bool
 )
 
 // SetupFlags sets up the commandline flags
@@ -38,6 +39,13 @@ func SetupFlags() error {
 		"close-instances",
 		false,
 		"Close all currently running instances.",
+	)
+
+	flag.BoolVar(
+		&currInstance,
+		"use-current-instance",
+		false,
+		"Use the current invidious instance to retrieve media.",
 	)
 
 	flag.StringVar(
@@ -84,7 +92,7 @@ func SetupFlags() error {
 			}
 			s += strings.ReplaceAll(f.Usage, "\n", "\n    \t")
 
-			if f.Name != "close-instances" {
+			if f.Name != "close-instances" && f.Name != "use-current-instance" {
 				if f.Name != "num-retries" {
 					s += fmt.Sprintf(" (default %q)", f.DefValue)
 				} else {
