@@ -38,7 +38,8 @@ func SetupInputBox() {
 			inputBoxFunc(text)
 
 		case tcell.KeyEscape:
-			App.SetFocus(ResultsList)
+			_, item := VPage.GetFrontPage()
+			App.SetFocus(item)
 			Status.SwitchToPage("messages")
 		}
 
