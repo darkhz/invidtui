@@ -211,7 +211,7 @@ func startPlaylist() {
 
 	update := func() {
 		pldata := updatePlaylist()
-		if len(pldata) == 0 {
+		if len(pldata) == 0 && plistPopup.HasFocus() {
 			App.QueueUpdateDraw(func() {
 				exitFocus()
 				plistPopup.Clear()
