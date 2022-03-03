@@ -46,8 +46,8 @@ func SetupPlayer() {
 	playerTitle.SetBackgroundColor(tcell.ColorDefault)
 	playerDesc.SetBackgroundColor(tcell.ColorDefault)
 
-	playerChan = make(chan bool)
-	playerEvent = make(chan struct{})
+	playerChan = make(chan bool, 10)
+	playerEvent = make(chan struct{}, 100)
 
 	addRateLimit = semaphore.NewWeighted(2)
 
