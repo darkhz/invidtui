@@ -479,7 +479,7 @@ func chTableEvents(event *tcell.EventKey) {
 
 	case tcell.KeyEscape:
 		setChExited(true)
-		VPage.SwitchToPage("main")
+		VPage.SwitchToPage("search")
 		App.SetFocus(ResultsList)
 		ResultsList.SetSelectable(true, false)
 	}

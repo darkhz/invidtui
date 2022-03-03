@@ -114,7 +114,7 @@ func SearchAndList(text string) {
 func searchAndList(results []lib.SearchResult) {
 	pos := -1
 	rows := ResultsList.GetRowCount()
-	_, _, width, _ := ResultsList.GetRect()
+	_, _, width, _ := VPage.GetRect()
 
 	for i, result := range results {
 		var lentext string
@@ -200,6 +200,11 @@ func searchAndList(results []lib.SearchResult) {
 	ResultsList.ScrollToEnd()
 
 	ResultsList.SetSelectable(true, false)
+
+	if bannerShown && len(results) > 0 {
+		bannerShown = false
+		VPage.SwitchToPage("search")
+	}
 }
 
 // captureListEvents binds keys to ResultsList's InputCapture.

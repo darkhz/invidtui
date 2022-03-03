@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/darkhz/invidtui/lib"
 	"github.com/darkhz/tview"
@@ -27,10 +28,16 @@ var (
 	auxStyle  tcell.Style
 
 	appSuspend  bool
+	bannerShown bool
 	detectClose chan struct{}
 )
 
-const initMessage = "Invidtui loaded. Press / to search."
+const banner = `
+   (_)____  _   __ (_)____/ // /_ __  __ (_)
+  / // __ \| | / // // __  // __// / / // /
+ / // / / /| |/ // // /_/ // /_ / /_/ // /
+/_//_/ /_/ |___//_/ \__,_/ \__/ \__,_//_/
+`
 
 // SetupUI sets up the UI and starts the application.
 func SetupUI() error {
@@ -81,7 +88,7 @@ func SetupUI() error {
 		resizeListEntries(width)
 	})
 
-	InfoMessage(initMessage, true)
+	InfoMessage("Press / to search", true)
 
 	detectClose = make(chan struct{})
 	go detectMPVClose()
@@ -124,7 +131,8 @@ func setupPrimitives() {
 	SetupPlaylist()
 
 	VPage = tview.NewPages()
-	VPage.AddPage("main", ResultsFlex, true, true)
+	VPage.AddPage("banner", showBanner(), true, true)
+	VPage.AddPage("search", ResultsFlex, true, false)
 
 	box := tview.NewBox().
 		SetBackgroundColor(tcell.ColorDefault)
@@ -136,6 +144,43 @@ func setupPrimitives() {
 		SetDirection(tview.FlexRow)
 
 	UIFlex.SetBackgroundColor(tcell.ColorDefault)
+}
+
+// showBanner displays the banner on the screen.
+func showBanner() tview.Primitive {
+	lines := strings.Split(banner, "\n")
+	bannerWidth := 0
+	bannerHeight := len(lines)
+	for _, line := range lines {
+		if len(line) > bannerWidth {
+			bannerWidth = len(line)
+		}
+	}
+	bannerBox := tview.NewTextView()
+	bannerBox.SetBackgroundColor(tcell.ColorDefault)
+	bannerBox.SetText(banner)
+
+	box := tview.NewBox().
+		SetBackgroundColor(tcell.ColorDefault)
+
+	flex := tview.NewFlex().
+		SetDirection(tview.FlexRow).
+		AddItem(box, 0, 7, false).
+		AddItem(tview.NewFlex().
+			AddItem(box, 0, 1, false).
+			AddItem(bannerBox, bannerWidth, 1, true).
+			AddItem(box, 0, 1, false), bannerHeight, 1, true).
+		AddItem(box, 0, 7, false)
+	flex.SetBackgroundColor(tcell.ColorDefault)
+	flex.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		ResultsList.InputHandler()(event, nil)
+
+		return nil
+	})
+
+	bannerShown = true
+
+	return flex
 }
 
 // confirmQuit shows a confirmation message before exiting.
