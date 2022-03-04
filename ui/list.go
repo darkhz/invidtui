@@ -379,6 +379,8 @@ func loadMoreResults() {
 func getListReference() (lib.SearchResult, error) {
 	var table *tview.Table
 
+	err := fmt.Errorf("Cannot select this entry")
+
 	if ResultsList.HasFocus() {
 		if !searchLock.TryAcquire(1) {
 			return lib.SearchResult{}, fmt.Errorf(loadingText)
@@ -391,11 +393,13 @@ func getListReference() (lib.SearchResult, error) {
 	} else {
 		_, item := chPages.GetFrontPage()
 		table = item.(*tview.Table)
+		if table == nil {
+			return lib.SearchResult{}, err
+		}
 	}
 
 	row, _ := table.GetSelection()
 	rows := table.GetRowCount()
-	err := fmt.Errorf("Cannot select this entry")
 
 	if row+1 < rows {
 		table.Select(row+1, 0)
