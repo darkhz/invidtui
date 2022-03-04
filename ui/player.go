@@ -143,6 +143,8 @@ func startPlayer(ctx context.Context, cancel context.CancelFunc) {
 		select {
 		case <-ctx.Done():
 			RemovePlayer()
+			playerDesc.SetText("")
+			playerTitle.SetText("")
 			return
 
 		case <-playerEvent:
