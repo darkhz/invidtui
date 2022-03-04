@@ -52,6 +52,7 @@ video-res=720p
 mpv-path=/home/user/mycustompath/mpv
 ytdl-path=/home/user/mycustompath/ytdl
 num-retries=10
+use-current-instance
 ```
 
 ## Keybindings
@@ -69,7 +70,10 @@ num-retries=10
 > <kbd>p</kbd><br /> Open playlist queue. This control will work across
 > all pages.<br />
 >
-> <kbd>Ctrl</kbd>+<kbd>o</kbd><br /> Open saved playlist<br />
+> <kbd>Ctrl</kbd>+<kbd>o</kbd><br /> Open saved playlist. This control will work across
+> all pages.<br />
+>
+> <kbd>Ctrl</kbd>+<kbd>a</kbd><br /> Append from a playlist file to the playlist queue<br />
 >
 > <kbd>Ctrl</kbd>+<kbd>s</kbd><br /> Save current playlist queue<br />
 >
@@ -165,6 +169,8 @@ Note: These controls will work across all pages (search, playlist or channel pag
 - For the video mode, only MP4 videos will be played, and currently there is no way to modify this behavior. This will change in later versions.
 
 - The close-instances option should mainly be used if another invidtui instance may be using the socket, if there was an application crash, or if an error pops up like this: ``` Error: Socket exists at /home/test/.config/invidtui/socket, is another instance running?```.
+
+- The use-current-instance option can be used in cases where a playlist file has to be loaded, but the URLs in the playlist point to a slow invidious instance. The playlist media can instead be retrieved from a fast instance (automatically selected by invidtui).
 
 - On Windows, using invidtui in Powershell/CMD will work, but use Windows Terminal for best results.
 
