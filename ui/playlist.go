@@ -725,6 +725,10 @@ func plSaveAs(savepath string) {
 	InfoMessage("Playlist"+savedstr+savepath, false)
 }
 
+// plGetEntries generates playlist entries with a m3u8 header if entries are being
+// overwritten to a playlist file. If appendfile is set, it reads the playlist
+// file, filters out the duplicates from the playlist entry list, and appends entries
+// to the already existing playlist entries from the playlist file.
 func plGetEntries(savepath string, list []EntryData, appendfile bool) (string, error) {
 	var skipped int
 	var entries string
@@ -788,6 +792,7 @@ func plFbExit() {
 	Status.SwitchToPage("messages")
 }
 
+// exitFocus closes the filebrowser popup.
 func exitFocus() {
 	name, list := VPage.GetFrontPage()
 
