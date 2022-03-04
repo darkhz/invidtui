@@ -33,11 +33,19 @@ or check the Releases page and download the binary that matches your OS and arch
     invidtui [<flags>]
 
     Flags:
-      --video-res="720p"        Set the default video resolution.
-      --close-instances         Close all currently running instances.
-      --mpv-path="mpv"          Specify path to the mpv executable.
-      --ytdl-path="youtube-dl"  Specify path to youtube-dl executable or its forks (yt-dlp, yt-dtlp_x86)
-      --num-retries=100         Set the number of retries for connecting to the socket.
+       --close-instances        Close all currently running instances.
+       --force-instance         Force load media from specified invidious instance. (default "")
+       --mpv-path               Specify path to the mpv executable. (default "mpv")
+       --num-retries            Set the number of retries for connecting to the socket. (default 100)
+       --use-current-instance   Use the current invidious instance to retrieve media.
+       --video-res              Set the default video resolution. (default "720p")
+       --ytdl-path              Specify path to youtube-dl executable or its forks (yt-dlp, yt-dtlp_x86) (default "youtube-dl")
+
+  - The **close-instances** option should mainly be used if another invidtui instance may be using the socket, if there was an application crash, or if an error pops up like this: ``` Error: Socket exists at /home/test/.config/invidtui/socket, is another instance running?```.
+
+- The **use-current-instance** option can be used in cases where a playlist file has to be loaded, but the URLs in the playlist point to a slow invidious instance. The playlist media can instead be retrieved from a fast instance (automatically selected by invidtui).
+
+- While specifying the **force-instance** option, it is recommended to input just the instance name, remove the "https://" prefix if present.
 
 ## Configuration file
 Generally, invidtui will work out-of-the-box, with no configuration required.<br />
@@ -53,6 +61,7 @@ mpv-path=/home/user/mycustompath/mpv
 ytdl-path=/home/user/mycustompath/ytdl
 num-retries=10
 use-current-instance
+force-instance=invidious.snopyta.org
 ```
 
 ## Keybindings
@@ -167,10 +176,6 @@ Note: These controls will work across all pages (search, playlist or channel pag
   `pacman -S noto-fonts noto-fonts-emoji noto-fonts-extra`<br/>
 
 - For the video mode, only MP4 videos will be played, and currently there is no way to modify this behavior. This will change in later versions.
-
-- The close-instances option should mainly be used if another invidtui instance may be using the socket, if there was an application crash, or if an error pops up like this: ``` Error: Socket exists at /home/test/.config/invidtui/socket, is another instance running?```.
-
-- The use-current-instance option can be used in cases where a playlist file has to be loaded, but the URLs in the playlist point to a slow invidious instance. The playlist media can instead be retrieved from a fast instance (automatically selected by invidtui).
 
 - On Windows, using invidtui in Powershell/CMD will work, but use Windows Terminal for best results.
 
