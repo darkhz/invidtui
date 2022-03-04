@@ -81,6 +81,13 @@ func (c *Client) ClientRequest(ctx context.Context, param string) (*http.Respons
 	return res, err
 }
 
+// SelectedInstance returns the current client's hostname.
+func (c *Client) SelectedInstance() string {
+	uri, _ := url.Parse(c.host)
+
+	return uri.Hostname()
+}
+
 // queryInstances searches for the best instance and returns a Client.
 func queryInstances() (*Client, error) {
 	var bestInstance string

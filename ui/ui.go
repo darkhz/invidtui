@@ -88,7 +88,9 @@ func SetupUI() error {
 		resizeListEntries(width)
 	})
 
-	InfoMessage("Press / to search", true)
+	msg := "Instance '" + lib.GetClient().SelectedInstance() + "' selected. "
+	msg += "Press / to search."
+	InfoMessage(msg, true)
 
 	detectClose = make(chan struct{})
 	go detectMPVClose()
