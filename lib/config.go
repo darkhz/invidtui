@@ -21,6 +21,7 @@ var (
 	connretries     int
 	fcSocket        bool
 	currInstance    bool
+	customInstance  string
 )
 
 // SetupFlags sets up the commandline flags
@@ -46,6 +47,13 @@ func SetupFlags() error {
 		"use-current-instance",
 		false,
 		"Use the current invidious instance to retrieve media.",
+	)
+
+	flag.StringVar(
+		&customInstance,
+		"force-instance",
+		"",
+		"Force load media from specified invidious instance.",
 	)
 
 	flag.StringVar(

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 )
@@ -85,6 +86,35 @@ func queryInstances() (*Client, error) {
 	var bestInstance string
 	var instances [][]interface{}
 
+	checkInstance := func(inst string) (string, bool) {
+		insturl := "https://" + inst
+
+		if strings.Contains(insturl, ".onion") {
+			return "", false
+		}
+
+		r, err := http.Head(insturl)
+		if err == nil && r.StatusCode == 200 {
+			return insturl, true
+		}
+
+		return "", false
+	}
+
+	if customInstance != "" {
+		if uri, err := url.Parse(customInstance); err == nil {
+			host := uri.Hostname()
+
+			if host != "" {
+				customInstance = host
+			}
+		}
+
+		if inst, ok := checkInstance(customInstance); ok {
+			return NewClient(inst), nil
+		}
+	}
+
 	ctx := context.Background()
 	client := NewClient(instanceApi)
 
@@ -99,15 +129,8 @@ func queryInstances() (*Client, error) {
 	}
 
 	for _, instance := range instances {
-		insturl := "https://" + instance[0].(string)
-
-		if strings.Contains(insturl, ".onion") {
-			continue
-		}
-
-		r, err := http.Head(insturl)
-		if err == nil && r.StatusCode == 200 {
-			bestInstance = insturl
+		if inst, ok := checkInstance(instance[0].(string)); ok {
+			bestInstance = inst
 			break
 		}
 	}
