@@ -96,13 +96,14 @@ func FormatNumber(num int) string {
 
 //gocyclo:ignore
 // GetProgress renders a progress bar and media data.
-func GetProgress(width int) (string, string, error) {
+func GetProgress(width int) (string, string, []string, error) {
 	var lhs, rhs string
+	var states []string
 	var state, mtype, totaltime, vol string
 
 	ppos := GetMPV().PlaylistPos()
 	if ppos == -1 {
-		return "", "", fmt.Errorf("Empty playlist")
+		return "", "", nil, fmt.Errorf("Empty playlist")
 	}
 
 	title := GetMPV().PlaylistTitle(ppos)
@@ -110,7 +111,7 @@ func GetProgress(width int) (string, string, error) {
 	paused := GetMPV().IsPaused()
 	buffering := GetMPV().IsBuffering()
 	shuffle := GetMPV().IsShuffle()
-	loop := GetMPV().LoopType(true)
+	loop := GetMPV().LoopType()
 	mute := GetMPV().IsMuted()
 	volume := GetMPV().Volume()
 
@@ -123,6 +124,7 @@ func GetProgress(width int) (string, string, error) {
 	} else {
 		vol = strconv.Itoa(volume)
 	}
+	states = append(states, "volume "+vol)
 	vol += "%"
 
 	if timepos < 0 {
@@ -171,10 +173,24 @@ func GetProgress(width int) (string, string, error) {
 
 	if shuffle {
 		lhs += " S"
+		states = append(states, "shuffle")
 	}
 
 	if mute {
 		lhs += " M"
+		states = append(states, "mute")
+	}
+
+	if loop != "" {
+		states = append(states, loop)
+
+		switch loop {
+		case "loop-file":
+			loop = "R-F"
+
+		case "loop-playlist":
+			loop = "R-P"
+		}
 	}
 
 	if paused {
@@ -196,7 +212,7 @@ func GetProgress(width int) (string, string, error) {
 	strings.TrimPrefix(lhs, " ")
 	strings.TrimPrefix(rhs, " ")
 
-	return title, (lhs + progress + rhs), nil
+	return title, (lhs + progress + rhs), states, nil
 }
 
 // IsValidURL checks if a URL is valid.

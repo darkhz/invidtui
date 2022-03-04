@@ -1,8 +1,12 @@
 package ui
 
 import (
+	"bufio"
 	"context"
 	"fmt"
+	"io/ioutil"
+	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -16,13 +20,15 @@ var (
 	// Player displays the media player.
 	Player *tview.Flex
 
-	playerTitle *tview.TextView
-	playerDesc  *tview.TextView
-	playerChan  chan bool
-	playing     bool
-	playingLock sync.Mutex
-	playerEvent chan struct{}
-	playerWidth int
+	playerTitle   *tview.TextView
+	playerDesc    *tview.TextView
+	playerChan    chan bool
+	playing       bool
+	playingLock   sync.Mutex
+	playStateLock sync.Mutex
+	playerEvent   chan struct{}
+	playerWidth   int
+	playerStates  []string
 
 	addRateLimit *semaphore.Weighted
 )
@@ -53,6 +59,7 @@ func SetupPlayer() {
 
 	go StartPlayer()
 	go monitorErrors()
+	go setPlayerState()
 }
 
 // AddPlayer unhides the player view.
@@ -121,17 +128,22 @@ func startPlayer(ctx context.Context, cancel context.CancelFunc) {
 	update := func() {
 		var err error
 		var width int
+		var states []string
 		var title, progressText string
 
 		App.QueueUpdate(func() {
 			_, _, width, _ = playerDesc.GetRect()
 		})
 
-		title, progressText, err = lib.GetProgress(width)
+		title, progressText, states, err = lib.GetProgress(width)
 		if err != nil {
 			cancel()
 			return
 		}
+
+		playStateLock.Lock()
+		playerStates = states
+		playStateLock.Unlock()
 
 		App.QueueUpdateDraw(func() {
 			playerDesc.SetText(progressText)
@@ -162,6 +174,7 @@ func startPlayer(ctx context.Context, cancel context.CancelFunc) {
 // StopPlayer finalizes the player before exit.
 func StopPlayer() {
 	SetPlayer(false)
+	savePlayerState()
 	lib.GetMPV().MPVStop(true)
 }
 
@@ -247,6 +260,68 @@ func setPlaying(status bool) {
 	defer playingLock.Unlock()
 
 	playing = status
+}
+
+// setPlayerState sets player volume, loop, mute and shuffle
+// settings to its last known state.
+func setPlayerState() {
+	var states []string
+
+	state, err := lib.ConfigPath("state")
+	if err != nil {
+		return
+	}
+
+	stfile, err := os.Open(state)
+	if err != nil {
+		return
+	}
+
+	scanner := bufio.NewScanner(stfile)
+	scanner.Split(bufio.ScanLines)
+
+	for scanner.Scan() {
+		line := scanner.Text()
+		states = append(states, strings.Split(line, ",")...)
+		break
+	}
+
+	if len(states) == 0 {
+		return
+	}
+
+	for _, s := range states {
+		if strings.Contains(s, "volume") {
+			vol := strings.Split(s, " ")[1]
+			lib.GetMPV().Set("volume", vol)
+		}
+
+		if strings.Contains(s, "loop") {
+			lib.GetMPV().Set(s, "yes")
+			continue
+		}
+
+		lib.GetMPV().Call("cycle", s)
+	}
+}
+
+// savePlayerState saves the player volume, loop, mute and
+// shuffle settings.
+func savePlayerState() {
+	playStateLock.Lock()
+	defer playStateLock.Unlock()
+
+	statefile, err := lib.ConfigPath("state")
+	if err != nil {
+		return
+	}
+
+	states := strings.Join(playerStates, ",")
+
+	err = ioutil.WriteFile(statefile, []byte(states+"\n"), 0664)
+	if err != nil {
+		return
+	}
 }
 
 // monitorErrors monitors for errors related to loading media

@@ -214,31 +214,18 @@ func ConfigPath(ftype string) (string, error) {
 
 		return socket, nil
 
-	case "history":
-		hpath := filepath.Join(configPath, "history")
+	default:
+		fpath := filepath.Join(configPath, ftype)
 
-		if _, err := os.Stat(hpath); err != nil {
-			fd, err := os.Create(hpath)
+		if _, err := os.Stat(fpath); err != nil {
+			fd, err := os.Create(fpath)
 			fd.Close()
 			if err != nil {
-				return "", fmt.Errorf("Cannot create history file at %s", hpath)
+				return "", fmt.Errorf("Cannot create "+ftype+" file at %s", fpath)
 			}
 		}
 
-		return hpath, nil
-
-	case "config":
-		cpath := filepath.Join(configPath, "config")
-
-		if _, err := os.Stat(cpath); err != nil {
-			fd, err := os.Create(cpath)
-			fd.Close()
-			if err != nil {
-				return "", fmt.Errorf("Cannot create config file at %s", cpath)
-			}
-		}
-
-		return cpath, nil
+		return fpath, nil
 	}
 
 	return configPath, nil

@@ -341,7 +341,7 @@ func (c *Connector) MediaType() string {
 
 // LoopType determines if the loop option is set, and
 // determines if it is one of loop-file or loop-playlist.
-func (c *Connector) LoopType(file bool) string {
+func (c *Connector) LoopType() string {
 	lf, err := c.Call("get_property_string", "loop-file")
 	if err != nil {
 		return ""
@@ -353,11 +353,11 @@ func (c *Connector) LoopType(file bool) string {
 	}
 
 	if lf == "yes" || lf == "inf" {
-		return "R-F"
+		return "loop-file"
 	}
 
 	if lp == "yes" || lp == "inf" {
-		return "R-P"
+		return "loop-playlist"
 	}
 
 	return ""
@@ -501,19 +501,16 @@ func (c *Connector) CycleMute() {
 
 // CycleLoop toggles between looping a file, playlist or none.
 func (c *Connector) CycleLoop() {
-	switch loop {
+	switch c.LoopType() {
 	case "":
-		loop = "loop-file"
 		c.Set("loop-file", "yes")
 		c.Set("loop-playlist", "no")
 
 	case "loop-file":
-		loop = "loop-playlist"
 		c.Set("loop-file", "no")
 		c.Set("loop-playlist", "yes")
 
 	case "loop-playlist":
-		loop = ""
 		c.Set("loop-file", "no")
 		c.Set("loop-playlist", "no")
 	}
