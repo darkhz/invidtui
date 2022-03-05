@@ -392,10 +392,12 @@ func getListReference() (lib.SearchResult, error) {
 		table = plistTable
 	} else {
 		_, item := chPages.GetFrontPage()
-		table = item.(*tview.Table)
-		if table == nil {
+		t, ok := item.(*tview.Table)
+		if !ok {
 			return lib.SearchResult{}, err
 		}
+
+		table = t
 	}
 
 	row, _ := table.GetSelection()
