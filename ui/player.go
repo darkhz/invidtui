@@ -311,6 +311,10 @@ func savePlayerState() {
 	playStateLock.Lock()
 	defer playStateLock.Unlock()
 
+	if len(playerStates) == 0 {
+		return
+	}
+
 	statefile, err := lib.ConfigPath("state")
 	if err != nil {
 		return
