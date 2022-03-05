@@ -159,8 +159,9 @@ func showBanner() tview.Primitive {
 		}
 	}
 	bannerBox := tview.NewTextView()
+	bannerBox.SetDynamicColors(true)
 	bannerBox.SetBackgroundColor(tcell.ColorDefault)
-	bannerBox.SetText(banner)
+	bannerBox.SetText("[::b]" + banner)
 
 	box := tview.NewBox().
 		SetBackgroundColor(tcell.ColorDefault)
