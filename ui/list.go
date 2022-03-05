@@ -55,6 +55,12 @@ func SetupList() {
 	ResultsFlex.SetBackgroundColor(tcell.ColorDefault)
 
 	ResultsList.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if event.Key() == tcell.KeyUp {
+			if ResultsList.GetRowCount() == 0 {
+				return nil
+			}
+		}
+
 		captureListEvents(event)
 		capturePlayerEvent(event)
 
