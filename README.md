@@ -45,7 +45,7 @@ or check the Releases page and download the binary that matches your OS and arch
 
 - The **use-current-instance** option can be used in cases where a playlist file has to be loaded, but the URLs in the playlist point to a slow invidious instance. The playlist media can instead be retrieved from a fast instance (automatically selected by invidtui).
 
-- While specifying the **force-instance** option, it is recommended to input just the instance name, remove the "https://" prefix if present.
+- While specifying the **force-instance** option, it is recommended to input just the instance name, remove the "https://" prefix if present. If the instance url is not valid, invidtui will automatically choose another valid instance.
 
 ## Configuration file
 Generally, invidtui will work out-of-the-box, with no configuration required.<br />
