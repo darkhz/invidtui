@@ -14,6 +14,7 @@ var (
 	// ResultsFlex contains the arranged page marker
 	// and ResultsList table elements.
 	ResultsFlex *tview.Flex
+
 	// ResultsList is a table to display results.
 	ResultsList    *tview.Table
 	resultPageMark *tview.TextView
@@ -78,8 +79,6 @@ func SearchAndList(text string) {
 	if text == "" && searchString == "" {
 		return
 	}
-
-	resultPageMark.Highlight(stype)
 
 	msg := "Fetching "
 	if text != "" {
@@ -295,6 +294,7 @@ func searchText(channel bool) {
 			lib.AddToHistory(text)
 			table.Clear()
 			table.SetSelectable(false, false)
+			resultPageMark.Highlight(stype)
 		} else {
 			return
 		}
