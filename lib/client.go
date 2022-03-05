@@ -93,6 +93,9 @@ func queryInstances() (*Client, error) {
 	var bestInstance string
 	var instances [][]interface{}
 
+	ctx := context.Background()
+	cli := NewClient(instanceApi)
+
 	checkInstance := func(inst string) (string, bool) {
 		insturl := "https://" + inst
 
@@ -100,8 +103,14 @@ func queryInstances() (*Client, error) {
 			return "", false
 		}
 
-		r, err := http.Head(insturl)
-		if err == nil && r.StatusCode == 200 {
+		req, err := http.NewRequest("HEAD", insturl+api+"search", nil)
+		req.Header.Set("User-Agent", userAgent)
+		if err != nil {
+			return "", false
+		}
+
+		res, err := cli.client.Do(req)
+		if err == nil && res.StatusCode == 200 {
 			return insturl, true
 		}
 
@@ -122,10 +131,7 @@ func queryInstances() (*Client, error) {
 		}
 	}
 
-	ctx := context.Background()
-	client := NewClient(instanceApi)
-
-	res, err := SendRequest(ctx, client, "")
+	res, err := SendRequest(ctx, cli, "")
 	if err != nil {
 		return nil, err
 	}
