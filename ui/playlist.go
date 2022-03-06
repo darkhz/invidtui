@@ -348,7 +348,7 @@ func viewPlaylist(info lib.SearchResult, newlist bool) {
 
 	InfoMessage("Loading playlist entries", false)
 
-	result, err := lib.GetClient().Playlist(info.PlaylistID, false)
+	result, err := lib.GetClient().Playlist(info.PlaylistID)
 	if err != nil {
 		cancel = true
 	}
@@ -411,7 +411,7 @@ func viewPlaylist(info lib.SearchResult, newlist bool) {
 
 		for i, v := range result.Videos {
 			select {
-			case <-lib.PlistCtx.Done():
+			case <-lib.PlaylistCtx().Done():
 				return
 
 			default:

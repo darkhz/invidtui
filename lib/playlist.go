@@ -27,17 +27,11 @@ type PlaylistVideo struct {
 }
 
 var (
-	plistid    string
-	plistpage  int
-	plistMutex sync.Mutex
-
-	// PlistCtx is used here and the UI playlist code
-	// to detect if the user tried to cancel the playlist
-	// loading.
-	PlistCtx context.Context
-
-	// PlistCancel is used to cancel the playlist loading.
-	PlistCancel context.CancelFunc
+	plistid     string
+	plistpage   int
+	plistMutex  sync.Mutex
+	plistCtx    context.Context
+	plistCancel context.CancelFunc
 )
 
 const playlistFields = "?fields=title,playlistId,author,description,videoCount,viewCount,videos"
@@ -46,20 +40,14 @@ const playlistFields = "?fields=title,playlistId,author,description,videoCount,v
 // If id is blank, it indicates that more results are to be loaded for the
 // same playlist ID (stored in plistid). When cancel is true, it will stop loading
 // the playlist.
-func (c *Client) Playlist(id string, cancel bool) (PlaylistResult, error) {
+func (c *Client) Playlist(id string) (PlaylistResult, error) {
 	var result PlaylistResult
 
 	if c == nil {
 		return PlaylistResult{}, nil
 	}
 
-	if PlistCtx != nil {
-		PlistCancel()
-
-		if cancel {
-			return PlaylistResult{}, nil
-		}
-	}
+	PlaylistCancel()
 
 	if id == "" {
 		incPlistPage()
@@ -68,11 +56,9 @@ func (c *Client) Playlist(id string, cancel bool) (PlaylistResult, error) {
 		plistid = id
 	}
 
-	PlistCtx, PlistCancel = context.WithCancel(context.Background())
-
 	query := "playlists/" + plistid + playlistFields + "&page=" + getPlistPage()
 
-	res, err := c.ClientRequest(PlistCtx, query)
+	res, err := c.ClientRequest(plistCtx, query)
 	if err != nil {
 		return PlaylistResult{}, err
 	}
@@ -92,14 +78,14 @@ func (c *Client) Playlist(id string, cancel bool) (PlaylistResult, error) {
 func LoadPlaylist(id string, audio bool) error {
 	var err error
 
-	playlist, err := GetClient().Playlist(id, false)
+	playlist, err := GetClient().Playlist(id)
 	if err != nil {
 		return err
 	}
 
 	for _, p := range playlist.Videos {
 		select {
-		case <-PlistCtx.Done():
+		case <-PlaylistCtx().Done():
 			return nil
 
 		default:
@@ -109,6 +95,20 @@ func LoadPlaylist(id string, audio bool) error {
 	}
 
 	return nil
+}
+
+// PlaylistCtx returns the playlist context.
+func PlaylistCtx() context.Context {
+	return plistCtx
+}
+
+// PlaylistCancel cancels and renews the playlist context.
+func PlaylistCancel() {
+	if plistCtx != nil {
+		plistCancel()
+	}
+
+	plistCtx, plistCancel = context.WithCancel(context.Background())
 }
 
 func getPlistPage() string {

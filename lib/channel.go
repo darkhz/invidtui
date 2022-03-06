@@ -39,23 +39,7 @@ func (c *Client) Channel(id, stype, params string, cancel bool) (ChannelResult, 
 		return ChannelResult{}, nil
 	}
 
-	if PlistCtx != nil {
-		PlistCancel()
-
-		if cancel {
-			return ChannelResult{}, nil
-		}
-	}
-
-	// We use the same context as the Playlist because only one of
-	// either Playlist or Channel is supposed to load at a time. We
-	// do not want both of them to load separately/simultaneously,
-	// since only one screen is shown (the channel screen or the playlist screen).
-	// For example, if a user loads a channel, and then immediately
-	// attempts to load the playlist, there is no point in completely
-	// loading the channel contents, since the user wants to view the playlist
-	// contents immediately.
-	PlistCtx, PlistCancel = context.WithCancel(context.Background())
+	channelCancel()
 
 	chantype = stype
 
@@ -97,7 +81,7 @@ func (c *Client) chandecode(query, dectype string) (interface{}, error) {
 	var vres []PlaylistVideo
 	var pres, cres ChannelResult
 
-	res, err := c.ClientRequest(PlistCtx, query)
+	res, err := c.ClientRequest(ChannelCtx(), query)
 	if err != nil {
 		return nil, err
 	}
@@ -147,6 +131,21 @@ func (c *Client) ChannelPlaylists(id string, cancel bool) (ChannelResult, error)
 // ChannelSearch searches for a query string in the channel.
 func (c *Client) ChannelSearch(id, query string, getmore bool) ([]SearchResult, error) {
 	return c.Search("channel", query, getmore, id)
+}
+
+// ChannelCtx returns the channel's context. Currently, this
+// uses the same context as the Playlist because only one
+// of either Playlist or Channel is supposed to load at a time.
+// We do not want both of them to load simultaneously, since
+// only one screen is shown (the channel screen or the playlist screen).
+func ChannelCtx() context.Context {
+	return PlaylistCtx()
+}
+
+// channelCancel cancels and renews the channel's context.
+// See ChannelCtx().
+func channelCancel() {
+	PlaylistCancel()
 }
 
 func getChanPage(search bool) int {

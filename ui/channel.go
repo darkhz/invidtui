@@ -289,7 +289,7 @@ func listChannelVideos(info lib.SearchResult, pos, rows, width int, result lib.C
 
 	for i, v := range result.Videos {
 		select {
-		case <-lib.PlistCtx.Done():
+		case <-lib.ChannelCtx().Done():
 			return pos
 
 		default:
@@ -338,7 +338,7 @@ func listChannelPlaylists(info lib.SearchResult, pos, rows, width int, result li
 
 	for i, p := range result.Playlists {
 		select {
-		case <-lib.PlistCtx.Done():
+		case <-lib.ChannelCtx().Done():
 			return pos
 
 		default:
