@@ -57,17 +57,13 @@ func (c *Client) Search(stype, text string, getmore bool, chanid ...string) ([]S
 		return getPage()
 	}
 
-	if searchCtx != nil {
-		searchCancel()
-	}
+	SearchCancel()
 
 	if !getmore {
 		setpg(0)
 	} else {
 		oldpg = getpg()
 	}
-
-	searchCtx, searchCancel = context.WithCancel(context.Background())
 
 	for newpg = oldpg + 1; newpg <= oldpg+2; newpg++ {
 		var s []SearchResult
@@ -99,6 +95,21 @@ func (c *Client) Search(stype, text string, getmore bool, chanid ...string) ([]S
 	setpg(newpg)
 
 	return results, nil
+}
+
+// GetSearchCtx returns the search context.
+func GetSearchCtx() context.Context {
+	return searchCtx
+}
+
+// SearchCancel cancels and renews the search context.
+func SearchCancel() {
+	if searchCtx != nil {
+		searchCancel()
+	}
+
+	searchCtx, searchCancel = context.WithCancel(context.Background())
+
 }
 
 func getPage() int {

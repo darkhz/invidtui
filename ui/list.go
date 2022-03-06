@@ -122,6 +122,13 @@ func searchAndList(results []lib.SearchResult) {
 	_, _, width, _ := VPage.GetRect()
 
 	for i, result := range results {
+		select {
+		case <-lib.GetSearchCtx().Done():
+			ResultsList.Clear()
+			return
+
+		default:
+		}
 		var lentext string
 
 		if pos < 0 {
@@ -301,6 +308,7 @@ func searchText(channel bool) {
 			table.Clear()
 			table.SetSelectable(false, false)
 			resultPageMark.Highlight(stype)
+			lib.SearchCancel()
 		} else {
 			return
 		}
