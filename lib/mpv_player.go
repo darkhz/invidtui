@@ -461,6 +461,12 @@ func (c *Connector) PlaylistTitle(pos int) string {
 	return pltitle.(string)
 }
 
+// SetMediaTitle force sets the media title for the currently
+// playing track.
+func (c *Connector) SetMediaTitle(title string) {
+	c.Set("force-media-title", title)
+}
+
 // SetPlaylistPos sets the playlist position.
 func (c *Connector) SetPlaylistPos(pos int) {
 	c.Set("playlist-pos", pos)

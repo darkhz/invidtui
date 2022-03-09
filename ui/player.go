@@ -146,8 +146,14 @@ func startPlayer(ctx context.Context, cancel context.CancelFunc) {
 		playStateLock.Unlock()
 
 		App.QueueUpdateDraw(func() {
+			showTitle := "[::b]" + tview.Escape(title)
+
 			playerDesc.SetText(progressText)
-			playerTitle.SetText("[::b]" + tview.Escape(title))
+
+			if playerTitle.GetText(false) != showTitle {
+				playerTitle.SetText(showTitle)
+				lib.GetMPV().SetMediaTitle(title)
+			}
 		})
 	}
 
