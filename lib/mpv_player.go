@@ -72,6 +72,9 @@ func MPVStart() error {
 	monitorMap = make(map[int]string)
 	go monitorStart()
 
+	mpvctl.Set("pause", "yes")
+	mpvctl.Set("pause", "no")
+
 	mpvctl.Call("keybind", "q", "")
 	mpvctl.Call("keybind", "Ctrl+q", "")
 	mpvctl.Call("keybind", "Shift+q", "")
