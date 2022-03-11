@@ -367,17 +367,19 @@ func capturePlayerEvent(event *tcell.EventKey) {
 	}
 
 	switch event.Rune() {
-	case 'a':
-		PlaySelected(true, false)
+	case 'a', 'A', 'v', 'V':
+		audio := event.Rune() == 'a' || event.Rune() == 'A'
+		current := event.Rune() == 'A' || event.Rune() == 'V'
 
-	case 'v':
-		PlaySelected(false, false)
+		PlaySelected(audio, current)
 
-	case 'A':
-		PlaySelected(true, true)
-
-	case 'V':
-		PlaySelected(false, true)
+		table := getListTable()
+		if table != nil {
+			table.InputHandler()(
+				tcell.NewEventKey(tcell.KeyDown, 0, tcell.ModNone),
+				nil,
+			)
+		}
 
 	case 'p':
 		playlistPopup()

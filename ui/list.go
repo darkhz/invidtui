@@ -415,11 +415,6 @@ func getListReference() (lib.SearchResult, error) {
 	}
 
 	row, _ := table.GetSelection()
-	rows := table.GetRowCount()
-
-	if row+1 < rows {
-		table.Select(row+1, 0)
-	}
 
 	cell := table.GetCell(row, 0)
 	if cell == nil {
