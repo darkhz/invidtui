@@ -392,29 +392,26 @@ func loadMoreResults() {
 	go SearchAndList("")
 }
 
+// getListTable gets the Table in current focus.
+func getListTable() *tview.Table {
+	item := App.GetFocus()
+
+	if item, ok := item.(*tview.Table); ok {
+		return item
+	}
+
+	return nil
+}
+
 // getListReference gets a saved reference from a selected TableCell.
 func getListReference() (lib.SearchResult, error) {
 	var table *tview.Table
 
 	err := fmt.Errorf("Cannot select this entry")
 
-	if ResultsList.HasFocus() {
-		if !searchLock.TryAcquire(1) {
-			return lib.SearchResult{}, fmt.Errorf(loadingText)
-		}
-		defer searchLock.Release(1)
-
-		table = ResultsList
-	} else if plistTable.HasFocus() {
-		table = plistTable
-	} else {
-		_, item := chPages.GetFrontPage()
-		t, ok := item.(*tview.Table)
-		if !ok {
-			return lib.SearchResult{}, err
-		}
-
-		table = t
+	table = getListTable()
+	if table == nil {
+		return lib.SearchResult{}, err
 	}
 
 	row, _ := table.GetSelection()
