@@ -121,12 +121,6 @@ func ViewChannel(vtype string, newlist, noload bool) error {
 			return err
 		}
 
-		if info.Type != "channel" {
-			err = fmt.Errorf("Cannot load channel from " + info.Type + " type")
-			ErrorMessage(err)
-			return err
-		}
-
 		setChExited(false)
 		setCurrType(vtype)
 
