@@ -32,13 +32,22 @@ type FormatData struct {
 	Resolution string `json:"resolution,omitempty"`
 }
 
+var (
+	videoCtx    context.Context
+	videoCancel context.CancelFunc
+)
+
 const videoFields = "?fields=title,videoId,author,hlsUrl,publishedText,lengthSeconds,adaptiveFormats,liveNow"
 
 // Video gets the video with the given ID and returns a VideoResult.
 func (c *Client) Video(id string) (VideoResult, error) {
 	var result VideoResult
 
-	res, err := c.ClientRequest(context.Background(), "videos/"+id+videoFields)
+	if videoCtx == nil {
+		return VideoResult{}, fmt.Errorf("No video context found")
+	}
+
+	res, err := c.ClientRequest(videoCtx, "videos/"+id+videoFields)
 	if err != nil {
 		return VideoResult{}, err
 	}
@@ -130,6 +139,18 @@ func LoadVideo(id string, audio bool) error {
 	}
 
 	return nil
+}
+
+// VideoNewCtx renews the video's context.
+func VideoNewCtx() {
+	videoCtx, videoCancel = context.WithCancel(context.Background())
+}
+
+// VideoCancel cancels the video's context.
+func VideoCancel() {
+	if videoCtx != nil {
+		videoCancel()
+	}
 }
 
 // refreshLiveURL gets the video ID from an expired live video URL,

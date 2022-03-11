@@ -89,6 +89,7 @@ func RemovePlayer() {
 		UIFlex.RemoveItem(Player)
 	})
 
+	lib.VideoCancel()
 	lib.GetMPV().Stop()
 	lib.GetMPV().PlaylistClear()
 }
@@ -224,6 +225,8 @@ func PlaySelected(audio, current bool) {
 		}
 		defer addRateLimit.Release(1)
 
+		lib.VideoNewCtx()
+
 		switch info.Type {
 		case "playlist":
 			err = lib.LoadPlaylist(info.PlaylistID, audio)
@@ -239,7 +242,9 @@ func PlaySelected(audio, current bool) {
 				ErrorMessage(err)
 			}
 
-			return
+			if info.Type == "playlist" && err.Error() != "context canceled" {
+				return
+			}
 		}
 
 		AddPlayer()

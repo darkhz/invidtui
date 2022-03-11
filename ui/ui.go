@@ -64,6 +64,7 @@ func SetupUI() error {
 			appSuspend = true
 
 		case tcell.KeyCtrlX:
+			lib.VideoCancel()
 			lib.SearchCancel()
 			lib.PlaylistCancel()
 			InfoMessage("Loading canceled", false)

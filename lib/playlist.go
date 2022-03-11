@@ -85,8 +85,8 @@ func LoadPlaylist(id string, audio bool) error {
 
 	for _, p := range playlist.Videos {
 		select {
-		case <-PlaylistCtx().Done():
-			return nil
+		case <-videoCtx.Done():
+			return videoCtx.Err()
 
 		default:
 		}
