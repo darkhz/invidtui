@@ -167,13 +167,13 @@ func viewChannel(info lib.SearchResult, vtype string, newlist bool) {
 
 	switch vtype {
 	case "video":
-		result, err = lib.GetClient().ChannelVideos(info.AuthorID, false)
+		result, err = lib.GetClient().ChannelVideos(info.AuthorID)
 		resfunc = func(pos, rows, width int) int {
 			return listChannelVideos(info, pos, rows, width, result)
 		}
 
 	case "playlist":
-		result, err = lib.GetClient().ChannelPlaylists(info.AuthorID, false)
+		result, err = lib.GetClient().ChannelPlaylists(info.AuthorID)
 		resfunc = func(pos, rows, width int) int {
 			return listChannelPlaylists(info, pos, rows, width, result)
 		}

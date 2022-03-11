@@ -32,7 +32,7 @@ const channelFields = "?fields=title,authorId,author,description,viewCount"
 // If id is blank, it indicates that more results are to be loaded for the
 // same channel ID (stored in plistid). When cancel is true, it will stop loading
 // the channel.
-func (c *Client) Channel(id, stype, params string, cancel bool) (ChannelResult, error) {
+func (c *Client) Channel(id, stype, params string) (ChannelResult, error) {
 	var result ChannelResult
 
 	if c == nil {
@@ -108,7 +108,7 @@ func (c *Client) chandecode(query, dectype string) (interface{}, error) {
 }
 
 // ChannelVideos loads only the videos present in the channel.
-func (c *Client) ChannelVideos(id string, cancel bool) (ChannelResult, error) {
+func (c *Client) ChannelVideos(id string) (ChannelResult, error) {
 	if id == "" {
 		incChanPage(false)
 	} else {
@@ -119,13 +119,12 @@ func (c *Client) ChannelVideos(id string, cancel bool) (ChannelResult, error) {
 		id,
 		"videos",
 		videoFields+"&page="+strconv.Itoa(getChanPage(false)),
-		cancel,
 	)
 }
 
 // ChannelPlaylists loads only the playlists present in the channel.
-func (c *Client) ChannelPlaylists(id string, cancel bool) (ChannelResult, error) {
-	return c.Channel(id, "playlists", "?fields=playlists", cancel)
+func (c *Client) ChannelPlaylists(id string) (ChannelResult, error) {
+	return c.Channel(id, "playlists", "?fields=playlists")
 }
 
 // ChannelSearch searches for a query string in the channel.
