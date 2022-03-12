@@ -308,6 +308,7 @@ func listChannelVideos(info lib.SearchResult, pos, rows, width int, result lib.C
 			Type:    "video",
 			Title:   v.Title,
 			VideoID: v.VideoID,
+			Author:  result.Author,
 		}
 
 		chVideoTable.SetCell((rows+i)-skipped, 0, tview.NewTableCell("[blue::b]"+tview.Escape(v.Title)).
@@ -352,6 +353,7 @@ func listChannelPlaylists(info lib.SearchResult, pos, rows, width int, result li
 			Type:       "playlist",
 			Title:      p.Title,
 			PlaylistID: p.PlaylistID,
+			Author:     result.Author,
 		}
 
 		chPlistTable.SetCell((rows + i), 0, tview.NewTableCell("[blue::b]"+tview.Escape(p.Title)).

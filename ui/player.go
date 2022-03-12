@@ -3,6 +3,7 @@ package ui
 import (
 	"bufio"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -20,15 +21,17 @@ var (
 	// Player displays the media player.
 	Player *tview.Flex
 
-	playerTitle   *tview.TextView
-	playerDesc    *tview.TextView
-	playerChan    chan bool
-	playing       bool
-	playingLock   sync.Mutex
-	playStateLock sync.Mutex
-	playerEvent   chan struct{}
-	playerWidth   int
-	playerStates  []string
+	playerTitle     *tview.TextView
+	playerDesc      *tview.TextView
+	playerChan      chan bool
+	playing         bool
+	playingLock     sync.Mutex
+	playStateLock   sync.Mutex
+	playHistoryLock sync.Mutex
+	playerEvent     chan struct{}
+	playerWidth     int
+	playerStates    []string
+	playHistory     []lib.SearchResult
 
 	addRateLimit *semaphore.Weighted
 )
@@ -59,7 +62,8 @@ func SetupPlayer() {
 
 	go StartPlayer()
 	go monitorErrors()
-	go setPlayerState()
+	go loadPlayerState()
+	go loadPlayHistory()
 }
 
 // AddPlayer unhides the player view.
@@ -182,6 +186,7 @@ func startPlayer(ctx context.Context, cancel context.CancelFunc) {
 func StopPlayer() {
 	SetPlayer(false)
 	savePlayerState()
+	savePlayHistory()
 	lib.GetMPV().MPVStop(true)
 }
 
@@ -249,6 +254,8 @@ func PlaySelected(audio, current bool) {
 
 		AddPlayer()
 
+		go addToPlayHistory(info)
+
 		InfoMessage("Added "+info.Title, false)
 
 		if current && info.Type == "video" {
@@ -273,9 +280,9 @@ func setPlaying(status bool) {
 	playing = status
 }
 
-// setPlayerState sets player volume, loop, mute and shuffle
+// loadPlayerState sets player volume, loop, mute and shuffle
 // settings to its last known state.
-func setPlayerState() {
+func loadPlayerState() {
 	var states []string
 
 	state, err := lib.ConfigPath("state")
@@ -339,6 +346,141 @@ func savePlayerState() {
 	}
 }
 
+// loadPlayHistory loads the play history.
+func loadPlayHistory() {
+	playHistoryLock.Lock()
+	defer playHistoryLock.Unlock()
+
+	var hist []lib.SearchResult
+
+	playhistory, err := lib.ConfigPath("playhistory.json")
+	if err != nil {
+		return
+	}
+
+	phfile, err := os.Open(playhistory)
+	if err != nil {
+		return
+	}
+
+	err = json.NewDecoder(phfile).Decode(&hist)
+	if err != nil {
+		return
+	}
+
+	playHistory = hist
+}
+
+// addToPlayHistory adds a loaded media item into the history.
+func addToPlayHistory(info lib.SearchResult) {
+	playHistoryLock.Lock()
+	defer playHistoryLock.Unlock()
+
+	for i, entry := range playHistory {
+		if entry == info {
+			playHistory[0], playHistory[i] = playHistory[i], playHistory[0]
+			return
+		}
+	}
+
+	playHistory = append([]lib.SearchResult{info}, playHistory...)
+}
+
+// showPlayHistory displays a popup with the play history.
+func showPlayHistory() {
+	playHistoryLock.Lock()
+	defer playHistoryLock.Unlock()
+
+	if len(playHistory) == 0 {
+		return
+	}
+
+	if pg, _ := MPage.GetFrontPage(); pg == "playhistory" {
+		return
+	}
+
+	App.QueueUpdateDraw(func() {
+		histTable := tview.NewTable()
+		histTable.SetSelectorWrap(true)
+		histTable.SetSelectable(true, false)
+		histTable.SetBackgroundColor(tcell.ColorDefault)
+		histTable.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+			capturePlayerEvent(event)
+
+			switch event.Key() {
+			case tcell.KeyEscape:
+				exitFocus()
+			}
+
+			return event
+		})
+
+		histTitle := tview.NewTextView()
+		histTitle.SetDynamicColors(true)
+		histTitle.SetText("[::bu]Play History")
+		histTitle.SetTextAlign(tview.AlignCenter)
+		histTitle.SetBackgroundColor(tcell.ColorDefault)
+
+		histFlex := tview.NewFlex().
+			AddItem(histTitle, 1, 0, false).
+			AddItem(histTable, 10, 10, true).
+			SetDirection(tview.FlexRow)
+
+		for row, ph := range playHistory {
+			histTable.SetCell(row, 0, tview.NewTableCell("[blue::b]"+ph.Title).
+				SetExpansion(1).
+				SetReference(ph).
+				SetSelectedStyle(mainStyle),
+			)
+
+			histTable.SetCell(row, 1, tview.NewTableCell("").
+				SetSelectable(false),
+			)
+
+			histTable.SetCell(row, 2, tview.NewTableCell("[purple::b]"+ph.Author).
+				SetSelectedStyle(auxStyle),
+			)
+
+			histTable.SetCell(row, 3, tview.NewTableCell("").
+				SetSelectable(false),
+			)
+
+			histTable.SetCell(row, 4, tview.NewTableCell("[pink]"+ph.Type).
+				SetSelectedStyle(auxStyle),
+			)
+		}
+
+		MPage.AddAndSwitchToPage(
+			"playhistory",
+			statusmodal(histFlex, histTable),
+			true,
+		).ShowPage("ui")
+
+		App.SetFocus(histFlex)
+	})
+}
+
+// savePlayHistory saves the play history.
+func savePlayHistory() {
+	playHistoryLock.Lock()
+	defer playHistoryLock.Unlock()
+
+	phfile, err := lib.ConfigPath("playhistory.json")
+	if err != nil {
+		return
+	}
+
+	data, err := json.MarshalIndent(playHistory, "", " ")
+	if err != nil {
+		return
+	}
+
+	err = ioutil.WriteFile(phfile, data, 0664)
+	if err != nil {
+		return
+	}
+}
+
 // monitorErrors monitors for errors related to loading media
 // from MPV.
 func monitorErrors() {
@@ -369,22 +511,14 @@ func capturePlayerEvent(event *tcell.EventKey) {
 	switch event.Key() {
 	case tcell.KeyCtrlO:
 		ShowFileBrowser("Open playlist:", plOpenReplace, plFbExit)
+
+	case tcell.KeyCtrlH:
+		go showPlayHistory()
 	}
 
 	switch event.Rune() {
 	case 'a', 'A', 'v', 'V':
-		audio := event.Rune() == 'a' || event.Rune() == 'A'
-		current := event.Rune() == 'A' || event.Rune() == 'V'
-
-		PlaySelected(audio, current)
-
-		table := getListTable()
-		if table != nil {
-			table.InputHandler()(
-				tcell.NewEventKey(tcell.KeyDown, 0, tcell.ModNone),
-				nil,
-			)
-		}
+		playSelected(event.Rune())
 
 	case 'p':
 		playlistPopup()
@@ -444,16 +578,6 @@ func captureSendPlayerEvent(event *tcell.EventKey) {
 	}
 }
 
-func resizePlayer(width int) {
-	if width == playerWidth {
-		return
-	}
-
-	sendPlayerEvent()
-
-	playerWidth = width
-}
-
 // sendPlayerEvent sends a player event.
 func sendPlayerEvent() {
 	select {
@@ -462,4 +586,29 @@ func sendPlayerEvent() {
 
 	default:
 	}
+}
+
+func playSelected(r rune) {
+	audio := r == 'a' || r == 'A'
+	current := r == 'A' || r == 'V'
+
+	PlaySelected(audio, current)
+
+	table := getListTable()
+	if table != nil {
+		table.InputHandler()(
+			tcell.NewEventKey(tcell.KeyDown, 0, tcell.ModNone),
+			nil,
+		)
+	}
+}
+
+func resizePlayer(width int) {
+	if width == playerWidth {
+		return
+	}
+
+	sendPlayerEvent()
+
+	playerWidth = width
 }

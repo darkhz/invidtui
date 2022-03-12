@@ -436,6 +436,7 @@ func viewPlaylist(info lib.SearchResult, newlist bool) {
 				Type:    "video",
 				Title:   v.Title,
 				VideoID: v.VideoID,
+				Author:  result.Author,
 			}
 
 			plistTable.SetCell((rows+i)-skipped, 0, tview.NewTableCell("[blue::b]"+tview.Escape(v.Title)).
