@@ -77,6 +77,7 @@ func AddPlayer() {
 
 	App.QueueUpdateDraw(func() {
 		UIFlex.AddItem(Player, 2, 0, false)
+		resizemodal()
 	})
 }
 
@@ -91,6 +92,7 @@ func RemovePlayer() {
 
 	App.QueueUpdateDraw(func() {
 		UIFlex.RemoveItem(Player)
+		resizemodal()
 	})
 
 	lib.VideoCancel()

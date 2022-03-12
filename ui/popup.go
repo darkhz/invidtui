@@ -30,7 +30,7 @@ func popupStatus(status bool) {
 // accordingly. This function is placed in App's BeforeDrawFunc, where
 // it can resize the popup when the terminal is resized.
 func resizePopup(width int) {
-	if !popup.open || popup.width == width {
+	if popup.width == width {
 		return
 	}
 
@@ -42,6 +42,10 @@ func resizePopup(width int) {
 // resizemodal gets the current width and height of the screen, and resizes
 // the popup modal.
 func resizemodal() {
+	if !popup.open {
+		return
+	}
+
 	height := popup.table.GetRowCount()
 
 	_, _, screenWidth, screenHeight := UIFlex.GetRect()
