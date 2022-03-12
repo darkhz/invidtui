@@ -111,6 +111,8 @@ func SearchAndList(text string) {
 
 // searchAndList renders the search results list.
 func searchAndList(results []lib.SearchResult) {
+	var skipped int
+
 	pos := -1
 	rows := ResultsList.GetRowCount()
 	_, _, width, _ := VPage.GetRect()
@@ -125,8 +127,13 @@ func searchAndList(results []lib.SearchResult) {
 		}
 		var lentext string
 
+		if result.Type == "category" {
+			skipped++
+			continue
+		}
+
 		if pos < 0 {
-			pos = rows + i
+			pos = (rows + i) - skipped
 		}
 
 		if result.Title == "" {
@@ -140,32 +147,34 @@ func searchAndList(results []lib.SearchResult) {
 			lentext = lib.FormatDuration(result.LengthSeconds)
 		}
 
-		ResultsList.SetCell(rows+i, 0, tview.NewTableCell("[blue::b]"+tview.Escape(result.Title)).
+		actualRow := (rows + i) - skipped
+
+		ResultsList.SetCell(actualRow, 0, tview.NewTableCell("[blue::b]"+tview.Escape(result.Title)).
 			SetExpansion(1).
 			SetReference(result).
 			SetMaxWidth((width / 4)).
 			SetSelectedStyle(mainStyle),
 		)
 
-		ResultsList.SetCell(rows+i, 1, tview.NewTableCell(" ").
+		ResultsList.SetCell(actualRow, 1, tview.NewTableCell(" ").
 			SetSelectable(false).
 			SetAlign(tview.AlignRight),
 		)
 
-		ResultsList.SetCell(rows+i, 2, tview.NewTableCell("[purple::b]"+result.Author).
+		ResultsList.SetCell(actualRow, 2, tview.NewTableCell("[purple::b]"+result.Author).
 			SetSelectable(true).
 			SetMaxWidth((width / 4)).
 			SetAlign(tview.AlignLeft).
 			SetSelectedStyle(auxStyle),
 		)
 
-		ResultsList.SetCell(rows+i, 3, tview.NewTableCell(" ").
+		ResultsList.SetCell(actualRow, 3, tview.NewTableCell(" ").
 			SetSelectable(false).
 			SetAlign(tview.AlignRight),
 		)
 
 		if result.Type == "playlist" || result.Type == "channel" {
-			ResultsList.SetCell(rows+i, 4, tview.NewTableCell("[pink]"+strconv.Itoa(result.VideoCount)+" videos").
+			ResultsList.SetCell(actualRow, 4, tview.NewTableCell("[pink]"+strconv.Itoa(result.VideoCount)+" videos").
 				SetSelectable(true).
 				SetAlign(tview.AlignRight).
 				SetSelectedStyle(auxStyle),
@@ -175,26 +184,26 @@ func searchAndList(results []lib.SearchResult) {
 				continue
 			}
 		} else {
-			ResultsList.SetCell(rows+i, 4, tview.NewTableCell("[pink]"+lentext).
+			ResultsList.SetCell(actualRow, 4, tview.NewTableCell("[pink]"+lentext).
 				SetSelectable(true).
 				SetAlign(tview.AlignRight).
 				SetSelectedStyle(auxStyle),
 			)
 		}
 
-		ResultsList.SetCell(rows+i, 5, tview.NewTableCell(" ").
+		ResultsList.SetCell(actualRow, 5, tview.NewTableCell(" ").
 			SetSelectable(false).
 			SetAlign(tview.AlignRight),
 		)
 
 		if result.Type == "channel" {
-			ResultsList.SetCell(rows+i, 6, tview.NewTableCell("[pink]"+lib.FormatNumber(result.SubCount)+" subs").
+			ResultsList.SetCell(actualRow, 6, tview.NewTableCell("[pink]"+lib.FormatNumber(result.SubCount)+" subs").
 				SetSelectable(true).
 				SetAlign(tview.AlignRight).
 				SetSelectedStyle(auxStyle),
 			)
 		} else {
-			ResultsList.SetCell(rows+i, 6, tview.NewTableCell("[pink]"+lib.FormatPublished(result.PublishedText)).
+			ResultsList.SetCell(actualRow, 6, tview.NewTableCell("[pink]"+lib.FormatPublished(result.PublishedText)).
 				SetSelectable(true).
 				SetAlign(tview.AlignRight).
 				SetSelectedStyle(auxStyle),
