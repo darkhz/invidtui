@@ -405,10 +405,30 @@ func showPlayHistory() {
 		histTable.SetSelectable(true, false)
 		histTable.SetBackgroundColor(tcell.ColorDefault)
 		histTable.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+			var exit bool
+
 			capturePlayerEvent(event)
 
 			switch event.Key() {
 			case tcell.KeyEscape:
+				exitFocus()
+			}
+
+			switch event.Rune() {
+			case 'i':
+				exit = true
+				ViewPlaylist(true, event.Modifiers() == tcell.ModAlt)
+
+			case 'u':
+				exit = true
+				ViewChannel("video", true, event.Modifiers() == tcell.ModAlt)
+
+			case 'U':
+				exit = true
+				ViewChannel("playlist", true, event.Modifiers() == tcell.ModAlt)
+			}
+
+			if exit {
 				exitFocus()
 			}
 

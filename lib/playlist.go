@@ -23,6 +23,7 @@ type PlaylistVideo struct {
 	Title         string `json:"title"`
 	VideoID       string `json:"videoId"`
 	Author        string `json:"author"`
+	AuthorID      string `json:"authorId"`
 	LengthSeconds int    `json:"lengthSeconds"`
 }
 

@@ -433,10 +433,11 @@ func viewPlaylist(info lib.SearchResult, newlist bool) {
 			}
 
 			sref := lib.SearchResult{
-				Type:    "video",
-				Title:   v.Title,
-				VideoID: v.VideoID,
-				Author:  result.Author,
+				Type:     "video",
+				Title:    v.Title,
+				VideoID:  v.VideoID,
+				AuthorID: v.AuthorID,
+				Author:   result.Author,
 			}
 
 			plistTable.SetCell((rows+i)-skipped, 0, tview.NewTableCell("[blue::b]"+tview.Escape(v.Title)).

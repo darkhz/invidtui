@@ -147,6 +147,8 @@ func ViewChannel(vtype string, newlist, noload bool) error {
 		chanID = info.AuthorID
 	}
 
+	prevpage, previtem = VPage.GetFrontPage()
+
 	chPageMark.Highlight(vtype)
 	chPages.SwitchToPage(vtype)
 
@@ -191,6 +193,7 @@ func viewChannel(info lib.SearchResult, vtype string, newlist bool) {
 		return
 	}
 	if err != nil {
+		ErrorMessage(err)
 		cancel = true
 	}
 
@@ -305,10 +308,11 @@ func listChannelVideos(info lib.SearchResult, pos, rows, width int, result lib.C
 		}
 
 		sref := lib.SearchResult{
-			Type:    "video",
-			Title:   v.Title,
-			VideoID: v.VideoID,
-			Author:  result.Author,
+			Type:     "video",
+			Title:    v.Title,
+			VideoID:  v.VideoID,
+			AuthorID: result.ChannelID,
+			Author:   result.Author,
 		}
 
 		chVideoTable.SetCell((rows+i)-skipped, 0, tview.NewTableCell("[blue::b]"+tview.Escape(v.Title)).
@@ -353,6 +357,7 @@ func listChannelPlaylists(info lib.SearchResult, pos, rows, width int, result li
 			Type:       "playlist",
 			Title:      p.Title,
 			PlaylistID: p.PlaylistID,
+			AuthorID:   result.ChannelID,
 			Author:     result.Author,
 		}
 
@@ -481,8 +486,8 @@ func chTableEvents(event *tcell.EventKey) {
 
 	case tcell.KeyEscape:
 		setChExited(true)
-		VPage.SwitchToPage("search")
-		App.SetFocus(ResultsList)
+		VPage.SwitchToPage(prevpage)
+		App.SetFocus(previtem)
 		ResultsList.SetSelectable(true, false)
 	}
 
