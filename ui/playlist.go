@@ -478,8 +478,7 @@ func viewPlaylist(info lib.SearchResult, newlist bool) {
 		plistTable.SetSelectable(true, false)
 		ResultsList.SetSelectable(true, false)
 
-		name, _ := VPage.GetFrontPage()
-		if name == "playlistview" {
+		if pg, _ := MPage.GetFrontPage(); pg == "ui" {
 			App.SetFocus(plistTable)
 		}
 	})

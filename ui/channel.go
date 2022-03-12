@@ -269,7 +269,7 @@ func viewChannel(info lib.SearchResult, vtype string, newlist bool) {
 				VPage.SwitchToPage("channelview")
 
 				if !qsrch {
-					App.SetFocus(chTable)
+					focusChTable(chTable)
 				}
 			}
 
@@ -562,6 +562,12 @@ func switchChannelTabs() {
 		}
 
 		go viewChannel(info, ctype, true)
+	}
+}
+
+func focusChTable(chTable *tview.Table) {
+	if pg, _ := MPage.GetFrontPage(); pg == "ui" {
+		App.SetFocus(chTable)
 	}
 }
 
