@@ -255,16 +255,6 @@ func (c *Connector) LoadPlaylist(plpath string, replace bool) error {
 			}
 		}
 
-		if currInstance {
-			uri, err := url.ParseRequestURI(line)
-			if err != nil {
-				return fmt.Errorf("Unable to parse playlist URL")
-			}
-
-			requri := uri.RequestURI()
-			line = GetClient().host + requri
-		}
-
 		c.Call("loadfile", line, "append-play", options)
 
 		addToMonitor(title)
