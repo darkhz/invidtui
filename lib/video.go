@@ -176,6 +176,8 @@ func refreshLiveURL(uri string, audio bool) bool {
 		}
 	}
 
+	VideoNewCtx()
+
 	LoadVideo(id, audio)
 
 	return true
