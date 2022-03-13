@@ -9,9 +9,18 @@ builds:
       - darwin
       - windows
 
+    goarch:
+      - arm
+      - 386
+      - arm64
+      - amd64
+
     ignore:
       - goos: windows
         goarch: arm64
+
+      - goos: windows
+        goarch: arm
 
 archives:
   - replacements:
