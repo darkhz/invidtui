@@ -66,7 +66,7 @@ func SetupFlags() error {
 	flag.StringVar(
 		&ytdlpath,
 		"ytdl-path",
-		"youtube-dl",
+		"",
 		"Specify path to youtube-dl executable or its forks (yt-dlp, yt-dtlp_x86)",
 	)
 
@@ -100,7 +100,9 @@ func SetupFlags() error {
 			}
 			s += strings.ReplaceAll(f.Usage, "\n", "\n    \t")
 
-			if f.Name != "close-instances" && f.Name != "use-current-instance" {
+			if f.Name == "ytdl-path" {
+				s += fmt.Sprintf(" (default %q)", "youtube-dl")
+			} else if f.Name != "close-instances" && f.Name != "use-current-instance" {
 				if f.Name != "num-retries" {
 					s += fmt.Sprintf(" (default %q)", f.DefValue)
 				} else {
@@ -139,14 +141,14 @@ func SetupFlags() error {
 		return fmt.Errorf("Could not find the mpv executable")
 	}
 
-	_, err = exec.LookPath(ytdlpath)
-	if err != nil {
-		return fmt.Errorf("Could not find the youtube-dl executable")
-	}
-
 	_, err = exec.LookPath("ffmpeg")
 	if err != nil {
 		return fmt.Errorf("Could not find the ffmpeg executable")
+	}
+
+	err = findYoutubeDL()
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -245,4 +247,30 @@ func ConfigPath(ftype string) (string, error) {
 	}
 
 	return configPath, nil
+}
+
+// findYoutubeDL searches for the youtube-dl or yt-dlp executables.
+func findYoutubeDL() error {
+	if ytdlpath != "" {
+		_, err := exec.LookPath(ytdlpath)
+		if err != nil {
+			return fmt.Errorf("Could not find the " + ytdlpath + " executable")
+		}
+
+		return nil
+	}
+
+	for _, ytdl := range []string{
+		"youtube-dl",
+		"yt-dlp",
+		"yt-dtlp_x86",
+	} {
+		_, err := exec.LookPath(ytdl)
+		if err == nil {
+			ytdlpath = ytdl
+			return nil
+		}
+	}
+
+	return fmt.Errorf("Could not find the youtube-dl/yt-dlp/yt-dtlp_x86 executables")
 }
