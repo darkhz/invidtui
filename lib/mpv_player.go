@@ -187,10 +187,10 @@ func (c *Connector) Set(prop string, value interface{}) error {
 // will consider the first entry as the video file and the second entry as
 // the audio file, set the relevant options and pass them to mpv.
 func (c *Connector) LoadFile(title string, duration int, liveaudio bool, files ...string) error {
-	options := "title='" + title
+	options := "title=%" + strconv.Itoa(len(title)+2) + "%'" + title + "'"
 
 	if duration > 0 {
-		options += "',length=" + strconv.Itoa(duration)
+		options += ",length=" + strconv.Itoa(duration)
 	}
 
 	if liveaudio {
@@ -249,7 +249,7 @@ func (c *Connector) LoadPlaylist(plpath string, replace bool) error {
 			title = t
 		}
 		if o := data.Get("options"); o != "" {
-			options, _ = url.QueryUnescape(o)
+			options = o
 		}
 		if l := data.Get("length"); l == "Live" {
 			audio := data.Get("mediatype") == "Audio"
