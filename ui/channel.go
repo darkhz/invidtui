@@ -159,7 +159,10 @@ func viewChannel(info lib.SearchResult, vtype string, newlist bool) {
 	var result lib.ChannelResult
 	var resfunc func(pos, rows, width int) int
 
-	InfoMessage("Loading channel "+vtype+" entries", false)
+	if vtype != "search" {
+		InfoMessage("Loading channel "+vtype+" entries", true)
+		defer InfoMessage("Loaded channel "+vtype+" entries", false)
+	}
 
 	switch vtype {
 	case "video":
@@ -262,9 +265,7 @@ func viewChannel(info lib.SearchResult, vtype string, newlist bool) {
 			if !getChExited() {
 				VPage.SwitchToPage("channelview")
 
-				if !qsrch {
-					focusChTable(chTable)
-				}
+				focusChTable(!qsrch, chTable)
 			}
 
 			setChPageLoaded(vtype, true)
@@ -559,7 +560,11 @@ func switchChannelTabs() {
 	}
 }
 
-func focusChTable(chTable *tview.Table) {
+func focusChTable(focus bool, chTable *tview.Table) {
+	if !focus {
+		return
+	}
+
 	if pg, _ := MPage.GetFrontPage(); pg == "ui" {
 		App.SetFocus(chTable)
 	}

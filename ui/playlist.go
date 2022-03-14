@@ -346,7 +346,8 @@ func viewPlaylist(info lib.SearchResult, newlist bool) {
 	var err error
 	var cancel bool
 
-	InfoMessage("Loading playlist entries", false)
+	InfoMessage("Loading playlist entries", true)
+	defer InfoMessage("Loaded playlist entries", false)
 
 	result, err := lib.GetClient().Playlist(info.PlaylistID)
 	if err != nil {
@@ -606,7 +607,7 @@ func plMove() {
 
 // plOpenReplace opens a playlist file, and replaces the current playlist.
 func plOpenReplace(openpath string) {
-	InfoMessage("Loading "+filepath.Base(openpath), false)
+	InfoMessage("Loading "+filepath.Base(openpath), true)
 
 	err := lib.GetMPV().LoadPlaylist(openpath, true)
 	if err != nil {
@@ -618,11 +619,13 @@ func plOpenReplace(openpath string) {
 	App.QueueUpdateDraw(func() {
 		playlistPopup()
 	})
+
+	InfoMessage("Loaded "+filepath.Base(openpath), false)
 }
 
 // plOpenAppend opens a playlist file, and appends to the current playlist.
 func plOpenAppend(openpath string) {
-	InfoMessage("Loading "+filepath.Base(openpath), false)
+	InfoMessage("Loading "+filepath.Base(openpath), true)
 
 	App.QueueUpdateDraw(func() {
 		playlistPopup()
@@ -633,6 +636,8 @@ func plOpenAppend(openpath string) {
 		ErrorMessage(err)
 		return
 	}
+
+	InfoMessage("Loaded "+filepath.Base(openpath), false)
 }
 
 // plSaveAs saves a playlist to a file.
