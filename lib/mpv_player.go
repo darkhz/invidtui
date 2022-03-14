@@ -246,7 +246,7 @@ func (c *Connector) LoadPlaylist(plpath string, replace bool) error {
 			title = t
 		}
 		if o := data.Get("options"); o != "" {
-			options = o
+			options = replaceOptions(o)
 		}
 		if l := data.Get("length"); l == "Live" {
 			audio := data.Get("mediatype") == "Audio"
@@ -670,4 +670,24 @@ func (c *Connector) eventListener() {
 			}
 		}
 	}
+}
+
+// replaceOptions replaces the run and subprocess options from the options parameter.
+func replaceOptions(options string) string {
+	opts := strings.Split(options, ",")
+	newopts := opts[:0]
+
+	for _, o := range opts {
+		arg := strings.Split(o, "=")[0]
+
+		if arg != "run" && arg != "subprocess" {
+			newopts = append(newopts, o)
+		}
+	}
+
+	if len(newopts) == 0 {
+		newopts = opts
+	}
+
+	return strings.Join(newopts, ",")
 }
