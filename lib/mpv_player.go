@@ -184,7 +184,7 @@ func (c *Connector) Set(prop string, value interface{}) error {
 // will consider the first entry as the video file and the second entry as
 // the audio file, set the relevant options and pass them to mpv.
 func (c *Connector) LoadFile(title string, duration int, liveaudio bool, files ...string) error {
-	options := "title=%" + strconv.Itoa(len(title)+2) + "%'" + title + "'"
+	options := "force-media-title=%" + strconv.Itoa(len(title)) + "%" + title
 
 	if duration > 0 {
 		options += ",length=" + strconv.Itoa(duration)
@@ -253,6 +253,10 @@ func (c *Connector) LoadPlaylist(plpath string, replace bool) error {
 			if refresh := refreshLiveURL(line, audio); refresh {
 				continue
 			}
+		}
+
+		if !strings.Contains(options, "force-media-title") {
+			options += ",force-media-title=%" + strconv.Itoa(len(title)) + "%" + title
 		}
 
 		c.Call("loadfile", line, "append-play", options)
@@ -449,12 +453,6 @@ func (c *Connector) PlaylistTitle(pos int) string {
 	}
 
 	return pltitle.(string)
-}
-
-// SetMediaTitle force sets the media title for the currently
-// playing track.
-func (c *Connector) SetMediaTitle(title string) {
-	c.Set("force-media-title", title)
 }
 
 // SetPlaylistPos sets the playlist position.
