@@ -72,9 +72,6 @@ func MPVStart() error {
 	monitorMap = make(map[int]string)
 	go monitorStart()
 
-	mpvctl.Set("pause", "yes")
-	mpvctl.Set("pause", "no")
-
 	mpvctl.Call("keybind", "q", "")
 	mpvctl.Call("keybind", "Ctrl+q", "")
 	mpvctl.Call("keybind", "Shift+q", "")
@@ -655,6 +652,9 @@ func (c *Connector) eventListener() {
 
 			switch event.Name {
 			case "start-file":
+				c.Set("pause", "yes")
+				c.Set("pause", "no")
+
 				if len(event.ExtraData) > 0 {
 					val := event.ExtraData["playlist_entry_id"]
 
