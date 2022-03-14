@@ -248,8 +248,6 @@ func PlaySelected(audio, current bool) {
 			}
 		}
 
-		AddPlayer()
-
 		go addToPlayHistory(info)
 
 		InfoMessage("Added "+info.Title, false)
