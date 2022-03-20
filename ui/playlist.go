@@ -36,11 +36,11 @@ var (
 	plTableTitle *tview.TextView
 	plTableDesc  *tview.TextView
 	plTableVBox  *tview.Box
+	plPrevItem   tview.Primitive
 
 	prevrow       int
-	prevpage      string
-	previtem      tview.Primitive
 	moving        bool
+	plPrevPage    string
 	playlistExit  chan struct{}
 	playlistEvent chan struct{}
 
@@ -90,8 +90,8 @@ func setupViewPlaylist() {
 			loadMorePlistResults()
 
 		case tcell.KeyEscape:
-			VPage.SwitchToPage(prevpage)
-			App.SetFocus(previtem)
+			VPage.SwitchToPage(plPrevPage)
+			App.SetFocus(plPrevItem)
 		}
 
 		return event
@@ -336,7 +336,7 @@ func ViewPlaylist(newlist, noload bool) {
 	}
 
 	ResultsList.SetSelectable(false, false)
-	prevpage, previtem = VPage.GetFrontPage()
+	plPrevPage, plPrevItem = VPage.GetFrontPage()
 
 	go viewPlaylist(info, newlist)
 }

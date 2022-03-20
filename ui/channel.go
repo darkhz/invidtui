@@ -21,9 +21,11 @@ var (
 	chVideoTable  *tview.Table
 	chPlistTable  *tview.Table
 	chSearchTable *tview.Table
+	chPrevItem    tview.Primitive
 
 	chanID           string
 	currType         string
+	chPrevPage       string
 	chSearchString   string
 	chExited         bool
 	chVideoLoaded    bool
@@ -141,7 +143,7 @@ func ViewChannel(vtype string, newlist, noload bool) error {
 		chanID = info.AuthorID
 	}
 
-	prevpage, previtem = VPage.GetFrontPage()
+	chPrevPage, chPrevItem = VPage.GetFrontPage()
 
 	chPageMark.Highlight(vtype)
 	chPages.SwitchToPage(vtype)
@@ -481,8 +483,8 @@ func chTableEvents(event *tcell.EventKey) {
 
 	case tcell.KeyEscape:
 		setChExited(true)
-		VPage.SwitchToPage(prevpage)
-		App.SetFocus(previtem)
+		VPage.SwitchToPage(chPrevPage)
+		App.SetFocus(chPrevItem)
 		ResultsList.SetSelectable(true, false)
 	}
 
