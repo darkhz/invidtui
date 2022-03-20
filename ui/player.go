@@ -370,14 +370,31 @@ func addToPlayHistory(info lib.SearchResult) {
 	playHistoryLock.Lock()
 	defer playHistoryLock.Unlock()
 
-	for i, entry := range playHistory {
-		if entry == info {
-			playHistory[0], playHistory[i] = playHistory[i], playHistory[0]
+	// Taken from:
+	// https://github.com/golang/go/wiki/SliceTricks#move-to-front-or-prepend-if-not-present-in-place-if-possible
+	if len(playHistory) != 0 && playHistory[0] == info {
+		return
+	}
+
+	prevInfo := info
+
+	for i, phInfo := range playHistory {
+		switch {
+		case i == 0:
+			playHistory[0] = info
+			prevInfo = phInfo
+
+		case phInfo == info:
+			playHistory[i] = prevInfo
 			return
+
+		default:
+			playHistory[i] = prevInfo
+			prevInfo = phInfo
 		}
 	}
 
-	playHistory = append([]lib.SearchResult{info}, playHistory...)
+	playHistory = append(playHistory, prevInfo)
 }
 
 // showPlayHistory displays a popup with the play history.
