@@ -258,10 +258,15 @@ func resizeListEntries(width int) {
 		defer searchLock.Release(1)
 
 		App.QueueUpdateDraw(func() {
-			for i := 0; i < ResultsList.GetRowCount(); i++ {
-				for j := 0; j < 2; j++ {
-					cell := ResultsList.GetCell(i, j)
-					if cell == nil {
+			table := getListTable()
+			if table == nil {
+				return
+			}
+
+			for i := 0; i < table.GetRowCount(); i++ {
+				for j := 0; j < table.GetColumnCount(); j++ {
+					cell := table.GetCell(i, j)
+					if cell == nil || cell.NotSelectable {
 						continue
 					}
 
@@ -269,7 +274,7 @@ func resizeListEntries(width int) {
 				}
 			}
 
-			pos, _ := ResultsList.GetSelection()
+			pos, _ := table.GetSelection()
 			ResultsList.Select(pos, 0)
 		})
 	}()
