@@ -82,12 +82,12 @@ func SetupUI() error {
 	})
 
 	App.SetAfterDrawFunc(func(t tcell.Screen) {
-		width, _ := t.Size()
+		width, height := t.Size()
 
 		suspendUI(t)
-		resizePopup(width)
 		resizePlayer(width)
 		resizeListEntries(width)
+		resizePopup(width, height)
 	})
 
 	msg := "Instance '" + lib.GetClient().SelectedInstance() + "' selected. "

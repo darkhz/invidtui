@@ -7,6 +7,7 @@ import (
 
 type popupModal struct {
 	width      int
+	height     int
 	open       bool
 	playing    bool
 	table      *tview.Table
@@ -21,6 +22,7 @@ var popup popupModal
 func popupStatus(status bool) {
 	if !status {
 		popup.width = -1
+		popup.height = -1
 	}
 
 	popup.open = status
@@ -29,14 +31,15 @@ func popupStatus(status bool) {
 // resizePopup detects if the screen is resized, and resizes the popup
 // accordingly. This function is placed in App's BeforeDrawFunc, where
 // it can resize the popup when the terminal is resized.
-func resizePopup(width int) {
-	if popup.width == width {
+func resizePopup(width, height int) {
+	if popup.width == width && popup.height == height {
 		return
 	}
 
 	resizemodal()
 
 	popup.width = width
+	popup.height = height
 }
 
 // resizemodal gets the current width and height of the screen, and resizes
@@ -71,6 +74,8 @@ func resizemodal() {
 	popup.origFlex.ResizeItem(popup.table, height, 0)
 	popup.modal.ResizeItem(popup.origFlex, height, 0)
 	popup.statusFlex.ResizeItem(popup.modal, screenWidth, 0)
+
+	go App.Draw()
 }
 
 // statusmodal creates a new popup modal.
