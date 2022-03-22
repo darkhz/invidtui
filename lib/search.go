@@ -29,6 +29,9 @@ var (
 	pageMutex    sync.Mutex
 	searchCtx    context.Context
 	searchCancel context.CancelFunc
+
+	paramMutex   sync.Mutex
+	searchParams map[string]string
 )
 
 const searchField = "&fields=type,title,videoId,playlistId,author,authorId,publishedText,description,videoCount,subCount,lengthSeconds,videos,liveNow"
@@ -75,6 +78,14 @@ func (c *Client) Search(stype, text string, getmore bool, chanid ...string) ([]S
 			query = "channels/search/" + chanid[0] + query
 		} else {
 			query = "search" + query + "&type=" + stype
+
+			for param, val := range searchParams {
+				if val == "" {
+					continue
+				}
+
+				query += "&" + param + "=" + val
+			}
 		}
 
 		res, err := c.ClientRequest(searchCtx, query)
@@ -109,7 +120,22 @@ func SearchCancel() {
 	}
 
 	searchCtx, searchCancel = context.WithCancel(context.Background())
+}
 
+// SetSearchParams sets the search parameters.
+func SetSearchParams(params map[string]string) {
+	paramMutex.Lock()
+	defer paramMutex.Unlock()
+
+	searchParams = params
+}
+
+// GetSearchParams gets the search parameters.
+func GetSearchParams() map[string]string {
+	paramMutex.Lock()
+	defer paramMutex.Unlock()
+
+	return searchParams
 }
 
 func getPage() int {

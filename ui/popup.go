@@ -10,7 +10,7 @@ type popupModal struct {
 	height     int
 	open       bool
 	playing    bool
-	table      *tview.Table
+	primitive  tview.Primitive
 	modal      *tview.Flex
 	origFlex   *tview.Flex
 	statusFlex *tview.Flex
@@ -45,16 +45,22 @@ func resizePopup(width, height int) {
 // resizemodal gets the current width and height of the screen, and resizes
 // the popup modal.
 func resizemodal() {
+	var height int
+
 	if !popup.open {
 		return
 	}
 
-	height := popup.table.GetRowCount()
-
 	_, _, screenWidth, screenHeight := UIFlex.GetRect()
 	screenHeight /= 4
 
-	if height > screenHeight {
+	if table, ok := popup.primitive.(*tview.Table); ok {
+		height = table.GetRowCount()
+	} else {
+		height = -1
+	}
+
+	if height > screenHeight || height < 0 {
 		height = screenHeight
 	}
 
@@ -71,7 +77,7 @@ func resizemodal() {
 		popup.playing = playing
 	}
 
-	popup.origFlex.ResizeItem(popup.table, height, 0)
+	popup.origFlex.ResizeItem(popup.primitive, height, 0)
 	popup.modal.ResizeItem(popup.origFlex, height, 0)
 	popup.statusFlex.ResizeItem(popup.modal, screenWidth, 0)
 
@@ -108,7 +114,7 @@ func statusmodal(v, t tview.Primitive) tview.Primitive {
 	popup.playing = playing
 
 	popup.modal = stmodal
-	popup.table = t.(*tview.Table)
+	popup.primitive = t
 
 	popup.statusFlex = stflex
 	popup.origFlex = v.(*tview.Flex)

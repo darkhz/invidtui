@@ -3,6 +3,7 @@ package ui
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/darkhz/invidtui/lib"
 	"github.com/darkhz/tview"
@@ -230,6 +231,9 @@ func captureListEvents(event *tcell.EventKey) {
 	}
 
 	switch event.Rune() {
+	case ',':
+		go searchParamPopup()
+
 	case '/':
 		searchText(event.Modifiers() == tcell.ModAlt)
 
@@ -395,6 +399,179 @@ func toggleSearch() string {
 // loadMoreResults appends more search results to ResultsList
 func loadMoreResults() {
 	go SearchAndList("")
+}
+
+//gocyclo: ignore
+// searchParamPopup displays a popup with modifiable search parameters.
+func searchParamPopup() {
+	App.QueueUpdateDraw(func() {
+		var savedFeatures []string
+
+		if pg, _ := VPage.GetFrontPage(); pg != "search" || pg == "searchparams" {
+			return
+		}
+
+		if !searchLock.TryAcquire(1) {
+			InfoMessage(loadingText, false)
+			return
+		}
+		defer searchLock.Release(1)
+
+		params := lib.GetSearchParams()
+		if params == nil {
+			params = make(map[string]string)
+		}
+
+		if f, ok := params["features"]; ok {
+			savedFeatures = strings.Split(f, ",")
+		}
+
+		selparams := map[string]map[string][]string{
+			"Date:": {"date": []string{
+				"",
+				"hour",
+				"week",
+				"year",
+				"month",
+				"today",
+			}},
+			"Sort By:": {"sort_by": []string{
+				"",
+				"rating",
+				"relevance",
+				"view_count",
+				"upload_date",
+			}},
+			"Duration:": {"duration": []string{
+				"",
+				"long",
+				"short",
+			}},
+			"Features:": {"features": []string{
+				"4k",
+				"hd",
+				"3d",
+				"360",
+				"hdr",
+				"live",
+				"location",
+				"purchased",
+				"subtitles",
+				"creative_commons",
+			}},
+			"Region:": {"region": []string{}},
+		}
+
+		paramForm := tview.NewForm()
+		paramForm.SetItemPadding(2)
+		paramForm.SetHorizontal(true)
+		paramForm.SetBackgroundColor(tcell.ColorDefault)
+
+		for splabel, spvalue := range selparams {
+			var options []string
+			var savedOption string
+
+			for sp, opts := range spvalue {
+				savedOption = params[sp]
+				options = opts
+			}
+
+			switch splabel {
+			case "Region:":
+				paramForm.AddInputField(splabel, savedOption, 2, nil, nil)
+				continue
+
+			case "Features:":
+				for _, o := range options {
+					var checked bool
+
+					for _, f := range savedFeatures {
+						if f == o {
+							checked = true
+							break
+						}
+					}
+
+					defer paramForm.AddCheckbox(o, checked, nil)
+				}
+
+			default:
+				selOptIndex := -1
+
+				for i, o := range options {
+					if savedOption == "" {
+						break
+					}
+
+					if o == savedOption {
+						selOptIndex = i
+					}
+				}
+
+				paramForm.AddDropDown(splabel, options, selOptIndex, nil)
+			}
+		}
+
+		paramForm.AddButton("Search", func() {
+			var features []string
+
+			for i := 0; i < paramForm.GetFormItemCount(); i++ {
+				var curropt string
+
+				item := paramForm.GetFormItem(i)
+				label := item.GetLabel()
+				optMap := selparams[label]
+
+				if list, ok := item.(*tview.DropDown); ok {
+					_, curropt = list.GetCurrentOption()
+				} else if input, ok := item.(*tview.InputField); ok {
+					curropt = input.GetText()
+				} else if chkbox, ok := item.(*tview.Checkbox); ok {
+					if chkbox.IsChecked() {
+						features = append(features, label)
+					}
+
+					continue
+				}
+
+				for p := range optMap {
+					params[p] = curropt
+				}
+			}
+
+			params["features"] = strings.Join(features, ",")
+
+			exitFocus()
+
+			lib.SetSearchParams(params)
+
+			ResultsList.Clear()
+			go SearchAndList(searchString)
+		})
+
+		paramForm.AddButton("Cancel", func() {
+			exitFocus()
+		})
+
+		paramTitle := tview.NewTextView()
+		paramTitle.SetDynamicColors(true)
+		paramTitle.SetText("[::bu]Search Parameters")
+		paramTitle.SetTextAlign(tview.AlignCenter)
+		paramTitle.SetBackgroundColor(tcell.ColorDefault)
+
+		paramFlex := tview.NewFlex().
+			AddItem(paramTitle, 1, 0, false).
+			AddItem(paramForm, 10, 10, true).
+			SetDirection(tview.FlexRow)
+
+		MPage.AddAndSwitchToPage(
+			"searchparam",
+			statusmodal(paramFlex, paramForm),
+			true,
+		).ShowPage("ui")
+
+		App.SetFocus(paramFlex)
+	})
 }
 
 // getListTable gets the Table in current focus.
