@@ -74,6 +74,16 @@ force-instance=invidious.snopyta.org
 >
 > <kbd>Ctrl</kbd> + <kbd>e</kbd><br /> Switch between search modes
 > (video, playlist, channel)<br />
+>
+> <kbd>,</kbd><br /> Show search parameters popup<br />
+
+## Search parameters popup
+> <kbd>Tab</kbd><br /> Move one field forward. Press <kbd>Shift</kbd>+<kbd>Tab</kbd> to move one field backward<br />
+>
+> The "Sort By", "Duration" and "Date fields are dropdown lists, select any one parameter from each list.<br />
+> The "Region" field is an inputbox, which accepts a ISO 3166 country code (default is "US").<br />
+> The rest of the fields are checkboxes, which can be checked/unchecked to set the search features.<br />
+> Press the Search button to restart the search with the search parameters, Cancel button to exit the popup<br/>
 
 ### Playlist Queue
 
