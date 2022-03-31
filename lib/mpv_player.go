@@ -96,7 +96,7 @@ func MPVConnect(socket string, mpvexec bool) (*Connector, error) {
 
 		err := mpvcmd.Start()
 		if err != nil {
-			return nil, fmt.Errorf("Error: Could not start mpv")
+			return nil, fmt.Errorf("Could not start mpv")
 		}
 	}
 
@@ -111,7 +111,7 @@ func MPVConnect(socket string, mpvexec bool) (*Connector, error) {
 		return NewConnector(conn), nil
 	}
 
-	return nil, fmt.Errorf("Error: Could not connect to socket")
+	return nil, fmt.Errorf("Could not connect to socket")
 }
 
 // CloseInstances sends a quit command to instances running on the socket.

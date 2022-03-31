@@ -201,7 +201,7 @@ func SetupConfig() error {
 
 	fullpath, err := homedir.Expand("~")
 	if err != nil {
-		return fmt.Errorf("Error: Cannot get home directory")
+		return fmt.Errorf("Cannot get home directory")
 	}
 
 	for i, cd := range configDirs {
@@ -227,14 +227,14 @@ func SetupConfig() error {
 
 			err := os.Mkdir(configDirs[0], 0700)
 			if err != nil {
-				return fmt.Errorf("Error: Cannot create %s", configDirs[0])
+				return fmt.Errorf("Cannot create %s", configDirs[0])
 			}
 
 		} else {
 
 			err := os.Mkdir(configDirs[1], 0700)
 			if err != nil {
-				return fmt.Errorf("Error: Cannot create %s", configDirs[1])
+				return fmt.Errorf("Cannot create %s", configDirs[1])
 			}
 		}
 
