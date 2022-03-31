@@ -574,6 +574,23 @@ func searchParamPopup() {
 	})
 }
 
+// parseSearchCmd parses the search type and query from
+// the command-line options.
+func parseSearchCmd() {
+	searchtype, searchquery, err := lib.GetSearchQuery()
+	if err != nil {
+		return
+	}
+
+	VPage.SwitchToPage("search")
+
+	stype = searchtype
+	resultPageMark.Highlight(stype)
+
+	lib.AddToHistory(searchquery)
+	go SearchAndList(searchquery)
+}
+
 // getListTable gets the Table in current focus.
 func getListTable() *tview.Table {
 	item := App.GetFocus()

@@ -97,6 +97,8 @@ func SetupUI() error {
 	detectClose = make(chan struct{})
 	go detectMPVClose()
 
+	parseSearchCmd()
+
 	if err := App.SetRoot(MPage, true).SetFocus(ResultsList).Run(); err != nil {
 		panic(err)
 	}

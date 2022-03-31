@@ -18,6 +18,9 @@ var (
 	videoResolution string
 	mpvpath         string
 	ytdlpath        string
+	vidsearch       string
+	plistsearch     string
+	channelsearch   string
 	connretries     int
 	fcSocket        bool
 	currInstance    bool
@@ -70,6 +73,26 @@ func SetupFlags() error {
 		"Specify path to youtube-dl executable or its forks (yt-dlp, yt-dtlp_x86)",
 	)
 
+	flag.StringVar(
+		&vidsearch,
+		"search-video",
+		"",
+		"Search for a video.",
+	)
+
+	flag.StringVar(
+		&plistsearch,
+		"search-playlist",
+		"",
+		"Search for a playlist.",
+	)
+
+	flag.StringVar(
+		&channelsearch,
+		"search-channel",
+		"",
+		"Search for a channel.",
+	)
 	flag.IntVar(
 		&connretries,
 		"num-retries",
@@ -102,7 +125,20 @@ func SetupFlags() error {
 
 			if f.Name == "ytdl-path" {
 				s += fmt.Sprintf(" (default %q)", "youtube-dl")
-			} else if f.Name != "close-instances" && f.Name != "use-current-instance" {
+			} else {
+				for _, name := range []string{
+					"search-video",
+					"search-channel",
+					"search-playlist",
+					"close-instances",
+					"use-current-instance",
+				} {
+					if f.Name == name {
+						goto cmdOutPrint
+						break
+					}
+				}
+
 				if f.Name != "num-retries" {
 					s += fmt.Sprintf(" (default %q)", f.DefValue)
 				} else {
@@ -110,6 +146,7 @@ func SetupFlags() error {
 				}
 			}
 
+		cmdOutPrint:
 			fmt.Fprint(flag.CommandLine.Output(), s, "\n")
 		})
 	}
@@ -247,6 +284,24 @@ func ConfigPath(ftype string) (string, error) {
 	}
 
 	return configPath, nil
+}
+
+// GetSearchQuery returns the search type and query from
+// the command-line options.
+func GetSearchQuery() (string, string, error) {
+	if vidsearch != "" {
+		return "video", vidsearch, nil
+	}
+
+	if plistsearch != "" {
+		return "playlist", plistsearch, nil
+	}
+
+	if channelsearch != "" {
+		return "channel", channelsearch, nil
+	}
+
+	return "", "", fmt.Errorf("No search query specified")
 }
 
 // findYoutubeDL searches for the youtube-dl or yt-dlp executables.
