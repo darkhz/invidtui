@@ -38,6 +38,9 @@ or check the Releases page and download the binary that matches your OS and arch
        --force-instance         Force load media from specified invidious instance. (default "")
        --mpv-path               Specify path to the mpv executable. (default "mpv")
        --num-retries            Set the number of retries for connecting to the socket. (default 100)
+       --search-channel         Search for a channel.
+       --search-playlist        Search for a playlist.
+       --search-video           Search for a video.
        --use-current-instance   Use the current invidious instance to retrieve media.
        --video-res              Set the default video resolution. (default "720p")
        --ytdl-path              Specify path to youtube-dl executable or its forks (yt-dlp, yt-dtlp_x86) (default "youtube-dl")
@@ -47,6 +50,8 @@ or check the Releases page and download the binary that matches your OS and arch
 - The **use-current-instance** option can be used in cases where a playlist file has to be loaded, but the URLs in the playlist point to a slow invidious instance. The playlist media can instead be retrieved from a fast instance (automatically selected by invidtui).
 
 - While specifying the **force-instance** option, it is recommended to input just the instance name, remove the "https://" prefix if present. If the instance url is not valid, invidtui will automatically choose another valid instance.
+
+- The **search-channel**, **search-playlist** and **search-video** options are meant to be used individually. Make sure the search queries are properly quoted.
 
 ## Configuration file
 Generally, invidtui will work out-of-the-box, with no configuration required.<br />
