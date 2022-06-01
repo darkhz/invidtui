@@ -201,6 +201,7 @@ func playlistPopup() {
 	go startPlaylist()
 }
 
+//gocyclo: ignore
 // startPlaylist is the playlist update loop.
 func startPlaylist() {
 	var pos int
@@ -208,6 +209,52 @@ func startPlaylist() {
 
 	t := time.NewTicker(1 * time.Second)
 	defer t.Stop()
+
+	tableData := func() []EntryData {
+		var rows int
+
+		App.QueueUpdateDraw(func() {
+			rows = plistPopup.GetRowCount()
+		})
+
+		data := make([]EntryData, rows)
+
+		for row := 0; row < rows; row++ {
+			var cell *tview.TableCell
+
+			App.QueueUpdateDraw(func() {
+				cell = plistPopup.GetCell(row, 1)
+			})
+			if cell == nil {
+				continue
+			}
+
+			ref := cell.GetReference()
+			if ref == nil {
+				continue
+			}
+
+			data[row] = ref.(EntryData)
+		}
+
+		return data
+	}
+
+	// Taken from:
+	// https://yourbasic.org/golang/compare-slices/
+	testEqualData := func(a, b []EntryData) bool {
+		if len(a) != len(b) {
+			return false
+		}
+
+		for i, v := range a {
+			if v != b[i] {
+				return false
+			}
+		}
+
+		return true
+	}
 
 	update := func() {
 		pldata := updatePlaylist()
@@ -219,6 +266,9 @@ func startPlaylist() {
 
 			sendPlaylistExit()
 
+			return
+		}
+		if testEqualData(pldata, tableData()) {
 			return
 		}
 
@@ -237,6 +287,7 @@ func startPlaylist() {
 				plistPopup.SetCell(i, 1, tview.NewTableCell("[blue::b]"+tview.Escape(data.Title)+marker).
 					SetExpansion(1).
 					SetMaxWidth(w/7).
+					SetReference(data).
 					SetSelectable(true).
 					SetSelectedStyle(auxStyle),
 				)
