@@ -240,6 +240,12 @@ func startPlaylist() {
 		return data
 	}
 
+	clearTableData := func() {
+		App.QueueUpdateDraw(func() {
+			plistPopup.Clear()
+		})
+	}
+
 	// Taken from:
 	// https://yourbasic.org/golang/compare-slices/
 	testEqualData := func(a, b []EntryData) bool {
@@ -336,6 +342,7 @@ func startPlaylist() {
 	for {
 		select {
 		case <-playlistExit:
+			clearTableData()
 			return
 
 		case <-playlistEvent:
@@ -618,7 +625,6 @@ func plExit() {
 	sendPlaylistExit()
 
 	exitFocus()
-	plistPopup.Clear()
 	popupStatus(false)
 	ResultsList.SetSelectable(true, false)
 }
