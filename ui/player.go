@@ -413,21 +413,33 @@ func showPlayHistory() {
 	}
 
 	App.QueueUpdateDraw(func() {
-		histTable := tview.NewTable()
+		var histTable *tview.Table
+
+		histTable = tview.NewTable()
 		histTable.SetSelectorWrap(true)
 		histTable.SetSelectable(true, false)
 		histTable.SetBackgroundColor(tcell.ColorDefault)
 		histTable.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 			var exit bool
 
+			exitFunc := func() {
+				exitFocus()
+				InputBox.SetChangedFunc(nil)
+				Status.SwitchToPage("messages")
+			}
+
 			capturePlayerEvent(event)
 
 			switch event.Key() {
 			case tcell.KeyEscape:
-				exitFocus()
+				exitFunc()
 			}
 
 			switch event.Rune() {
+			case '/':
+				App.SetFocus(InputBox)
+				Status.SwitchToPage("input")
+
 			case 'i':
 				exit = true
 				ViewPlaylist(true, event.Modifiers() == tcell.ModAlt)
@@ -442,7 +454,7 @@ func showPlayHistory() {
 			}
 
 			if exit {
-				exitFocus()
+				exitFunc()
 			}
 
 			return event
@@ -459,29 +471,62 @@ func showPlayHistory() {
 			AddItem(histTable, 10, 10, true).
 			SetDirection(tview.FlexRow)
 
-		for row, ph := range playHistory {
-			histTable.SetCell(row, 0, tview.NewTableCell("[blue::b]"+ph.Title).
-				SetExpansion(1).
-				SetReference(ph).
-				SetSelectedStyle(mainStyle),
-			)
+		fillTable := func(text string) {
+			var row int
+			text = strings.ToLower(text)
 
-			histTable.SetCell(row, 1, tview.NewTableCell("").
-				SetSelectable(false),
-			)
+			histTable.Clear()
 
-			histTable.SetCell(row, 2, tview.NewTableCell("[purple::b]"+ph.Author).
-				SetSelectedStyle(auxStyle),
-			)
+			for _, ph := range playHistory {
+				if text != "" && strings.Index(strings.ToLower(ph.Title), text) < 0 {
+					continue
+				}
 
-			histTable.SetCell(row, 3, tview.NewTableCell("").
-				SetSelectable(false),
-			)
+				histTable.SetCell(row, 0, tview.NewTableCell("[blue::b]"+ph.Title).
+					SetExpansion(1).
+					SetReference(ph).
+					SetSelectedStyle(mainStyle),
+				)
 
-			histTable.SetCell(row, 4, tview.NewTableCell("[pink]"+ph.Type).
-				SetSelectedStyle(auxStyle),
-			)
+				histTable.SetCell(row, 1, tview.NewTableCell("").
+					SetSelectable(false),
+				)
+
+				histTable.SetCell(row, 2, tview.NewTableCell("[purple::b]"+ph.Author).
+					SetSelectedStyle(auxStyle),
+				)
+
+				histTable.SetCell(row, 3, tview.NewTableCell("").
+					SetSelectable(false),
+				)
+
+				histTable.SetCell(row, 4, tview.NewTableCell("[pink]"+ph.Type).
+					SetSelectedStyle(auxStyle),
+				)
+
+				row++
+			}
+
+			histTable.ScrollToBeginning()
+
+			resizemodal()
 		}
+
+		chgfunc := func(text string) {
+			fillTable(text)
+		}
+		ifunc := func(event *tcell.EventKey) *tcell.EventKey {
+			switch event.Key() {
+			case tcell.KeyEscape:
+				App.SetFocus(histFlex)
+			}
+
+			return event
+		}
+		InputBox.SetChangedFunc(chgfunc)
+		SetInput("Filter:", 0, nil, ifunc, chgfunc)
+
+		fillTable("")
 
 		MPage.AddAndSwitchToPage(
 			"playhistory",

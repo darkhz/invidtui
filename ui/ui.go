@@ -193,10 +193,16 @@ func showBanner() tview.Primitive {
 // confirmQuit shows a confirmation message before exiting.
 func confirmQuit() {
 	p := App.GetFocus()
+	pg, _ := Status.GetFrontPage()
+	label, max, dofunc, chgfunc, infunc := GetInputProps()
+
+	InputBox.SetChangedFunc(nil)
 
 	qfocus := func() {
+		SetInput(label, max, dofunc, infunc, chgfunc)
+
+		Status.SwitchToPage(pg)
 		App.SetFocus(p)
-		Status.SwitchToPage("messages")
 	}
 
 	qfunc := func(text string) {
