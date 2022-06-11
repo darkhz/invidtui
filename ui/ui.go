@@ -107,10 +107,10 @@ func SetupUI() error {
 }
 
 // StopUI stops the application.
-func StopUI() {
+func StopUI(closeInstances bool) {
 	close(detectClose)
 
-	StopPlayer()
+	StopPlayer(closeInstances)
 	App.Stop()
 }
 
@@ -201,7 +201,7 @@ func confirmQuit() {
 
 	qfunc := func(text string) {
 		if text == "y" {
-			StopUI()
+			StopUI(false)
 		} else {
 			qfocus()
 		}
@@ -236,6 +236,6 @@ func detectMPVClose() {
 	default:
 	}
 
-	StopUI()
+	StopUI(true)
 	fmt.Printf("\rMPV has exited")
 }
