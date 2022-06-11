@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/etherlabsio/go-m3u8/m3u8"
@@ -33,8 +34,9 @@ type FormatData struct {
 }
 
 var (
-	videoCtx    context.Context
-	videoCancel context.CancelFunc
+	videoCtx     context.Context
+	videoCancel  context.CancelFunc
+	videoCtxLock sync.Mutex
 )
 
 const videoFields = "?fields=title,videoId,author,hlsUrl,publishedText,lengthSeconds,adaptiveFormats,liveNow"
@@ -143,11 +145,17 @@ func LoadVideo(id string, audio bool) error {
 
 // VideoNewCtx renews the video's context.
 func VideoNewCtx() {
+	videoCtxLock.Lock()
+	defer videoCtxLock.Unlock()
+
 	videoCtx, videoCancel = context.WithCancel(context.Background())
 }
 
 // VideoCancel cancels the video's context.
 func VideoCancel() {
+	videoCtxLock.Lock()
+	defer videoCtxLock.Unlock()
+
 	if videoCtx != nil {
 		videoCancel()
 	}
