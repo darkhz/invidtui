@@ -115,7 +115,7 @@ Note: These controls will work across all pages (search, playlist or channel pag
 >
 > <kbd>=</kbd><br /> Increase volume<br />
 >
-> <kbd>Ctrl</kbd>+<kbd>h</kbd><br /> Open play history. Use <kbd>a</kbd> and <kbd>v</kbd> to load media,and <kbd>i</kbd> and <kbd>u</kbd> to load playlists and channels respectively (see Page-based keybindings).<br/>
+> <kbd>Ctrl</kbd>+<kbd>h</kbd><br /> Open play history. Use <kbd>/</kbd> to filter history entries, <kbd>a</kbd> and <kbd>v</kbd> to load media, and <kbd>i</kbd> and <kbd>u</kbd> to load playlists and channels respectively (see Page-based keybindings).<br/>
 >
 > <kbd>-</kbd><br /> Decrease volume<br />
 >
