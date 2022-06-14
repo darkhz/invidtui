@@ -424,7 +424,6 @@ func showPlayHistory() {
 
 			exitFunc := func() {
 				exitFocus()
-				InputBox.SetChangedFunc(nil)
 				Status.SwitchToPage("messages")
 			}
 
@@ -523,7 +522,6 @@ func showPlayHistory() {
 
 			return event
 		}
-		InputBox.SetChangedFunc(chgfunc)
 		SetInput("Filter:", 0, nil, ifunc, chgfunc)
 
 		fillTable("")

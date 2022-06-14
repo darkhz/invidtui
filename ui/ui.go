@@ -196,8 +196,6 @@ func confirmQuit() {
 	pg, _ := Status.GetFrontPage()
 	label, max, dofunc, chgfunc, infunc := GetInputProps()
 
-	InputBox.SetChangedFunc(nil)
-
 	qfocus := func() {
 		SetInput(label, max, dofunc, infunc, chgfunc)
 

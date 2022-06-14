@@ -88,8 +88,10 @@ func SetInput(label string,
 
 	if chgfunc != nil {
 		inputChgFunc = chgfunc[0]
-		InputBox.SetChangedFunc(chgfunc[0])
+	} else {
+		inputChgFunc = nil
 	}
+	InputBox.SetChangedFunc(inputChgFunc)
 
 	InputBox.SetText("")
 	InputBox.SetLabel("[::b]" + label + " ")
