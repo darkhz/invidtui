@@ -335,6 +335,7 @@ func searchText(channel bool) {
 
 		case tcell.KeyEscape:
 			srchfocus()
+			lib.HistoryReset()
 
 		case tcell.KeyUp:
 			t := lib.HistoryReverse()

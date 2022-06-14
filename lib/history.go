@@ -88,3 +88,8 @@ func HistoryReverse() string {
 
 	return history[histpos]
 }
+
+// HistoryReset resets the position in the history buffer.
+func HistoryReset() {
+	histpos = len(history)
+}
