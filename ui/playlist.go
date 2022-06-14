@@ -141,9 +141,11 @@ func setupPlaylistPopup() {
 		switch event.Rune() {
 		case 'd':
 			plDelete()
+			resizemodal()
 
 		case 'M':
 			plMove()
+			resizemodal()
 
 		case 'S':
 			plExit()
