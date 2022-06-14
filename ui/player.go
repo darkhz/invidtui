@@ -516,7 +516,7 @@ func showPlayHistory() {
 		}
 		ifunc := func(event *tcell.EventKey) *tcell.EventKey {
 			switch event.Key() {
-			case tcell.KeyEscape:
+			case tcell.KeyEscape, tcell.KeyEnter:
 				App.SetFocus(histFlex)
 			}
 
