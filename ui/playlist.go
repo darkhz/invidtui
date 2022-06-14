@@ -857,7 +857,7 @@ func plFbExit() {
 	Status.SwitchToPage("messages")
 }
 
-// exitFocus closes the filebrowser popup.
+// exitFocus closes the popup.
 func exitFocus() {
 	name, list := VPage.GetFrontPage()
 

@@ -99,7 +99,8 @@ func SetupUI() error {
 
 	parseSearchCmd()
 
-	if err := App.SetRoot(MPage, true).SetFocus(ResultsList).Run(); err != nil {
+	_, focusedItem := VPage.GetFrontPage()
+	if err := App.SetRoot(MPage, true).SetFocus(focusedItem).Run(); err != nil {
 		panic(err)
 	}
 
@@ -180,9 +181,14 @@ func showBanner() tview.Primitive {
 		AddItem(box, 0, 7, false)
 	flex.SetBackgroundColor(tcell.ColorDefault)
 	flex.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		ResultsList.InputHandler()(event, nil)
+		capturePlayerEvent(event)
 
-		return nil
+		switch event.Rune() {
+		case '/':
+			searchText(false)
+		}
+
+		return event
 	})
 
 	bannerShown = true
