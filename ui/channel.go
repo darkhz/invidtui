@@ -181,7 +181,7 @@ func viewChannel(info lib.SearchResult, vtype string, newlist bool) {
 
 	case "search":
 		qsrch = true
-		result.Author = info.Title
+		result.Author = info.Author
 		result.ChannelID = info.AuthorID
 		result.Description = info.Description
 		resfunc = func(pos, rows, width int) int {
