@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/darkhz/invidtui/lib"
@@ -248,5 +249,10 @@ func detectMPVClose() {
 	}
 
 	StopUI(true)
+
+	if socket, err := lib.ConfigPath("socket"); err == nil {
+		os.Remove(socket)
+	}
+
 	fmt.Printf("\rMPV has exited")
 }
