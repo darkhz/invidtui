@@ -67,6 +67,7 @@ func SetupUI() error {
 			lib.VideoCancel()
 			lib.SearchCancel()
 			lib.PlaylistCancel()
+			closeCommentView()
 			InfoMessage("Loading canceled", false)
 		}
 

@@ -245,6 +245,9 @@ func captureListEvents(event *tcell.EventKey) {
 
 	case 'U':
 		ViewChannel("playlist", true, event.Modifiers() == tcell.ModAlt)
+
+	case 'C':
+		ShowComments()
 	}
 }
 
