@@ -156,6 +156,11 @@ Note: These controls will work across all pages (search, playlist or channel pag
 > <kbd>Shift</kbd>+<kbd>u</kbd> fetches only playlists from a Youtube channel and displays it in a separate channel playlist page.
 > In case you have exited<br /> this page, you can come back to it by pressing <kbd>Alt</kbd>+<kbd>u</kbd> instead of reloading the channel again.<br />
 >
+> <kbd>Shift</kbd> + <kbd>c</kbd><br />
+> This control works only on the search page.<br />
+> Fetches and displays comments for the selected video.<br />
+> Press <kbd>Space</kbd> to show/hide comment trees.<br />
+>
 > <kbd>Enter</kbd><br />
 > This control works on the search, playlist, channel video and channel playlist pages.<br />
 > Fetches more results.<br />
