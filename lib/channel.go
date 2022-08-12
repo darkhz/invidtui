@@ -132,19 +132,14 @@ func (c *Client) ChannelSearch(id, query string, getmore bool) ([]SearchResult, 
 	return c.Search("channel", query, getmore, id)
 }
 
-// ChannelCtx returns the channel's context. Currently, this
-// uses the same context as the Playlist because only one
-// of either Playlist or Channel is supposed to load at a time.
-// We do not want both of them to load simultaneously, since
-// only one screen is shown (the channel screen or the playlist screen).
+// ChannelCtx returns the channel's context.
 func ChannelCtx() context.Context {
-	return PlaylistCtx()
+	return ClientCtx()
 }
 
 // channelCancel cancels and renews the channel's context.
-// See ChannelCtx().
 func channelCancel() {
-	PlaylistCancel()
+	ClientCancel()
 }
 
 func getChanPage(search bool) int {

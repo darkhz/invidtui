@@ -120,7 +120,7 @@ func searchAndList(results []lib.SearchResult) {
 
 	for i, result := range results {
 		select {
-		case <-lib.GetSearchCtx().Done():
+		case <-lib.SearchCtx().Done():
 			ResultsList.Clear()
 			return
 

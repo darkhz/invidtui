@@ -1,7 +1,6 @@
 package lib
 
 import (
-	"context"
 	"encoding/json"
 )
 
@@ -15,7 +14,7 @@ type SubResult []struct {
 func (c *Client) Subscriptions() (SubResult, error) {
 	var result SubResult
 
-	res, err := c.ClientRequest(context.Background(), "auth/subscriptions/", GetToken())
+	res, err := c.ClientRequest(ClientCtx(), "auth/subscriptions/", GetToken())
 	if err != nil {
 		return SubResult{}, err
 	}

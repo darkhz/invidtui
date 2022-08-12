@@ -182,6 +182,22 @@ func (c *Client) SelectedInstance() string {
 	return GetHostname(c.host)
 }
 
+// ClientCtx returns the client's context.
+func ClientCtx() context.Context {
+	ClientCancel()
+
+	return clientCtx
+}
+
+// ClientCancel cancels and renews the client context.
+func ClientCancel() {
+	if clientCtx != nil {
+		clientCancel()
+	}
+
+	clientCtx, clientCancel = context.WithCancel(context.Background())
+}
+
 // ClientSendCtx returns the client's send context.
 func ClientSendCtx() context.Context {
 	return cliSendCtx

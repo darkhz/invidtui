@@ -26,10 +26,8 @@ type SearchResult struct {
 }
 
 var (
-	page         int
-	pageMutex    sync.Mutex
-	searchCtx    context.Context
-	searchCancel context.CancelFunc
+	page      int
+	pageMutex sync.Mutex
 
 	paramMutex   sync.Mutex
 	searchParams map[string]string
@@ -89,7 +87,7 @@ func (c *Client) Search(stype, text string, getmore bool, chanid ...string) ([]S
 			}
 		}
 
-		res, err := c.ClientRequest(searchCtx, query)
+		res, err := c.ClientRequest(SearchCtx(), query)
 		if err != nil {
 			return nil, err
 		}
@@ -109,18 +107,14 @@ func (c *Client) Search(stype, text string, getmore bool, chanid ...string) ([]S
 	return results, nil
 }
 
-// GetSearchCtx returns the search context.
-func GetSearchCtx() context.Context {
-	return searchCtx
+// SearchCtx returns the search context.
+func SearchCtx() context.Context {
+	return ClientCtx()
 }
 
 // SearchCancel cancels and renews the search context.
 func SearchCancel() {
-	if searchCtx != nil {
-		searchCancel()
-	}
-
-	searchCtx, searchCancel = context.WithCancel(context.Background())
+	ClientCancel()
 }
 
 // SetSearchParams sets the search parameters.

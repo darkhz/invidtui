@@ -1,7 +1,6 @@
 package lib
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -130,7 +129,7 @@ func GetAuthLink(instance ...string) string {
 
 // TokenValid tests the validity of the given token.
 func TokenValid(token string) bool {
-	_, err := GetClient().ClientRequest(context.Background(), "auth/tokens/", token)
+	_, err := GetClient().ClientRequest(ClientCtx(), "auth/tokens/", token)
 
 	return err == nil
 }

@@ -31,11 +31,9 @@ type PlaylistVideo struct {
 }
 
 var (
-	plistid     string
-	plistpage   int
-	plistMutex  sync.Mutex
-	plistCtx    context.Context
-	plistCancel context.CancelFunc
+	plistid    string
+	plistpage  int
+	plistMutex sync.Mutex
 )
 
 const playlistFields = "?fields=title,playlistId,author,description,videoCount,viewCount,videos"
@@ -52,8 +50,6 @@ func (c *Client) Playlist(id string, auth bool) (PlaylistResult, error) {
 		return PlaylistResult{}, nil
 	}
 
-	PlaylistCancel()
-
 	if id == "" {
 		incPlistPage()
 	} else {
@@ -67,7 +63,7 @@ func (c *Client) Playlist(id string, auth bool) (PlaylistResult, error) {
 		authToken = append(authToken, GetToken())
 	}
 
-	res, err := c.ClientRequest(plistCtx, query, authToken...)
+	res, err := c.ClientRequest(PlaylistCtx(), query, authToken...)
 	if err != nil {
 		return PlaylistResult{}, err
 	}
@@ -84,8 +80,6 @@ func (c *Client) Playlist(id string, auth bool) (PlaylistResult, error) {
 // AuthPlaylists lists all playlists associated with an authorization token.
 func (c *Client) AuthPlaylists() ([]PlaylistResult, error) {
 	var result []PlaylistResult
-
-	PlaylistCancel()
 
 	res, err := c.ClientRequest(PlaylistCtx(), "auth/playlists/", GetToken())
 	if err != nil {
@@ -172,16 +166,12 @@ func (c *Client) RemovePlaylistVideo(plid, index string) error {
 
 // PlaylistCtx returns the playlist context.
 func PlaylistCtx() context.Context {
-	return plistCtx
+	return ClientCtx()
 }
 
 // PlaylistCancel cancels and renews the playlist context.
 func PlaylistCancel() {
-	if plistCtx != nil {
-		plistCancel()
-	}
-
-	plistCtx, plistCancel = context.WithCancel(context.Background())
+	ClientCancel()
 }
 
 func getPlistPage() string {

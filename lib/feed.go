@@ -1,7 +1,6 @@
 package lib
 
 import (
-	"context"
 	"encoding/json"
 	"strconv"
 	"sync"
@@ -42,7 +41,7 @@ func (c *Client) Feed(getmore bool) (FeedResult, error) {
 	}
 
 	query := "auth/feed?page=" + getFeedPage()
-	res, err := c.ClientRequest(context.Background(), query, GetToken())
+	res, err := c.ClientRequest(ClientCtx(), query, GetToken())
 	if err != nil {
 		return FeedResult{}, err
 	}
