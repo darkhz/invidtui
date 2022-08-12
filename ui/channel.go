@@ -469,6 +469,58 @@ func loadMoreChannelResults() {
 	ViewChannel(ctype, false, false)
 }
 
+// modifyChannelSubscription modifies the subscription status of a channel.
+func modifyChannelSubscription(info lib.SearchResult, add bool) {
+	var pg, title string
+
+	if !lib.IsAuthInstance() {
+		InfoMessage("Cannot subscribe to channel", false)
+		return
+	}
+
+	App.QueueUpdateDraw(func() {
+		pg, _ = VPage.GetFrontPage()
+
+		if pg == "search" {
+			title = info.Title
+		} else {
+			title = info.Author
+		}
+	})
+
+	if add && pg != "dashboard" {
+		InfoMessage("Subscribing to "+title, true)
+
+		if err := lib.GetClient().AddSubscription(info.AuthorID); err != nil {
+			ErrorMessage(err)
+			return
+		}
+
+		InfoMessage("Subscribed to "+title, false)
+
+		return
+	}
+
+	if !add && pg != "dashboard" {
+		return
+	}
+
+	InfoMessage("Unsubscribing from "+title, true)
+
+	if err := lib.GetClient().DeleteSubscription(info.AuthorID); err != nil {
+		ErrorMessage(err)
+		return
+	}
+
+	App.QueueUpdateDraw(func() {
+		if err := modifyListReference("", false, info); err != nil {
+			ErrorMessage(err)
+		}
+	})
+
+	InfoMessage("Unsubscribed from "+title, false)
+}
+
 // chTableEvents handles the input events for the
 // video, playlist and search tables.
 func chTableEvents(event *tcell.EventKey) {
@@ -497,6 +549,9 @@ func chTableEvents(event *tcell.EventKey) {
 		chPageMark.Highlight("search")
 		chPages.SwitchToPage("search")
 		searchText(true)
+
+	case '+':
+		go Modify(true)
 	}
 }
 

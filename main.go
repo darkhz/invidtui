@@ -31,6 +31,17 @@ func main() {
 		return
 	}
 
+	infoMessage("Authenticating...")
+	link, err := lib.CheckAuthConfig()
+	if err != nil {
+		errMessage(err.Error())
+		return
+	}
+	if link != "" {
+		infoMessage(link)
+		return
+	}
+
 	infoMessage("Starting MPV instance...")
 	err = lib.MPVStart()
 	if err != nil {
@@ -53,4 +64,5 @@ func main() {
 	ui.SetupUI()
 
 	lib.SaveHistory()
+	lib.SaveAuth()
 }

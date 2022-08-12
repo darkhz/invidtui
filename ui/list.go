@@ -248,6 +248,9 @@ func captureListEvents(event *tcell.EventKey) {
 
 	case 'C':
 		ShowComments()
+
+	case '+':
+		go Modify(true)
 	}
 }
 
@@ -630,4 +633,39 @@ func getListReference() (lib.SearchResult, error) {
 	}
 
 	return ref.(lib.SearchResult), nil
+}
+
+// modifyListReference modifies a TableCell containing the specified reference.
+func modifyListReference(title string, add bool, info ...lib.SearchResult) error {
+	err := fmt.Errorf("Cannot modify list entry")
+
+	table := getListTable()
+	if table == nil {
+		return err
+	}
+
+	for i := 0; i < table.GetRowCount(); i++ {
+		cell := table.GetCell(i, 0)
+		if cell == nil {
+			continue
+		}
+
+		ref := cell.GetReference()
+		if ref == nil {
+			continue
+		}
+
+		if info[0] == ref.(lib.SearchResult) {
+			if add {
+				cell.SetText(title)
+				cell.SetReference(info[1])
+			} else {
+				table.RemoveRow(i)
+			}
+
+			break
+		}
+	}
+
+	return nil
 }

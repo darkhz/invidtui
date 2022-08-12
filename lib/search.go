@@ -16,6 +16,7 @@ type SearchResult struct {
 	VideoID       string `json: "videoId"`
 	PlaylistID    string `json: "playlistId"`
 	Author        string `json: "author"`
+	IndexID       string `json: "indexId"`
 	PublishedText string `json: "publishedText"`
 	Description   string `json: "description"`
 	VideoCount    int    `json: "videoCount"`

@@ -1,6 +1,7 @@
 package lib
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/url"
 	"strconv"
@@ -222,6 +223,13 @@ func IsValidURL(uri string) (*url.URL, error) {
 	return u, err
 }
 
+// IsValidJSON checks if the text is valid JSON.
+func IsValidJSON(text string) bool {
+	var msg json.RawMessage
+
+	return json.Unmarshal([]byte(text), &msg) == nil
+}
+
 // GetDataFromURL parses specific url fields and returns their values.
 func GetDataFromURL(uri string) url.Values {
 	u, err := IsValidURL(uri)
@@ -230,4 +238,17 @@ func GetDataFromURL(uri string) url.Values {
 	}
 
 	return u.Query()
+}
+
+// GetHostname gets the hostname of the given URL.
+func GetHostname(hostURL string) string {
+	uri, _ := url.Parse(hostURL)
+
+	return uri.Hostname()
+}
+
+// GetUnixTimeAfter returns the Unix time after the
+// given number of years.
+func GetUnixTimeAfter(years int) int64 {
+	return time.Now().AddDate(years, 0, 0).Unix()
 }

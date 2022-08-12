@@ -25,6 +25,8 @@ var (
 	fcSocket        bool
 	currInstance    bool
 	customInstance  string
+	authToken       string
+	genTokenLink    bool
 )
 
 // SetupFlags sets up the commandline flags
@@ -50,6 +52,13 @@ func SetupFlags() error {
 		"use-current-instance",
 		false,
 		"Use the current invidious instance to retrieve media.",
+	)
+
+	flag.BoolVar(
+		&genTokenLink,
+		"token-link",
+		false,
+		"Display a link to the token generation page.",
 	)
 
 	flag.StringVar(
@@ -93,6 +102,13 @@ func SetupFlags() error {
 		"",
 		"Search for a channel.",
 	)
+	flag.StringVar(
+		&authToken,
+		"token",
+		"",
+		"Specify an authorization token. "+
+			"This has to be used along with the --force-instance option.",
+	)
 	flag.IntVar(
 		&connretries,
 		"num-retries",
@@ -127,6 +143,8 @@ func SetupFlags() error {
 				s += fmt.Sprintf(" (default %q)", "youtube-dl")
 			} else {
 				for _, name := range []string{
+					"token",
+					"token-link",
 					"search-video",
 					"search-channel",
 					"search-playlist",
@@ -328,4 +346,34 @@ func findYoutubeDL() error {
 	}
 
 	return fmt.Errorf("Could not find the youtube-dl/yt-dlp/yt-dtlp_x86 executables")
+}
+
+// CheckAuthConfig checks and loads the token and instance.
+func CheckAuthConfig() (string, error) {
+	instanceName := GetHostname(customInstance)
+
+	if (genTokenLink || authToken != "") && customInstance == "" {
+		return "", fmt.Errorf("Instance is not specified")
+	}
+
+	if genTokenLink {
+		return GetAuthLink(instanceName), nil
+	}
+
+	err := LoadAuth()
+	if err != nil {
+		return "", err
+	}
+
+	if authToken != "" {
+		AddAuth(instanceName, authToken)
+		if err := UpdateClient(); err != nil {
+			return "", err
+		}
+		if !AuthTokenValid() {
+			return "", fmt.Errorf("Invalid token")
+		}
+	}
+
+	return "", nil
 }

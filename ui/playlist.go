@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -92,6 +93,15 @@ func setupViewPlaylist() {
 		case tcell.KeyEscape:
 			VPage.SwitchToPage(plPrevPage)
 			App.SetFocus(plPrevItem)
+		}
+
+		key := event.Rune()
+		switch {
+		case key == '+' && plPrevPage != "dashboard":
+			go Modify(true)
+
+		case key == '_' && plPrevPage == "dashboard":
+			go Modify(false)
 		}
 
 		return event
@@ -409,7 +419,7 @@ func viewPlaylist(info lib.SearchResult, newlist bool) {
 	InfoMessage("Loading playlist entries", true)
 	defer InfoMessage("Loaded playlist entries", false)
 
-	result, err := lib.GetClient().Playlist(info.PlaylistID)
+	result, err := lib.GetClient().Playlist(info.PlaylistID, plPrevPage == "dashboard")
 	if err != nil {
 		cancel = true
 	}
@@ -494,11 +504,13 @@ func viewPlaylist(info lib.SearchResult, newlist bool) {
 			}
 
 			sref := lib.SearchResult{
-				Type:     "video",
-				Title:    v.Title,
-				VideoID:  v.VideoID,
-				AuthorID: v.AuthorID,
-				Author:   result.Author,
+				Type:       "video",
+				Title:      v.Title,
+				VideoID:    v.VideoID,
+				AuthorID:   v.AuthorID,
+				IndexID:    v.IndexID,
+				PlaylistID: info.PlaylistID,
+				Author:     result.Author,
 			}
 
 			plistTable.SetCell((rows+i)-skipped, 0, tview.NewTableCell("[blue::b]"+tview.Escape(v.Title)).
@@ -593,6 +605,291 @@ func updatePlaylist() []EntryData {
 	}
 
 	return data
+}
+
+// createPlaylistForm shows a form for playlist creation.
+func createPlaylistForm() {
+	formTitle := tview.NewTextView()
+	formTitle.SetDynamicColors(true)
+	formTitle.SetTextAlign(tview.AlignCenter)
+	formTitle.SetText("[::bu]Create Playlist")
+	formTitle.SetBackgroundColor(tcell.ColorDefault)
+
+	createForm := tview.NewForm()
+	createForm.SetBackgroundColor(tcell.ColorDefault)
+	createForm.AddInputField("Name: ", "", 0, nil, nil)
+	createForm.AddDropDown("Privacy: ", []string{"public", "unlisted", "private"}, -1, nil)
+	createForm.AddButton("Create", func() {
+		go func() {
+			title := createForm.GetFormItem(0).(*tview.InputField).GetText()
+			_, privacy := createForm.GetFormItem(1).(*tview.DropDown).GetCurrentOption()
+
+			if title == "" || privacy == "" {
+				ErrorMessage(fmt.Errorf("Cannot submit empty data"))
+				return
+			}
+
+			App.QueueUpdateDraw(func() {
+				exitFormPage("createplaylist")
+			})
+
+			InfoMessage("Creating playlist "+title, true)
+
+			if err := lib.GetClient().CreatePlaylist(title, privacy); err != nil {
+				ErrorMessage(err)
+				return
+			}
+
+			InfoMessage("Created playlist "+title, false)
+
+			loadPlaylists(false)
+		}()
+	})
+	createForm.AddButton("Cancel", func() {
+		exitFormPage("createplaylist")
+	})
+	createForm.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		switch event.Key() {
+		case tcell.KeyEscape:
+			exitFormPage("createplaylist")
+		}
+
+		return event
+	})
+
+	createFormFlex := tview.NewFlex().
+		AddItem(formTitle, 1, 0, false).
+		AddItem(createForm, 0, 1, true).
+		SetDirection(tview.FlexRow)
+
+	dashPages.AddAndSwitchToPage("createplaylist", createFormFlex, true)
+
+	App.SetFocus(createForm)
+}
+
+// editPlaylistForm shows a form for editing the playlist properties.
+func editPlaylistForm() {
+	var err error
+	var info lib.SearchResult
+
+	formTitle := tview.NewTextView()
+	formTitle.SetDynamicColors(true)
+	formTitle.SetTextAlign(tview.AlignCenter)
+	formTitle.SetText("[::bu]Edit Playlist")
+	formTitle.SetBackgroundColor(tcell.ColorDefault)
+
+	editForm := tview.NewForm()
+	editForm.SetBackgroundColor(tcell.ColorDefault)
+	editForm.AddInputField("Name: ", info.Title, 0, nil, nil)
+	editForm.AddInputField("Description: ", info.Description, 0, nil, nil)
+	editForm.AddDropDown("Privacy: ", []string{"public", "unlisted", "private"}, -1, nil)
+	editForm.AddButton("Edit", func() {
+		go func() {
+			title := editForm.GetFormItem(0).(*tview.InputField).GetText()
+			description := editForm.GetFormItem(1).(*tview.InputField).GetText()
+			_, privacy := editForm.GetFormItem(2).(*tview.DropDown).GetCurrentOption()
+
+			if title == "" || privacy == "" {
+				ErrorMessage(fmt.Errorf("Cannot submit empty data"))
+				return
+			}
+
+			App.QueueUpdateDraw(func() {
+				exitFormPage("editplaylist")
+				info, err = getListReference()
+			})
+			if err != nil {
+				ErrorMessage(err)
+				return
+			}
+
+			InfoMessage("Editing playlist "+info.Title, true)
+
+			err := lib.GetClient().EditPlaylist(info.PlaylistID, title, description, privacy)
+			if err != nil {
+				ErrorMessage(err)
+				return
+			}
+
+			InfoMessage("Edited playlist", false)
+
+			App.QueueUpdateDraw(func() {
+				newInfo := info
+				newInfo.Title = title
+				newInfo.Description = description
+
+				title = "[blue::b]" + tview.Escape(title)
+
+				if err := modifyListReference(title, true, info, newInfo); err != nil {
+					ErrorMessage(err)
+				}
+			})
+		}()
+	})
+	editForm.AddButton("Cancel", func() {
+		exitFormPage("editplaylist")
+	})
+	editForm.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		switch event.Key() {
+		case tcell.KeyEscape:
+			exitFormPage("editplaylist")
+		}
+
+		return event
+	})
+
+	editFormFlex := tview.NewFlex().
+		AddItem(formTitle, 1, 0, false).
+		AddItem(editForm, 0, 1, true).
+		SetDirection(tview.FlexRow)
+
+	dashPages.AddAndSwitchToPage("editplaylist", editFormFlex, true)
+
+	App.SetFocus(editForm)
+}
+
+// modifyPlaylist modifies the availability of a playlist.
+func modifyPlaylist(info lib.SearchResult, add bool) {
+	var pg string
+
+	if !lib.IsAuthInstance() {
+		InfoMessage("Cannot modify playlist", false)
+		return
+	}
+
+	App.QueueUpdateDraw(func() {
+		pg, _ = VPage.GetFrontPage()
+	})
+
+	if !add && pg == "dashboard" {
+		InfoMessage("Removing playlist "+info.Title, true)
+
+		if err := lib.GetClient().RemovePlaylist(info.PlaylistID); err != nil {
+			ErrorMessage(err)
+			return
+		}
+
+		App.QueueUpdateDraw(func() {
+			if err := modifyListReference("", false, info); err != nil {
+				ErrorMessage(err)
+			}
+		})
+
+		InfoMessage("Removed playlist "+info.Title, false)
+	}
+}
+
+// modifyPlaylistVideo modifies the availability of the video in a playlist.
+func modifyPlaylistVideo(info lib.SearchResult, add bool) {
+	if !lib.IsAuthInstance() {
+		InfoMessage("Cannot add video to playlist", false)
+		return
+	}
+
+	if !add {
+		InfoMessage("Removing video from "+info.Title, true)
+
+		if err := lib.GetClient().RemovePlaylistVideo(info.PlaylistID, info.IndexID); err != nil {
+			ErrorMessage(err)
+			return
+		}
+
+		App.QueueUpdateDraw(func() {
+			if err := modifyListReference("", false, info); err != nil {
+				ErrorMessage(err)
+			}
+		})
+
+		InfoMessage("Removed video from "+info.Title, false)
+
+		return
+	}
+
+	InfoMessage("Retrieving playlists", true)
+
+	playlists, err := lib.GetClient().AuthPlaylists()
+	if err != nil {
+		ErrorMessage(err)
+		return
+	}
+
+	InfoMessage("Retrieved playlists", false)
+
+	plistSelectTitle := tview.NewTextView()
+	plistSelectTitle.SetDynamicColors(true)
+	plistSelectTitle.SetTextAlign(tview.AlignCenter)
+	plistSelectTitle.SetText("[white::bu]Select playlist")
+	plistSelectTitle.SetBackgroundColor(tcell.ColorDefault)
+
+	plistSelectPopup := tview.NewTable()
+	plistSelectPopup.SetBorders(false)
+	plistSelectPopup.SetSelectorWrap(true)
+	plistSelectPopup.SetSelectable(true, false)
+	plistSelectPopup.SetBackgroundColor(tcell.ColorDefault)
+	plistSelectPopup.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		captureSendPlayerEvent(event)
+
+		switch event.Key() {
+		case tcell.KeyEscape:
+			exitFocus()
+
+		case tcell.KeyEnter:
+			playlist, err := getListReference()
+			exitFocus()
+			if err != nil {
+				ErrorMessage(err)
+				return event
+			}
+
+			go func() {
+				InfoMessage("Adding "+info.Title+" to "+playlist.Title, true)
+
+				err := lib.GetClient().AddPlaylistVideo(playlist.PlaylistID, info.VideoID)
+				if err != nil {
+					ErrorMessage(err)
+					return
+				}
+
+				InfoMessage("Added "+info.Title+" to "+playlist.Title, true)
+			}()
+		}
+
+		return event
+	})
+
+	for i, p := range playlists {
+		ref := lib.SearchResult{
+			Type:       "playlist",
+			Title:      p.Title,
+			PlaylistID: p.PlaylistID,
+			Author:     p.Author,
+		}
+
+		plistSelectPopup.SetCell(i, 0, tview.NewTableCell("[blue::b]"+tview.Escape(p.Title)).
+			SetExpansion(1).
+			SetReference(ref).
+			SetSelectedStyle(mainStyle),
+		)
+
+		plistSelectPopup.SetCell(i, 1, tview.NewTableCell("[pink]"+strconv.Itoa(p.VideoCount)+" videos").
+			SetSelectable(true).
+			SetAlign(tview.AlignRight).
+			SetSelectedStyle(auxStyle),
+		)
+	}
+
+	plistSelectFlex := tview.NewFlex().
+		AddItem(plistSelectTitle, 1, 0, false).
+		AddItem(plistSelectPopup, 10, 10, false).
+		SetDirection(tview.FlexRow)
+
+	MPage.AddAndSwitchToPage(
+		"selectplaylist",
+		statusmodal(plistSelectFlex, plistSelectPopup),
+		true,
+	).ShowPage("ui")
+
+	App.SetFocus(plistSelectPopup)
 }
 
 // plEnter either plays a file or, if a playlist entry has begun

@@ -71,7 +71,7 @@ func ErrorMessage(err error) {
 	}
 
 	select {
-	case msgchan <- message{"[red::b]" + err.Error(), false}:
+	case msgchan <- message{"[red::b]" + err.Error(), true}:
 		return
 
 	default:

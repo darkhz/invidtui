@@ -201,7 +201,7 @@ func getLiveVideo(video VideoResult, audio bool) (string, string) {
 	}
 
 	url, _ := IsValidURL(video.HlsURL)
-	res, err := SendRequest(context.Background(), GetClient(), url.RequestURI())
+	res, err := GetClient().GetRequest(context.Background(), url.RequestURI())
 	if err != nil {
 		return "", ""
 	}

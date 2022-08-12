@@ -61,6 +61,11 @@ func SetupUI() error {
 		case tcell.KeyCtrlC:
 			return nil
 
+		case tcell.KeyCtrlD:
+			if pg, _ := VPage.GetFrontPage(); pg != "dashboard" {
+				go ShowDashboard()
+			}
+
 		case tcell.KeyCtrlZ:
 			appSuspend = true
 
@@ -68,13 +73,14 @@ func SetupUI() error {
 			lib.VideoCancel()
 			lib.SearchCancel()
 			lib.PlaylistCancel()
+			lib.ClientSendCancel()
 			closeCommentView()
 			InfoMessage("Loading canceled", false)
 		}
 
 		switch event.Rune() {
 		case 'q':
-			if !InputBox.HasFocus() {
+			if !InputBox.HasFocus() && !inAuthPage() {
 				confirmQuit()
 				return nil
 			}

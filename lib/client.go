@@ -1,9 +1,11 @@
 package lib
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"net/url"
@@ -24,6 +26,9 @@ const userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 
 var (
 	clientCtx     context.Context
 	clientCancel  context.CancelFunc
+	cliSendCtx    context.Context
+	cliSendCancel context.CancelFunc
+
 	currentClient *Client
 )
 
@@ -39,6 +44,10 @@ func NewClient(host string) *Client {
 
 // UpdateClient queries available instances and updates the client.
 func UpdateClient() error {
+	if currentClient != nil {
+		return nil
+	}
+
 	client, err := queryInstances()
 	if err != nil {
 		return err
@@ -54,12 +63,28 @@ func GetClient() *Client {
 	return currentClient
 }
 
-// SendRequest sends a request to a url and returns a response.
-func SendRequest(ctx context.Context, c *Client, param string) (*http.Response, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.host+param, nil)
-	req.Header.Set("User-Agent", userAgent)
+// SetRequest sets the request type, sends a request and returns a response.
+func (c *Client) SetRequest(ctx context.Context, method, param string, body io.Reader, token ...string) (*http.Response, error) {
+	req, err := http.NewRequestWithContext(ctx, method, c.host+param, body)
 	if err != nil {
 		return nil, err
+	}
+
+	req.Header.Set("User-Agent", userAgent)
+	if method == http.MethodPost || method == http.MethodPatch {
+		req.Header.Set("Content-Type", "application/json")
+	}
+	if token != nil {
+		if IsValidJSON(token[0]) {
+			req.Header.Set("Authorization", "Bearer "+token[0])
+		} else {
+			req.AddCookie(
+				&http.Cookie{
+					Name:  "SID",
+					Value: token[0],
+				},
+			)
+		}
 	}
 
 	res, err := c.client.Do(req)
@@ -67,25 +92,108 @@ func SendRequest(ctx context.Context, c *Client, param string) (*http.Response, 
 		return nil, clientError(err)
 	}
 
+	return res, nil
+}
+
+// GetRequest sends a GET request to a url and returns a response.
+func (c *Client) GetRequest(ctx context.Context, param string, token ...string) (*http.Response, error) {
+	res, err := c.SetRequest(ctx, http.MethodGet, param, nil, token...)
+	if err != nil {
+		return nil, err
+	}
+
 	if res.StatusCode == http.StatusNotFound || res.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("HTTP request returned %d", res.StatusCode)
 	}
 
-	return res, nil
+	return res, err
 }
 
-// ClientRequest sends a request to the API and returns a response.
-func (c *Client) ClientRequest(ctx context.Context, param string) (*http.Response, error) {
-	res, err := SendRequest(ctx, c, api+param)
+// PostRequest sends a POST request to a url and returns a response.
+func (c *Client) PostRequest(ctx context.Context, param, body string, token ...string) (*http.Response, error) {
+	res, err := c.SetRequest(ctx, http.MethodPost, param, bytes.NewBuffer([]byte(body)), token...)
+	if err != nil {
+		return nil, err
+	}
+
+	if res.StatusCode != 201 && res.StatusCode != 204 {
+		return nil, fmt.Errorf("HTTP request returned %d", res.StatusCode)
+	}
 
 	return res, err
 }
 
+// DeleteRequest sends a DELETE request to a url and returns a response.
+func (c *Client) DeleteRequest(ctx context.Context, param string, token ...string) (*http.Response, error) {
+	res, err := c.SetRequest(ctx, http.MethodDelete, param, nil, token...)
+	if err != nil {
+		return nil, err
+	}
+
+	if res.StatusCode != 204 {
+		return nil, fmt.Errorf("HTTP request returned %d", res.StatusCode)
+	}
+
+	return res, err
+}
+
+// PatchRequest sends a PATCH request to a url and returns a response.
+func (c *Client) PatchRequest(ctx context.Context, param, body string, token ...string) (*http.Response, error) {
+	res, err := c.SetRequest(ctx, http.MethodPatch, param, bytes.NewBuffer([]byte(body)), token...)
+	if err != nil {
+		return nil, err
+	}
+
+	if res.StatusCode != 204 {
+		return nil, fmt.Errorf("HTTP request returned %d", res.StatusCode)
+	}
+
+	return res, err
+}
+
+// ClientRequest sends a GET request to the API and returns a response.
+func (c *Client) ClientRequest(ctx context.Context, param string, token ...string) (*http.Response, error) {
+	return c.GetRequest(ctx, api+param, token...)
+}
+
+// ClientSend sends a POST request to the API and returns a response.
+func (c *Client) ClientSend(param, body string, token ...string) (*http.Response, error) {
+	ClientSendCancel()
+
+	return c.PostRequest(ClientSendCtx(), api+param, body, token...)
+}
+
+// ClientDelete sends a DELETE request to the API and returns a response.
+func (c *Client) ClientDelete(param string, token ...string) (*http.Response, error) {
+	ClientSendCancel()
+
+	return c.DeleteRequest(ClientSendCtx(), api+param, token...)
+}
+
+// ClientPatch sends a PATCH request to the API and returns a response.
+func (c *Client) ClientPatch(param, body string, token ...string) (*http.Response, error) {
+	ClientSendCancel()
+
+	return c.PatchRequest(ClientSendCtx(), api+param, body, token...)
+}
+
 // SelectedInstance returns the current client's hostname.
 func (c *Client) SelectedInstance() string {
-	uri, _ := url.Parse(c.host)
+	return GetHostname(c.host)
+}
 
-	return uri.Hostname()
+// ClientSendCtx returns the client's send context.
+func ClientSendCtx() context.Context {
+	return cliSendCtx
+}
+
+// ClientSendCancel cancels and renews the client send context.
+func ClientSendCancel() {
+	if cliSendCtx != nil {
+		cliSendCancel()
+	}
+
+	cliSendCtx, cliSendCancel = context.WithCancel(context.Background())
 }
 
 // queryInstances searches for the best instance and returns a Client.
@@ -131,7 +239,7 @@ func queryInstances() (*Client, error) {
 		}
 	}
 
-	res, err := SendRequest(ctx, cli, "")
+	res, err := cli.GetRequest(ctx, "")
 	if err != nil {
 		return nil, err
 	}
