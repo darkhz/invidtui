@@ -153,7 +153,6 @@ func SetupFlags() error {
 				} {
 					if f.Name == name {
 						goto cmdOutPrint
-						break
 					}
 				}
 
@@ -262,10 +261,12 @@ func SetupConfig() error {
 // ConfigPath returns the absolute path for the given filetype:
 // socket, history and config, and performs actions related to it.
 func ConfigPath(ftype string) (string, error) {
+	var cfpath string
+
 	switch ftype {
 	case "socket":
 		sockPath = filepath.Join(configPath, "socket")
-		socket := getSocket(sockPath)
+		cfpath = getSocket(sockPath)
 
 		if _, err := os.Stat(sockPath); err != nil {
 			fd, err := os.Create(sockPath)
@@ -282,23 +283,19 @@ func ConfigPath(ftype string) (string, error) {
 			CloseInstances(socket)
 		}
 
-		return socket, nil
-
 	default:
-		fpath := filepath.Join(configPath, ftype)
+		cfpath = filepath.Join(configPath, ftype)
 
-		if _, err := os.Stat(fpath); err != nil {
-			fd, err := os.Create(fpath)
+		if _, err := os.Stat(cfpath); err != nil {
+			fd, err := os.Create(cfpath)
 			fd.Close()
 			if err != nil {
-				return "", fmt.Errorf("Cannot create "+ftype+" file at %s", fpath)
+				return "", fmt.Errorf("Cannot create %s file at %s", ftype, cfpath)
 			}
 		}
-
-		return fpath, nil
 	}
 
-	return configPath, nil
+	return cfpath, nil
 }
 
 // GetSearchQuery returns the search type and query from

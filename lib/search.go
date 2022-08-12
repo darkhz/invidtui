@@ -10,19 +10,19 @@ import (
 
 // SearchResult stores the search result data.
 type SearchResult struct {
-	Type          string `json: "type"`
-	Title         string `json: "title"`
-	AuthorID      string `json: "authorId"`
-	VideoID       string `json: "videoId"`
-	PlaylistID    string `json: "playlistId"`
-	Author        string `json: "author"`
-	IndexID       string `json: "indexId"`
-	PublishedText string `json: "publishedText"`
-	Description   string `json: "description"`
-	VideoCount    int    `json: "videoCount"`
-	SubCount      int    `json: "subCount"`
-	LengthSeconds int    `json: "lengthSeconds"`
-	LiveNow       bool   `json: "liveNow"`
+	Type          string `json:"type"`
+	Title         string `json:"title"`
+	AuthorID      string `json:"authorId"`
+	VideoID       string `json:"videoId"`
+	PlaylistID    string `json:"playlistId"`
+	Author        string `json:"author"`
+	IndexID       string `json:"indexId"`
+	PublishedText string `json:"publishedText"`
+	Description   string `json:"description"`
+	VideoCount    int    `json:"videoCount"`
+	SubCount      int    `json:"subCount"`
+	LengthSeconds int64  `json:"lengthSeconds"`
+	LiveNow       bool   `json:"liveNow"`
 }
 
 var (

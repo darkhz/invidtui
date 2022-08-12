@@ -10,10 +10,10 @@ import (
 )
 
 // FormatDuration takes a duration as seconds and returns a hh:mm:ss string.
-func FormatDuration(duration int) string {
+func FormatDuration(duration int64) string {
 	var durationtext string
 
-	input, err := time.ParseDuration(strconv.Itoa(duration) + "s")
+	input, err := time.ParseDuration(strconv.FormatInt(duration, 10) + "s")
 	if err != nil {
 		return "00:00"
 	}
@@ -165,7 +165,7 @@ func GetProgress(width int) (string, string, []string, error) {
 	mtype = "(" + mtype + ")"
 
 	width /= 2
-	length := width * timepos / duration
+	length := width * int(timepos) / int(duration)
 
 	endlength := width - length
 	if endlength < 0 {

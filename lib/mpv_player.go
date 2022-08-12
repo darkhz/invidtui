@@ -183,11 +183,11 @@ func (c *Connector) Set(prop string, value interface{}) error {
 // If the files parameter contains more than one filename argument, it
 // will consider the first entry as the video file and the second entry as
 // the audio file, set the relevant options and pass them to mpv.
-func (c *Connector) LoadFile(title string, duration int, liveaudio bool, files ...string) error {
+func (c *Connector) LoadFile(title string, duration int64, liveaudio bool, files ...string) error {
 	options := "force-media-title=%" + strconv.Itoa(len(title)) + "%" + title
 
 	if duration > 0 {
-		options += ",length=" + strconv.Itoa(duration)
+		options += ",length=" + strconv.FormatInt(duration, 10)
 	}
 
 	if liveaudio {
@@ -368,17 +368,17 @@ func (c *Connector) LoopType() string {
 }
 
 // TimePosition returns the current position in the file.
-func (c *Connector) TimePosition() int {
+func (c *Connector) TimePosition() int64 {
 	timepos, err := c.Get("playback-time")
 	if err != nil {
 		return 0
 	}
 
-	return int(timepos.(float64))
+	return int64(timepos.(float64))
 }
 
 // Duration returns the total duration of the file.
-func (c *Connector) Duration() int {
+func (c *Connector) Duration() int64 {
 	duration, err := c.Get("duration")
 	if err != nil {
 		duration, err = c.Get("options/length")
@@ -386,7 +386,7 @@ func (c *Connector) Duration() int {
 			return 0
 		}
 
-		time, err := strconv.Atoi(duration.(string))
+		time, err := strconv.ParseInt(duration.(string), 10, 64)
 		if err != nil {
 			return 0
 		}
@@ -394,7 +394,7 @@ func (c *Connector) Duration() int {
 		return time
 	}
 
-	return int(duration.(float64))
+	return int64(duration.(float64))
 }
 
 // Volume returns the current volume.

@@ -16,13 +16,12 @@ type FeedVideos struct {
 	Type          string `json:"type"`
 	Title         string `json:"title"`
 	VideoID       string `json:"videoId"`
-	LengthSeconds int    `json:"lengthSeconds"`
+	LengthSeconds int64  `json:"lengthSeconds"`
 	Author        string `json:"author"`
 	AuthorID      string `json:"authorId"`
 	AuthorURL     string `json:"authorUrl"`
-	Published     int    `json:"published"`
 	PublishedText string `json:"publishedText"`
-	ViewCount     int    `json:"viewCount"`
+	ViewCount     int64  `json:"viewCount"`
 }
 
 var (

@@ -16,7 +16,7 @@ type PlaylistResult struct {
 	AuthorID    string          `json:"authorId"`
 	Description string          `json:"description"`
 	VideoCount  int             `json:"videoCount"`
-	ViewCount   int             `json:"viewCount"`
+	ViewCount   int64           `json:"viewCount"`
 	Videos      []PlaylistVideo `json:"videos"`
 }
 
@@ -27,7 +27,7 @@ type PlaylistVideo struct {
 	Author        string `json:"author"`
 	AuthorID      string `json:"authorId"`
 	IndexID       string `json:"indexId"`
-	LengthSeconds int    `json:"lengthSeconds"`
+	LengthSeconds int64  `json:"lengthSeconds"`
 }
 
 var (

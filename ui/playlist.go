@@ -19,7 +19,7 @@ import (
 // EntryData stores playlist entry data.
 type EntryData struct {
 	ID       int    `json:"id"`
-	Filename string `json:filename`
+	Filename string `json:"filename"`
 	Playing  bool   `json:"playing"`
 	Title    string
 	Author   string

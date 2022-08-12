@@ -19,7 +19,7 @@ type VideoResult struct {
 	Author          string       `json:"author"`
 	VideoID         string       `json:"videoId"`
 	HlsURL          string       `json:"hlsUrl"`
-	LengthSeconds   int          `json:"lengthSeconds"`
+	LengthSeconds   int64        `json:"lengthSeconds"`
 	LiveNow         bool         `json:"liveNow"`
 	FormatStreams   []FormatData `json:"formatStreams"`
 	AdaptiveFormats []FormatData `json:"adaptiveFormats"`

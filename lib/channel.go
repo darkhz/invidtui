@@ -13,7 +13,7 @@ type ChannelResult struct {
 	ChannelID   string           `json:"authorId"`
 	Author      string           `json:"author"`
 	Description string           `json:"description"`
-	ViewCount   int              `json:"viewCount"`
+	ViewCount   int64            `json:"viewCount"`
 	Videos      []PlaylistVideo  `json:"videos"`
 	Playlists   []PlaylistResult `json:"playlists"`
 }
