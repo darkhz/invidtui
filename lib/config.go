@@ -212,7 +212,6 @@ func SetupFlags() error {
 // SetupConfig checks for the config directory, and creates one if it
 // doesn't exist.
 func SetupConfig() error {
-	var tpath string
 	var dotConfigExists bool
 
 	configDirs := []string{".config/invidtui", ".invidtui"}
@@ -255,8 +254,6 @@ func SetupConfig() error {
 				return fmt.Errorf("Cannot create %s", configDirs[1])
 			}
 		}
-
-		configPath = tpath
 	}
 
 	return nil
