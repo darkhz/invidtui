@@ -24,6 +24,10 @@ func showComments() {
 		return
 	}
 
+	if info.Type == "playlist" || info.Type == "channel" {
+		return
+	}
+
 	comments, err := lib.GetClient().Comments(info.VideoID)
 	if err != nil {
 		ErrorMessage(err)

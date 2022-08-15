@@ -557,9 +557,7 @@ func chTableEvents(event *tcell.EventKey) {
 		showLinkPopup()
 
 	case 'C':
-		if getCurrType() == "video" {
-			ShowComments()
-		}
+		ShowComments()
 	}
 }
 
