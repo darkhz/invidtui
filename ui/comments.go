@@ -9,6 +9,7 @@ import (
 	"github.com/gdamore/tcell/v2"
 )
 
+// ShowComments shows comments for the selected video.
 func ShowComments() {
 	InfoMessage("Loading comments", true)
 
@@ -17,6 +18,7 @@ func ShowComments() {
 	})
 }
 
+// showComments loads the comment viewer.
 func showComments() {
 	info, err := getListReference()
 	if err != nil {
@@ -144,6 +146,7 @@ func showComments() {
 	App.SetFocus(CommentsView)
 }
 
+// closeCommentView closes the comment viewer.
 func closeCommentView() {
 	if pg, _ := MPage.GetFrontPage(); pg != "comments" {
 		return
@@ -154,6 +157,7 @@ func closeCommentView() {
 	lib.CommentCancel()
 }
 
+// addCommentNode adds a comment node.
 func addCommentNode(node *tview.TreeNode, comment lib.CommentsInfo) *tview.TreeNode {
 	commentNode := tview.NewTreeNode("- [purple::bu]" + comment.Author)
 	for _, line := range splitLines(comment.Content) {
@@ -180,6 +184,7 @@ func addCommentNode(node *tview.TreeNode, comment lib.CommentsInfo) *tview.TreeN
 	return commentNode
 }
 
+// addCommentContinuation checks if there are more comments and adds a continuation button.
 func addCommentContinuation(node *tview.TreeNode, comments lib.CommentResult) {
 	if comments.Continuation == "" {
 		return
@@ -192,6 +197,7 @@ func addCommentContinuation(node *tview.TreeNode, comments lib.CommentResult) {
 	)
 }
 
+// splitLines splits the comment's content into different lines.
 func splitLines(line string) []string {
 	var currPos int
 	var lines []string
