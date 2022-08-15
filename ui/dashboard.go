@@ -50,6 +50,9 @@ func ShowDashboard() {
 
 		case ';':
 			showLinkPopup()
+
+		case 'C':
+			ShowComments()
 		}
 
 		return event

@@ -105,6 +105,9 @@ func setupViewPlaylist() {
 
 		case key == ';':
 			showLinkPopup()
+
+		case key == 'C':
+			ShowComments()
 		}
 
 		return event
