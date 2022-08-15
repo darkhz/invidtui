@@ -223,6 +223,53 @@ func searchAndList(results []lib.SearchResult) {
 	}
 }
 
+// showLinkPopup shows a popup with links.
+func showLinkPopup() {
+	info, err := getListReference()
+	if err != nil {
+		ErrorMessage(err)
+		return
+	}
+
+	invlink, ytlink := lib.GetLinks(info)
+	linkText := "[::u]Invidious link[-:-:-]\n[::b]" + invlink +
+		"\n\n[::u]Youtube link[-:-:-]\n[::b]" + ytlink
+
+	linkTitle := tview.NewTextView()
+	linkTitle.SetDynamicColors(true)
+	linkTitle.SetTextAlign(tview.AlignCenter)
+	linkTitle.SetText("[white::bu]Copy link")
+	linkTitle.SetBackgroundColor(tcell.ColorDefault)
+
+	linkPopup := tview.NewTextView()
+	linkPopup.SetText(linkText)
+	linkPopup.SetDynamicColors(true)
+	linkPopup.SetBackgroundColor(tcell.ColorDefault)
+	linkPopup.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		captureSendPlayerEvent(event)
+
+		switch event.Key() {
+		case tcell.KeyEnter, tcell.KeyEscape:
+			exitFocus()
+		}
+
+		return event
+	})
+
+	linkFlex := tview.NewFlex().
+		AddItem(linkTitle, 1, 0, false).
+		AddItem(linkPopup, 10, 10, false).
+		SetDirection(tview.FlexRow)
+
+	MPage.AddAndSwitchToPage(
+		"linkpage",
+		statusmodal(linkFlex, linkPopup),
+		true,
+	).ShowPage("ui")
+
+	App.SetFocus(linkPopup)
+}
+
 // captureListEvents binds keys to ResultsList's InputCapture.
 func captureListEvents(event *tcell.EventKey) {
 	switch event.Key() {
@@ -251,6 +298,9 @@ func captureListEvents(event *tcell.EventKey) {
 
 	case '+':
 		go Modify(true)
+
+	case ';':
+		showLinkPopup()
 	}
 }
 

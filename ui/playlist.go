@@ -102,6 +102,9 @@ func setupViewPlaylist() {
 
 		case key == '_' && plPrevPage == "dashboard":
 			go Modify(false)
+
+		case key == ';':
+			showLinkPopup()
 		}
 
 		return event

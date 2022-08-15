@@ -552,6 +552,9 @@ func chTableEvents(event *tcell.EventKey) {
 
 	case '+':
 		go Modify(true)
+
+	case ';':
+		showLinkPopup()
 	}
 }
 

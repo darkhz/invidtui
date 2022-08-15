@@ -240,6 +240,30 @@ func GetDataFromURL(uri string) url.Values {
 	return u.Query()
 }
 
+// GetLink returns invidious and youtube links.
+func GetLinks(info SearchResult) (string, string) {
+	var linkparam string
+
+	invlink := "https://" + GetClient().SelectedInstance()
+	ytlink := "https://youtube.com"
+
+	switch info.Type {
+	case "video":
+		linkparam = "/watch?v=" + info.VideoID
+
+	case "playlist":
+		linkparam = "/playlist?list=" + info.PlaylistID
+
+	case "channel":
+		linkparam = "/channel/" + info.AuthorID
+	}
+
+	invlink += linkparam
+	ytlink += linkparam
+
+	return invlink, ytlink
+}
+
 // GetHostname gets the hostname of the given URL.
 func GetHostname(hostURL string) string {
 	uri, _ := url.Parse(hostURL)

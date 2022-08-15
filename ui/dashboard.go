@@ -47,6 +47,9 @@ func ShowDashboard() {
 		switch event.Rune() {
 		case '+':
 			go Modify(true)
+
+		case ';':
+			showLinkPopup()
 		}
 
 		return event
@@ -71,6 +74,9 @@ func ShowDashboard() {
 
 		case '_':
 			go Modify(false)
+
+		case ';':
+			showLinkPopup()
 		}
 
 		return event
@@ -92,6 +98,9 @@ func ShowDashboard() {
 
 		case '_':
 			go Modify(false)
+
+		case ';':
+			showLinkPopup()
 		}
 
 		return event
