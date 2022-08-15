@@ -1,6 +1,3 @@
-
-
-
 [![Go Report Card](https://goreportcard.com/badge/github.com/darkhz/invidtui)](https://goreportcard.com/report/github.com/darkhz/invidtui)
 # invidtui
 
@@ -16,6 +13,7 @@ Currently, it is tested on Linux and Windows, and it should work on MacOS.
 - Ability to open, view, edit and save m3u8 playlists
 - Automatically queries the invidious API and selects the best instance
 - Search for and browse videos, playlists and channels, with history support
+- Authentication with invidious and management of user feed, playlists and subscriptions
 
 ## Requirements
 - MPV
@@ -41,6 +39,8 @@ or check the Releases page and download the binary that matches your OS and arch
        --search-channel         Search for a channel.
        --search-playlist        Search for a playlist.
        --search-video           Search for a video.
+       --token                  Specify an authorization token.
+       --token-link             Display a link to the token generation page.
        --use-current-instance   Use the current invidious instance to retrieve media.
        --video-res              Set the default video resolution. (default "720p")
        --ytdl-path              Specify path to youtube-dl executable or its forks (yt-dlp, yt-dtlp_x86) (default "youtube-dl")
@@ -52,6 +52,27 @@ or check the Releases page and download the binary that matches your OS and arch
 - While specifying the **force-instance** option, it is recommended to input just the instance name, remove the "https://" prefix if present. If the instance url is not valid, invidtui will automatically choose another valid instance.
 
 - The **search-channel**, **search-playlist** and **search-video** options are meant to be used individually. Make sure the search queries are properly quoted.
+
+- The **token** and **token-link** options have to be used along with the **force-instance** option.
+
+## Authentication
+In order to use authentication-based features, like viewing and managing user feed, playlists and subscriptions, an account needs to be registered with a specific Invidious instance and a SID/token has to be generated and used. Authentication can be done either via the dashboard or the command-line.
+
+A **SID** is a base64 encoded text, that is automatically generated when you register an account with an invidious instance. To get your SID, you can go to your instance's token manager (for example `https://y.com.sb/token_manager`) and copy the text that is on top of a red background. This is currently the recommended authentication method.
+
+ A **token** is a JSON text, that has to be explicitly generated after verification from the instance. To get your token, either :
+- Copy and navigate to the link shown in the dashboard if you are authenticating within invidtui, or ,
+- If authenticating via the command-line, type `invidtui --force-instance <instance name> --token-link`, copy and navigate to the displayed link.
+
+Once the page loads, press 'OK' and wait for the page to stop loading. Then copy the session token displayed on the webpage.
+
+Once the SID/token is obtained, do either of the following methods to complete authentication:
+- If authenticating via the dashboard, paste the copied text into the input box and press Enter. If the token is valid, feed, playlists and subscriptions should be displayed.
+- If authenticating via the command-line, type `invidtui --force-instance <instance name> --token <copied text>`.
+
+The token should be saved in your config directory. You can then type `invidtui --force-instance <instance name` and the saved token associated with the instance will be automatically loaded.
+
+The above mentioned steps can be performed for multiple invidious instances.
 
 ## Configuration file
 Generally, invidtui will work out-of-the-box, with no configuration required.<br />
@@ -71,6 +92,32 @@ force-instance=invidious.snopyta.org
 ```
 
 ## Keybindings
+### Application
+
+> <kbd>Ctrl</kbd>+<kbd>Z</kbd><br /> Suspend<br />
+>
+> <kbd>Ctrl</kbd>+<kbd>D</kbd><br /> Open dashboard<br />
+>
+> <kbd>q</kbd><br /> Quit<br />
+
+### Dashboard
+
+> <kbd>c</kbd>
+> This control works on the playlist page.<br />
+> Creates a new playlist.<br />
+>
+> <kbd>e</kbd>
+> This control works on the playlist page.<br />
+> Edits the selected playlist properties.<br />
+>
+> <kbd>_</kbd>
+> This control works on the playlist and subscription pages.<br />
+> If pressed on a playlist, the playlist will be deleted.<br />
+> If pressed on a channel, the channel will be unsubscribed from.<br />
+>
+> <kbd>Ctrl</kbd>+<kbd>d</kbd>
+> This control works across all dashboard pages.<br />
+> Reloads the page.<br />
 
 ### Search
 
@@ -82,7 +129,7 @@ force-instance=invidious.snopyta.org
 >
 > <kbd>,</kbd><br /> Show search parameters popup<br />
 
-## Search parameters popup
+### Search parameters popup
 > <kbd>Tab</kbd><br /> Move one field forward. Press <kbd>Shift</kbd>+<kbd>Tab</kbd> to move one field backward<br />
 >
 > The "Sort By", "Duration" and "Date fields are dropdown lists, select any one parameter from each list.<br />
@@ -136,52 +183,56 @@ Note: These controls will work across all pages (search, playlist or channel pag
 >
 > <kbd>Shift</kbd>+<kbd>s</kbd><br /> Stop player<br />
 
-### Application
-
-> <kbd>Ctrl</kbd>+<kbd>Z</kbd><br /> Suspend<br />
->
-> <kbd>q</kbd><br /> Quit<br />
-
-
 ### Page-based Keybindings
 
 > <kbd>i</kbd><br />
-> This control works on the search and channel playlist pages.<br />
+> This control works on the search, channel and dashboard playlist pages.<br />
 > Fetches the Youtube playlist contents from the currently selected entry and displays it in a separate playlist page. <br />
 > In case you have exited this page, you can come back to it by pressing <kbd>Alt</kbd>+<kbd>i</kbd> instead of reloading the playlist again.<br/>
 >
 > <kbd>u</kbd><br />
-> This control works on the search page.<br />
+> This control works on the search page and dashboard subscription page.<br />
 > Fetches only videos from a Youtube channel (from the currently selected entry) and displays it in a separate channel video page.<br />
 > <kbd>Shift</kbd>+<kbd>u</kbd> fetches only playlists from a Youtube channel and displays it in a separate channel playlist page.
 > In case you have exited<br /> this page, you can come back to it by pressing <kbd>Alt</kbd>+<kbd>u</kbd> instead of reloading the channel again.<br />
 >
+> <kbd>+</kbd><br />
+> This control works on the search, playlist, channel and dashboard feed pages,<br />
+> only if the user is authenticated with an invidious instance.<br />
+> If pressed on a video, a popup will be displayed to select which user playlist to save the video to.<br />
+> If pressed on a channel (for example in the channel search page or while viewing a channel), <br />
+> the selected channel will be subscribed to.<br />
+>
+> <kbd>;</kbd>
+> This control works on the search, playlist, channel and dashboard feed and playlist pages.<br />
+> Shows a popup containing the selected video/playlist/channel's Invidious and Youtube links.<br />
+>
 > <kbd>Shift</kbd> + <kbd>c</kbd><br />
-> This control works only on the search page.<br />
+> This control works on the search page, playlist, channel video and dashboard feed pages.<br />
 > Fetches and displays comments for the selected video.<br />
 > Press <kbd>Space</kbd> to show/hide comment trees.<br />
 >
 > <kbd>Enter</kbd><br />
-> This control works on the search, playlist, channel video and channel playlist pages.<br />
+> This control works on the search, playlist, channel video, channel playlist and dashboard feed pages.<br />
 > Fetches more results.<br />
 >
 > <kbd>Tab</kbd><br />
-> This control works on the channel video, channel playlist and channel search pages<br />
-> Switches the channel page being shown.<br />
+> This control works on the channel and dashboard pages.<br />
+> Switches the channel/dashboard page being shown.<br />
 >
 > <kbd>/</kbd><br />
 > This control works on the search and channel search pages.<br />
 > Refer to the search keybindings above.<br />
 >
 > <kbd>a</kbd><br />
-> This control works on the search, playlist, channel video, channel playlist pages as well as the play history popup.<br />
+> This control works on the search, playlist, channel video, channel playlist pages, play history popup and the dashboard feed and playlist pages.<br />
 > Fetches audio of the currently selected entry and adds it to the playlist.<br />
 > If the selected entry is a playlist, all the playlist contents will be loaded into<br />
 > the playlist queue as audio.
 > To immediately play after adding to playlist, press <kbd>Shift</kbd>+<kbd>a</kbd>.<br/>
 >
 > <kbd>v</kbd><br />
-> This control works on the search, playlist, channel video, channel playlist pages as well as the play history popup.<br />
+> This control works on the search, playlist, channel video, channel playlist pages, play history popup and the dashboard feed and playlist pages.<br />
 > Fetches video of the currently selected entry and adds it to the playlist.<br />
 > If the selected entry is a playlist, all the playlist contents will be loaded into<br />
 > the playlist queue as video.
