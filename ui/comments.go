@@ -7,10 +7,17 @@ import (
 	"github.com/darkhz/invidtui/lib"
 	"github.com/darkhz/tview"
 	"github.com/gdamore/tcell/v2"
+	"golang.org/x/sync/semaphore"
 )
+
+var commentsLock *semaphore.Weighted
 
 // ShowComments shows comments for the selected video.
 func ShowComments() {
+	if commentsLock == nil {
+		commentsLock = semaphore.NewWeighted(1)
+	}
+
 	InfoMessage("Loading comments", true)
 
 	go App.QueueUpdateDraw(func() {
@@ -73,7 +80,7 @@ func showComments() {
 		return event
 	})
 	CommentsView.SetSelectedFunc(func(node *tview.TreeNode) {
-		var selectedNode *tview.TreeNode
+		var selectedNode, removeNode *tview.TreeNode
 
 		continuation, ok := node.GetReference().(string)
 		if !ok {
@@ -98,31 +105,16 @@ func showComments() {
 
 		if node.GetLevel() > 2 || node.GetParent() == rootNode {
 			selectedNode = node.GetParent()
-			selectedNode.RemoveChild(node)
+			removeNode = node
 		} else {
 			selectedNode = node
 		}
 
-		selectedNode.SetText("-- Loading comments --")
-
-		subcomments, err := lib.GetClient().Comments(info.VideoID, continuation)
-		if err != nil {
-			ErrorMessage(err)
-			selectedNode.SetText("-- Reload --")
-
-			return
-		}
-
-		for i, comment := range subcomments.Comments {
-			current := addCommentNode(selectedNode, comment)
-			if i == 0 {
-				CommentsView.SetCurrentNode(current)
-			}
-		}
-
-		selectedNode.SetText("-- Hide comments --")
-
-		addCommentContinuation(selectedNode, subcomments)
+		go loadSubComments(
+			CommentsView,
+			selectedNode, removeNode,
+			info.VideoID, continuation,
+		)
 	})
 
 	commentsFlex := tview.NewFlex().
@@ -144,6 +136,51 @@ func showComments() {
 	).ShowPage("ui")
 
 	App.SetFocus(CommentsView)
+}
+
+// loadSubComments loads the subcomments.
+func loadSubComments(view *tview.TreeView, selNode, rmNode *tview.TreeNode, videoID, continuation string) {
+	if !commentsLock.TryAcquire(1) {
+		InfoMessage("Comments are still loading", false)
+		return
+	}
+	defer commentsLock.Release(1)
+
+	showNode := selNode
+	if rmNode != nil {
+		showNode = rmNode
+	}
+
+	App.QueueUpdateDraw(func() {
+		showNode.SetText("-- Loading comments --")
+	})
+
+	subcomments, err := lib.GetClient().Comments(videoID, continuation)
+	if err != nil {
+		ErrorMessage(err)
+		App.QueueUpdateDraw(func() {
+			selNode.SetText("-- Reload --")
+		})
+
+		return
+	}
+
+	App.QueueUpdateDraw(func() {
+		for i, comment := range subcomments.Comments {
+			current := addCommentNode(selNode, comment)
+			if i == 0 {
+				view.SetCurrentNode(current)
+			}
+		}
+
+		showNode.SetText("-- Hide comments --")
+
+		if rmNode != nil {
+			selNode.RemoveChild(rmNode)
+		}
+
+		addCommentContinuation(selNode, subcomments)
+	})
 }
 
 // closeCommentView closes the comment viewer.
