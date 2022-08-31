@@ -26,7 +26,7 @@ var (
 	chanMutex sync.Mutex
 )
 
-const channelFields = "?fields=title,authorId,author,description,viewCount"
+const channelFields = "?fields=title,authorId,author,description,viewCount&hl=en"
 
 // Channel gets the playlist with the given ID and returns a ChannelResult.
 // If id is blank, it indicates that more results are to be loaded for the

@@ -36,7 +36,7 @@ var (
 	plistMutex sync.Mutex
 )
 
-const playlistFields = "?fields=title,playlistId,author,description,videoCount,viewCount,videos"
+const playlistFields = "?fields=title,playlistId,author,description,videoCount,viewCount,videos&hl=en"
 
 // Playlist gets the playlist with the given ID and returns a PlaylistResult.
 // If id is blank, it indicates that more results are to be loaded for the

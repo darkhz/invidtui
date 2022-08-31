@@ -39,7 +39,7 @@ func (c *Client) Feed(getmore bool) (FeedResult, error) {
 		resetFeedPage()
 	}
 
-	query := "auth/feed?page=" + getFeedPage()
+	query := "auth/feed?hl=en&page=" + getFeedPage()
 	res, err := c.ClientRequest(ClientCtx(), query, GetToken())
 	if err != nil {
 		return FeedResult{}, err

@@ -39,7 +39,7 @@ var (
 	videoCtxLock sync.Mutex
 )
 
-const videoFields = "?fields=title,videoId,author,hlsUrl,publishedText,lengthSeconds,adaptiveFormats,liveNow"
+const videoFields = "?fields=title,videoId,author,hlsUrl,publishedText,lengthSeconds,adaptiveFormats,liveNow&hl=en"
 
 // Video gets the video with the given ID and returns a VideoResult.
 func (c *Client) Video(id string) (VideoResult, error) {

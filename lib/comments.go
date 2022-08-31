@@ -38,9 +38,9 @@ func (c *Client) Comments(id string, continuation ...string) (CommentResult, err
 
 	CommentCancel()
 
-	query := "comments/" + id
+	query := "comments/" + id + "?hl=en"
 	if continuation != nil {
-		query += "?continuation=" + continuation[0]
+		query += "&continuation=" + continuation[0]
 	}
 
 	res, err := c.ClientRequest(CommentCtx(), query)
