@@ -280,7 +280,7 @@ func ConfigPath(ftype string) (string, error) {
 				return "", fmt.Errorf("Socket exists at %s, is another instance running?", sockPath)
 			}
 
-			CloseInstances(socket)
+			CloseInstances(cfpath)
 		}
 
 	default:
