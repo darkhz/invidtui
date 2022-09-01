@@ -240,7 +240,7 @@ func splitLines(line string) []string {
 	var lines []string
 	var joinedString string
 
-	split := strings.Split(line, " ")
+	split := strings.Fields(line)
 
 	for i, w := range split {
 		joinedString += w + " "
