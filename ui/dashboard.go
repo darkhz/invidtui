@@ -157,6 +157,7 @@ func ShowDashboard() {
 
 	checkAuth()
 	App.QueueUpdateDraw(func() {
+		MPage.SwitchToPage("ui")
 		dashPrevPage, dashPrevItem = VPage.GetFrontPage()
 		VPage.AddAndSwitchToPage("dashboard", dashFlex, true)
 	})
