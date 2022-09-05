@@ -5,11 +5,13 @@ import (
 	"encoding/json"
 )
 
+// CommentResult stores the comments.
 type CommentResult struct {
 	Comments     []CommentsInfo `json:"comments"`
 	Continuation string         `json:"continuation"`
 }
 
+// CommentsInfo stores the comment information.
 type CommentsInfo struct {
 	Verified             bool         `json:"verified"`
 	Author               string       `json:"author"`
@@ -23,6 +25,7 @@ type CommentsInfo struct {
 	Replies              CommentReply `json:"replies"`
 }
 
+// CommentReply stores the comment reply count and continuation.
 type CommentReply struct {
 	ReplyCount   int    `json:"replyCount"`
 	Continuation string `json:"continuation"`
@@ -33,6 +36,7 @@ var (
 	commentCancel context.CancelFunc
 )
 
+// Comments gets the comments for a video ID.
 func (c *Client) Comments(id string, continuation ...string) (CommentResult, error) {
 	var result CommentResult
 
@@ -57,10 +61,12 @@ func (c *Client) Comments(id string, continuation ...string) (CommentResult, err
 	return result, nil
 }
 
+// CommentCtx returns the comment context.
 func CommentCtx() context.Context {
 	return commentCtx
 }
 
+// CommentCancel cancels and renews the comment context.
 func CommentCancel() {
 	if commentCtx != nil {
 		commentCancel()
