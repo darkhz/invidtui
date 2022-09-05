@@ -415,62 +415,20 @@ func showPlayHistory() {
 	App.QueueUpdateDraw(func() {
 		var histTable *tview.Table
 
-		histTable = tview.NewTable()
-		histTable.SetSelectorWrap(true)
-		histTable.SetSelectable(true, false)
-		histTable.SetBackgroundColor(tcell.ColorDefault)
-		histTable.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-			var exit bool
-
-			exitFunc := func() {
-				exitFocus()
-				Status.SwitchToPage("messages")
-			}
-
-			capturePlayerEvent(event)
-
+		histInput := tview.NewInputField()
+		histInput.SetLabel("[::b]Filter: ")
+		histInput.SetLabelColor(tcell.ColorWhite)
+		histInput.SetBackgroundColor(tcell.ColorDefault)
+		histInput.SetFieldBackgroundColor(tcell.ColorDefault)
+		histInput.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 			switch event.Key() {
-			case tcell.KeyEscape:
-				exitFunc()
-			}
-
-			switch event.Rune() {
-			case '/':
-				App.SetFocus(InputBox)
-				Status.SwitchToPage("input")
-
-			case 'i':
-				exit = true
-				ViewPlaylist(true, event.Modifiers() == tcell.ModAlt)
-
-			case 'u':
-				exit = true
-				ViewChannel("video", true, event.Modifiers() == tcell.ModAlt)
-
-			case 'U':
-				exit = true
-				ViewChannel("playlist", true, event.Modifiers() == tcell.ModAlt)
-			}
-
-			if exit {
-				exitFunc()
+			case tcell.KeyEscape, tcell.KeyEnter:
+				App.SetFocus(histTable)
 			}
 
 			return event
 		})
-
-		histTitle := tview.NewTextView()
-		histTitle.SetDynamicColors(true)
-		histTitle.SetText("[::bu]Play History")
-		histTitle.SetTextAlign(tview.AlignCenter)
-		histTitle.SetBackgroundColor(tcell.ColorDefault)
-
-		histFlex := tview.NewFlex().
-			AddItem(histTitle, 1, 0, false).
-			AddItem(histTable, 10, 10, true).
-			SetDirection(tview.FlexRow)
-
-		fillTable := func(text string) {
+		histInput.SetChangedFunc(func(text string) {
 			var row int
 			text = strings.ToLower(text)
 
@@ -509,22 +467,67 @@ func showPlayHistory() {
 			histTable.ScrollToBeginning()
 
 			resizemodal()
-		}
+		})
 
-		chgfunc := func(text string) {
-			fillTable(text)
-		}
-		ifunc := func(event *tcell.EventKey) *tcell.EventKey {
+		histTable = tview.NewTable()
+		histTable.SetSelectorWrap(true)
+		histTable.SetSelectable(true, false)
+		histTable.SetBackgroundColor(tcell.ColorDefault)
+		histTable.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+			var exit bool
+
+			exitFunc := func() {
+				exitFocus()
+				Status.SwitchToPage("messages")
+			}
+
+			capturePlayerEvent(event)
+
 			switch event.Key() {
-			case tcell.KeyEscape, tcell.KeyEnter:
-				App.SetFocus(histFlex)
+			case tcell.KeyEscape:
+				exitFunc()
+			}
+
+			switch event.Rune() {
+			case '/':
+				App.SetFocus(histInput)
+
+			case 'i':
+				exit = true
+				ViewPlaylist(true, event.Modifiers() == tcell.ModAlt)
+
+			case 'u':
+				exit = true
+				ViewChannel("video", true, event.Modifiers() == tcell.ModAlt)
+
+			case 'U':
+				exit = true
+				ViewChannel("playlist", true, event.Modifiers() == tcell.ModAlt)
+			}
+
+			if exit {
+				exitFunc()
 			}
 
 			return event
-		}
-		SetInput("Filter:", 0, nil, ifunc, chgfunc)
+		})
 
-		fillTable("")
+		histTitle := tview.NewTextView()
+		histTitle.SetDynamicColors(true)
+		histTitle.SetText("[::bu]Play History")
+		histTitle.SetTextAlign(tview.AlignCenter)
+		histTitle.SetBackgroundColor(tcell.ColorDefault)
+
+		histFlex := tview.NewFlex().
+			AddItem(histTitle, 1, 0, false).
+			AddItem(histTable, 10, 10, true).
+			AddItem(getVbox(), 1, 0, false).
+			AddItem(histInput, 1, 0, false).
+			AddItem(getVbox(), 1, 0, false).
+			AddItem(nil, 1, 0, false).
+			SetDirection(tview.FlexRow)
+
+		histInput.SetText("")
 
 		MPage.AddAndSwitchToPage(
 			"playhistory",

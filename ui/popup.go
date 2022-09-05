@@ -65,6 +65,10 @@ func resizemodal() {
 	}
 
 	pad := 1
+	count := popup.origFlex.GetItemCount()
+	if count > 2 {
+		pad += count - 4
+	}
 	playing := isPlaying()
 	if popup.playing != playing {
 		if playing {
@@ -90,6 +94,10 @@ func statusmodal(v, t tview.Primitive) tview.Primitive {
 	screenHeight /= 4
 
 	pad := 1
+	count := v.(*tview.Flex).GetItemCount()
+	if count > 2 {
+		pad += count - 4
+	}
 	playing := isPlaying()
 	if playing {
 		pad += 2
@@ -103,7 +111,7 @@ func statusmodal(v, t tview.Primitive) tview.Primitive {
 		AddItem(v, screenHeight, 1, false).
 		AddItem(nil, 1, 0, false).
 		AddItem(vbox, 1, 0, false).
-		AddItem(nil, pad, 1, false).
+		AddItem(nil, pad, 0, false).
 		SetDirection(tview.FlexRow)
 
 	stflex := tview.NewFlex().
