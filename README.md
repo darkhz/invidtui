@@ -14,6 +14,7 @@ Currently, it is tested on Linux and Windows, and it should work on MacOS.
 - Automatically queries the invidious API and selects the best instance
 - Search for and browse videos, playlists and channels, with history support
 - Authentication with invidious and management of user feed, playlists and subscriptions
+- Download video and/or audio
 
 ## Requirements
 - MPV
@@ -33,6 +34,7 @@ or check the Releases page and download the binary that matches your OS and arch
 
     Flags:
        --close-instances        Close all currently running instances.
+       --download-dir           Specify directory to download media into.
        --force-instance         Force load media from specified invidious instance. (default "")
        --mpv-path               Specify path to the mpv executable. (default "mpv")
        --num-retries            Set the number of retries for connecting to the socket. (default 100)
@@ -54,6 +56,8 @@ or check the Releases page and download the binary that matches your OS and arch
 - The **search-channel**, **search-playlist** and **search-video** options are meant to be used individually. Make sure the search queries are properly quoted.
 
 - The **token** and **token-link** options have to be used along with the **force-instance** option.
+
+- The **download-dir** option must be specified for downloads to happen. This option currently only accepts absolute paths.
 
 ## Authentication
 In order to use authentication-based features, like viewing and managing user feed, playlists and subscriptions, an account needs to be registered with a specific Invidious instance and a SID/token has to be generated and used. Authentication can be done either via the dashboard or the command-line.
@@ -183,15 +187,18 @@ Note: These controls will work across all pages (search, playlist or channel pag
 >
 > <kbd>Shift</kbd>+<kbd>s</kbd><br /> Stop player<br />
 
+### Downloads view
+> <kbd>x</kbd><br /> Cancel download<br />
+
 ### Page-based Keybindings
 
 > <kbd>i</kbd><br />
-> This control works on the search, channel and dashboard playlist pages.<br />
+> This control works on the search, channel, play history popup and dashboard playlist pages.<br />
 > Fetches the Youtube playlist contents from the currently selected entry and displays it in a separate playlist page. <br />
 > In case you have exited this page, you can come back to it by pressing <kbd>Alt</kbd>+<kbd>i</kbd> instead of reloading the playlist again.<br/>
 >
 > <kbd>u</kbd><br />
-> This control works on the search page and dashboard subscription page.<br />
+> This control works on the search page, play history popup and dashboard subscription page.<br />
 > Fetches only videos from a Youtube channel (from the currently selected entry) and displays it in a separate channel video page.<br />
 > <kbd>Shift</kbd>+<kbd>u</kbd> fetches only playlists from a Youtube channel and displays it in a separate channel playlist page.
 > In case you have exited<br /> this page, you can come back to it by pressing <kbd>Alt</kbd>+<kbd>u</kbd> instead of reloading the channel again.<br />
@@ -221,8 +228,9 @@ Note: These controls will work across all pages (search, playlist or channel pag
 > Switches the channel/dashboard page being shown.<br />
 >
 > <kbd>/</kbd><br />
-> This control works on the search and channel search pages.<br />
-> Refer to the search keybindings above.<br />
+> This control works on the play history popup, search and channel search pages.<br />
+> If pressed in the history popup, it will search and filter results.<br />
+> For search and channel search pages, refer to the search keybindings above.<br />
 >
 > <kbd>a</kbd><br />
 > This control works on the search, playlist, channel video, channel playlist pages, play history popup and the dashboard feed and playlist pages.<br />
@@ -237,6 +245,11 @@ Note: These controls will work across all pages (search, playlist or channel pag
 > If the selected entry is a playlist, all the playlist contents will be loaded into<br />
 > the playlist queue as video.
 > To immediately play after adding to playlist, press <kbd>Shift</kbd>+<kbd>v</kbd>.<br/>
+>
+> <kbd>y</kbd><br />
+> This control works on the search, playlist, channel video, play history and playlist queue popups and the dashboard feed page<br />
+> Shows the download options for the video.<br />
+> To view the download progress, press <kbd>Shift</kbd>+<kbd>y</kbd><br />
 >
 > <kbd>Ctrl</kbd>+<kbd>x</kbd><br />
 > Cancel the fetching of playlist or channel contents (in case it takes a long time,<br/>
