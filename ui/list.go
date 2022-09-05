@@ -672,17 +672,19 @@ func getListReference() (lib.SearchResult, error) {
 
 	row, _ := table.GetSelection()
 
-	cell := table.GetCell(row, 0)
-	if cell == nil {
-		return lib.SearchResult{}, err
+	for col := 0; col <= 1; col++ {
+		cell := table.GetCell(row, col)
+		if cell == nil {
+			return lib.SearchResult{}, err
+		}
+
+		info, ok := cell.GetReference().(lib.SearchResult)
+		if ok {
+			return info, nil
+		}
 	}
 
-	ref := cell.GetReference()
-	if ref == nil {
-		return lib.SearchResult{}, err
-	}
-
-	return ref.(lib.SearchResult), nil
+	return lib.SearchResult{}, err
 }
 
 // modifyListReference modifies a TableCell containing the specified reference.

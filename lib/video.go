@@ -27,10 +27,17 @@ type VideoResult struct {
 
 // FormatData stores the media format data.
 type FormatData struct {
-	Type       string `json:"type"`
-	URL        string `json:"url"`
-	Itag       string `json:"itag"`
-	Resolution string `json:"resolution,omitempty"`
+	Type            string `json:"type"`
+	URL             string `json:"url"`
+	Itag            string `json:"itag"`
+	Container       string `json:"container"`
+	Encoding        string `json:"encoding"`
+	Resolution      string `json:"resolution,omitempty"`
+	Bitrate         int64  `json:"bitrate,string"`
+	ContentLength   int64  `json:"clen,string"`
+	FPS             int    `json:"fps"`
+	AudioSampleRate int    `json:"audioSampleRate"`
+	AudioChannels   int    `json:"audioChannels"`
 }
 
 var (
@@ -39,7 +46,7 @@ var (
 	videoCtxLock sync.Mutex
 )
 
-const videoFields = "?fields=title,videoId,author,hlsUrl,publishedText,lengthSeconds,adaptiveFormats,liveNow&hl=en"
+const videoFields = "?fields=title,videoId,author,hlsUrl,publishedText,lengthSeconds,formatStreams,adaptiveFormats,liveNow&hl=en"
 
 // Video gets the video with the given ID and returns a VideoResult.
 func (c *Client) Video(id string) (VideoResult, error) {

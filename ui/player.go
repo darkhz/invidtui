@@ -598,6 +598,9 @@ func capturePlayerEvent(event *tcell.EventKey) {
 
 	case 'p':
 		playlistPopup()
+
+	case 'Y':
+		ShowDownloadView()
 	}
 }
 
@@ -644,6 +647,9 @@ func captureSendPlayerEvent(event *tcell.EventKey) {
 
 	case ' ':
 		lib.GetMPV().CyclePaused()
+
+	case 'y':
+		go ShowDownloadOptions()
 
 	default:
 		norune = true

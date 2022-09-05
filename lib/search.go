@@ -18,6 +18,7 @@ type SearchResult struct {
 	Author        string `json:"author"`
 	IndexID       string `json:"indexId"`
 	PublishedText string `json:"publishedText"`
+	Duration      string `json:"duration"`
 	Description   string `json:"description"`
 	VideoCount    int    `json:"videoCount"`
 	SubCount      int    `json:"subCount"`

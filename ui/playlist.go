@@ -21,6 +21,7 @@ type EntryData struct {
 	ID       int    `json:"id"`
 	Filename string `json:"filename"`
 	Playing  bool   `json:"playing"`
+	VideoID  string
 	Title    string
 	Author   string
 	Duration string
@@ -252,7 +253,10 @@ func startPlaylist() {
 				continue
 			}
 
-			data[row] = ref.(EntryData)
+			data[row] = EntryData{
+				VideoID: ref.(lib.SearchResult).VideoID,
+			}
+
 		}
 
 		return data
@@ -272,7 +276,7 @@ func startPlaylist() {
 		}
 
 		for i, v := range a {
-			if v != b[i] {
+			if v.VideoID != b[i].VideoID {
 				return false
 			}
 		}
@@ -308,10 +312,17 @@ func startPlaylist() {
 					marker = " [white::b](playing)"
 				}
 
+				info := lib.SearchResult{
+					Title:   data.Title,
+					Type:    "video",
+					Author:  data.Author,
+					VideoID: data.VideoID,
+				}
+
 				plistPopup.SetCell(i, 1, tview.NewTableCell("[blue::b]"+tview.Escape(data.Title)+marker).
 					SetExpansion(1).
 					SetMaxWidth(w/7).
-					SetReference(data).
+					SetReference(info).
 					SetSelectable(true).
 					SetSelectedStyle(auxStyle),
 				)
@@ -589,11 +600,16 @@ func updatePlaylist() []EntryData {
 		}
 
 		for _, udata := range []string{
+			"id",
 			"title",
 			"author",
 			"length",
 			"mediatype",
 		} {
+			if urlData.Get("id") == "" {
+				continue
+			}
+
 			if udata == "title" && urlData.Get(udata) == "" {
 				urlData.Set(udata, lib.GetMPV().PlaylistTitle(i))
 				continue
@@ -608,6 +624,7 @@ func updatePlaylist() []EntryData {
 		data[i].Author = urlData.Get("author")
 		data[i].Duration = urlData.Get("length")
 		data[i].Type = urlData.Get("mediatype")
+		data[i].VideoID = urlData.Get("id")
 	}
 
 	return data

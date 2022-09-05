@@ -25,6 +25,7 @@ var (
 	fcSocket        bool
 	currInstance    bool
 	customInstance  string
+	downloadFolder  string
 	authToken       string
 	genTokenLink    bool
 )
@@ -102,6 +103,14 @@ func SetupFlags() error {
 		"",
 		"Search for a channel.",
 	)
+
+	flag.StringVar(
+		&downloadFolder,
+		"download-dir",
+		"",
+		"Specify directory to download media into.",
+	)
+
 	flag.StringVar(
 		&authToken,
 		"token",
@@ -149,6 +158,7 @@ func SetupFlags() error {
 					"search-channel",
 					"search-playlist",
 					"close-instances",
+					"download-dir",
 					"use-current-instance",
 				} {
 					if f.Name == name {
@@ -203,6 +213,12 @@ func SetupFlags() error {
 	err = findYoutubeDL()
 	if err != nil {
 		return err
+	}
+
+	if downloadFolder != "" {
+		if dir, err := os.Stat(downloadFolder); err != nil || !dir.IsDir() {
+			return fmt.Errorf("Cannot access %s for downloads", downloadFolder)
+		}
 	}
 
 	return nil
