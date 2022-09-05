@@ -412,19 +412,6 @@ func setDashboard() {
 	})
 }
 
-// inAuthPage checks whether the currently showing
-// page is the authentication page.
-func inAuthPage() bool {
-	var dashpg string
-
-	pg, _ := VPage.GetFrontPage()
-	if dashPages != nil {
-		dashpg, _ = dashPages.GetFrontPage()
-	}
-
-	return pg == "dashboard" && dashpg == "auth"
-}
-
 // dashTableEvents handles the input events for the
 // feed, playlist and subscription tables.
 func dashTableEvents(event *tcell.EventKey) {

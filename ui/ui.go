@@ -80,7 +80,7 @@ func SetupUI() error {
 
 		switch event.Rune() {
 		case 'q':
-			if !InputBox.HasFocus() && !inAuthPage() {
+			if _, ok := App.GetFocus().(*tview.InputField); !ok {
 				confirmQuit()
 				return nil
 			}
