@@ -239,24 +239,37 @@ func startPlaylist() {
 		data := make([]EntryData, rows)
 
 		for row := 0; row < rows; row++ {
+			var videoId string
+			var isPlaying bool
+
 			var cell *tview.TableCell
 
-			App.QueueUpdateDraw(func() {
-				cell = plistPopup.GetCell(row, 1)
-			})
-			if cell == nil {
-				continue
-			}
+			for col := 1; col <= 2; col++ {
+				App.QueueUpdateDraw(func() {
+					cell = plistPopup.GetCell(row, col)
+				})
+				if cell == nil {
+					continue
+				}
 
-			ref := cell.GetReference()
-			if ref == nil {
-				continue
+				ref := cell.GetReference()
+				if ref == nil {
+					continue
+				}
+
+				if info, ok := ref.(lib.SearchResult); ok {
+					videoId = info.VideoID
+				}
+
+				if play, ok := ref.(bool); ok {
+					isPlaying = play
+				}
 			}
 
 			data[row] = EntryData{
-				VideoID: ref.(lib.SearchResult).VideoID,
+				VideoID: videoId,
+				Playing: isPlaying,
 			}
-
 		}
 
 		return data
@@ -270,13 +283,13 @@ func startPlaylist() {
 
 	// Taken from:
 	// https://yourbasic.org/golang/compare-slices/
-	testEqualData := func(a, b []EntryData) bool {
+	checkDataChanged := func(a, b []EntryData) bool {
 		if len(a) != len(b) {
 			return false
 		}
 
 		for i, v := range a {
-			if v.VideoID != b[i].VideoID {
+			if v.VideoID != b[i].VideoID || v.Playing != b[i].Playing {
 				return false
 			}
 		}
@@ -296,7 +309,7 @@ func startPlaylist() {
 
 			return
 		}
-		if testEqualData(pldata, tableData()) {
+		if checkDataChanged(pldata, tableData()) {
 			return
 		}
 
@@ -328,7 +341,8 @@ func startPlaylist() {
 				)
 
 				plistPopup.SetCell(i, 2, tview.NewTableCell(" ").
-					SetSelectable(false),
+					SetSelectable(false).
+					SetReference(data.Playing),
 				)
 
 				plistPopup.SetCell(i, 3, tview.NewTableCell("[purple::b]"+tview.Escape(data.Author)).
