@@ -969,19 +969,18 @@ func plExit() {
 func plDelete() {
 	rows := plistPopup.GetRowCount()
 	row, _ := plistPopup.GetSelection()
-	lib.GetMPV().PlaylistDelete(row)
 	plistPopup.RemoveRow(row)
 
 	switch {
-	case row >= rows:
-		plistPopup.Select(rows-1, 0)
-
-	case row < rows && row > 0:
+	case row >= rows-1:
+		lib.GetMPV().Prev()
 		plistPopup.Select(row-1, 0)
 
-	case row == 0:
+	case row < rows && row >= 0:
 		plistPopup.Select(row, 0)
 	}
+
+	lib.GetMPV().PlaylistDelete(row)
 
 	pos := lib.GetMPV().PlaylistPos()
 	if pos == row {
