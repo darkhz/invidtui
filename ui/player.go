@@ -626,6 +626,7 @@ func captureSendPlayerEvent(event *tcell.EventKey) {
 	switch event.Rune() {
 	case 'S':
 		SetPlayer(false)
+		sendPlaylistExit()
 
 	case 'l':
 		lib.GetMPV().CycleLoop()

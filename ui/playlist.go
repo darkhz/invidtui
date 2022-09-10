@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/darkhz/invidtui/lib"
 	"github.com/darkhz/tview"
@@ -16,11 +15,11 @@ import (
 	"golang.org/x/sync/semaphore"
 )
 
-// EntryData stores playlist entry data.
-type EntryData struct {
+// PlaylistData stores playlist entry data.
+type PlaylistData struct {
 	ID       int    `json:"id"`
 	Filename string `json:"filename"`
-	Playing  bool   `json:"playing"`
+	Playing  bool   `json:"current"`
 	VideoID  string
 	Title    string
 	Author   string
@@ -61,6 +60,8 @@ func SetupPlaylist() {
 
 	plistIdMap = make(map[string]struct{})
 	plistSaveLock = semaphore.NewWeighted(1)
+
+	go startPlaylist()
 }
 
 // setupViewPlaylist sets up the playlist view page.
@@ -182,7 +183,7 @@ func setupPlaylistPopup() {
 		for i := 0; i < rows; i++ {
 			cell := plistPopup.GetCell(i, 0)
 			if cell == nil {
-				cell = tview.NewTableCell("")
+				cell = tview.NewTableCell(" ")
 				plistPopup.SetCell(i, 0, cell)
 			}
 
@@ -191,7 +192,7 @@ func setupPlaylistPopup() {
 				continue
 			}
 
-			cell.SetText("")
+			cell.SetText(" ")
 		}
 	})
 }
@@ -204,11 +205,6 @@ func playlistPopup() {
 		return
 	}
 
-	if plistPopup.GetRowCount() == 0 {
-		plistPopup.SetCell(0, 1, tview.NewTableCell("[::b]Loading...").
-			SetSelectable(false))
-	}
-
 	MPage.AddAndSwitchToPage(
 		"playlist",
 		statusmodal(Playlist, plistPopup),
@@ -217,111 +213,48 @@ func playlistPopup() {
 
 	App.SetFocus(plistPopup)
 
-	go startPlaylist()
+	sendPlaylistEvent()
 }
 
 //gocyclo: ignore
 // startPlaylist is the playlist update loop.
 func startPlaylist() {
-	var pos int
-	var focused bool
+	var playlistData []map[string]interface{}
 
-	t := time.NewTicker(1 * time.Second)
-	defer t.Stop()
-
-	tableData := func() []EntryData {
-		var rows int
-
+	exitPlaylist := func() {
 		App.QueueUpdateDraw(func() {
-			rows = plistPopup.GetRowCount()
-		})
-
-		data := make([]EntryData, rows)
-
-		for row := 0; row < rows; row++ {
-			var videoId string
-			var isPlaying bool
-
-			var cell *tview.TableCell
-
-			for col := 1; col <= 2; col++ {
-				App.QueueUpdateDraw(func() {
-					cell = plistPopup.GetCell(row, col)
-				})
-				if cell == nil {
-					continue
-				}
-
-				ref := cell.GetReference()
-				if ref == nil {
-					continue
-				}
-
-				if info, ok := ref.(lib.SearchResult); ok {
-					videoId = info.VideoID
-				}
-
-				if play, ok := ref.(bool); ok {
-					isPlaying = play
-				}
-			}
-
-			data[row] = EntryData{
-				VideoID: videoId,
-				Playing: isPlaying,
-			}
-		}
-
-		return data
-	}
-
-	clearTableData := func() {
-		App.QueueUpdateDraw(func() {
+			exitFocus()
 			plistPopup.Clear()
 		})
 	}
 
-	// Taken from:
-	// https://yourbasic.org/golang/compare-slices/
-	checkDataChanged := func(a, b []EntryData) bool {
-		if len(a) != len(b) {
-			return false
-		}
-
-		for i, v := range a {
-			if v.VideoID != b[i].VideoID || v.Playing != b[i].Playing {
-				return false
-			}
-		}
-
-		return true
-	}
-
-	update := func() {
-		pldata := updatePlaylist()
-		if len(pldata) == 0 && plistPopup.HasFocus() {
-			App.QueueUpdateDraw(func() {
-				exitFocus()
-				plistPopup.Clear()
-			})
-
-			sendPlaylistExit()
-
+	update := func(plEventData []map[string]interface{}) {
+		if len(plEventData) == 0 && plistPopup.HasFocus() {
+			exitPlaylist()
 			return
 		}
-		if checkDataChanged(pldata, tableData()) {
+
+		plistPopup.Clear()
+		playlistData = plEventData
+
+		if !plistPopup.HasFocus() {
 			return
 		}
 
 		App.QueueUpdateDraw(func() {
 			_, _, w, _ := plistPopup.GetRect()
+			pos, _ := plistPopup.GetSelection()
 			plistPopup.SetSelectable(false, false)
 
-			for i, data := range pldata {
+			for i, pldata := range plEventData {
 				var marker string
 
+				data := getPlaylistData(i, pldata)
+				if data == (PlaylistData{}) {
+					continue
+				}
+
 				if data.Playing {
-					pos = i
 					marker = " [white::b](playing)"
 				}
 
@@ -341,8 +274,7 @@ func startPlaylist() {
 				)
 
 				plistPopup.SetCell(i, 2, tview.NewTableCell(" ").
-					SetSelectable(false).
-					SetReference(data.Playing),
+					SetSelectable(false),
 				)
 
 				plistPopup.SetCell(i, 3, tview.NewTableCell("[purple::b]"+tview.Escape(data.Author)).
@@ -373,10 +305,7 @@ func startPlaylist() {
 
 			plistPopup.SetSelectable(true, false)
 
-			if !focused {
-				plistPopup.Select(pos, 0)
-				focused = true
-			}
+			plistPopup.Select(pos, 0)
 
 			resizemodal()
 		})
@@ -384,17 +313,14 @@ func startPlaylist() {
 
 	for {
 		select {
-		case <-playlistExit:
-			clearTableData()
-			return
+		case data := <-lib.MPVPlaylistData:
+			update(data)
 
 		case <-playlistEvent:
-			update()
-			t.Reset(1 * time.Second)
-			continue
+			update(playlistData)
 
-		case <-t.C:
-			update()
+		case <-playlistExit:
+			exitPlaylist()
 		}
 	}
 }
@@ -588,57 +514,86 @@ func viewPlaylist(info lib.SearchResult, newlist bool) {
 	})
 }
 
+// getPlaylistData returns playlist data.
+func getPlaylistData(row int, pldata map[string]interface{}) PlaylistData {
+	var id int
+	var data PlaylistData
+	var filename string
+	var playing bool
+
+	if i, ok := pldata["id"].(float64); ok {
+		id = int(i)
+	}
+	if f, ok := pldata["filename"].(string); ok {
+		filename = f
+	}
+	if p, ok := pldata["current"].(bool); ok {
+		playing = p
+	}
+
+	urlData := lib.GetDataFromURL(filename)
+	if urlData == nil {
+		return (PlaylistData{})
+	}
+
+	for _, udata := range []string{
+		"id",
+		"title",
+		"author",
+		"length",
+		"mediatype",
+	} {
+		if urlData.Get("id") == "" {
+			continue
+		}
+
+		if udata == "title" && urlData.Get(udata) == "" {
+			urlData.Set(udata, lib.GetMPV().PlaylistTitle(row))
+			continue
+		}
+
+		if urlData.Get(udata) == "" {
+			urlData.Set(udata, "-")
+		}
+	}
+
+	data.ID = id
+	data.Playing = playing
+	data.Filename = filename
+	data.VideoID = urlData.Get("id")
+	data.Title = urlData.Get("title")
+	data.Author = urlData.Get("author")
+	data.Type = urlData.Get("mediatype")
+	data.Duration = urlData.Get("length")
+
+	return data
+}
+
 // updatePlaylist returns updated playlist data from mpv.
-func updatePlaylist() []EntryData {
-	var data []EntryData
+func updatePlaylist() []PlaylistData {
+	var data []PlaylistData
 
 	liststr := lib.GetMPV().PlaylistData()
 	if liststr == "" {
 		ErrorMessage(fmt.Errorf("Could not fetch playlist"))
-		return []EntryData{}
+		return []PlaylistData{}
 	}
 
 	err := json.Unmarshal([]byte(liststr), &data)
 	if err != nil {
 		ErrorMessage(fmt.Errorf("Error while parsing playlist data"))
-		return []EntryData{}
+		return []PlaylistData{}
 	}
 	if len(data) == 0 {
-		return []EntryData{}
+		return []PlaylistData{}
 	}
 
 	for i := range data {
-		urlData := lib.GetDataFromURL(data[i].Filename)
-		if urlData == nil {
-			continue
-		}
-
-		for _, udata := range []string{
-			"id",
-			"title",
-			"author",
-			"length",
-			"mediatype",
-		} {
-			if urlData.Get("id") == "" {
-				continue
-			}
-
-			if udata == "title" && urlData.Get(udata) == "" {
-				urlData.Set(udata, lib.GetMPV().PlaylistTitle(i))
-				continue
-			}
-
-			if urlData.Get(udata) == "" {
-				urlData.Set(udata, "-")
-			}
-		}
-
-		data[i].Title = urlData.Get("title")
-		data[i].Author = urlData.Get("author")
-		data[i].Duration = urlData.Get("length")
-		data[i].Type = urlData.Get("mediatype")
-		data[i].VideoID = urlData.Get("id")
+		data[i] = getPlaylistData(i, map[string]interface{}{
+			"id":       data[i].ID,
+			"playing":  data[i].Playing,
+			"filename": data[i].Filename,
+		})
 	}
 
 	return data
@@ -944,7 +899,6 @@ func plEnter() {
 		moving = false
 		plistPopup.Select(row, 0)
 
-		sendPlaylistEvent()
 		return
 	}
 
@@ -953,13 +907,10 @@ func plEnter() {
 	lib.GetMPV().Play()
 
 	sendPlayerEvent()
-	sendPlaylistEvent()
 }
 
 // plExit exits the playlist popup.
 func plExit() {
-	sendPlaylistExit()
-
 	exitFocus()
 	popupStatus(false)
 	ResultsList.SetSelectable(true, false)
@@ -969,7 +920,6 @@ func plExit() {
 func plDelete() {
 	rows := plistPopup.GetRowCount()
 	row, _ := plistPopup.GetSelection()
-	plistPopup.RemoveRow(row)
 
 	switch {
 	case row >= rows-1:
@@ -988,8 +938,6 @@ func plDelete() {
 	if pos == row {
 		sendPlayerEvent()
 	}
-
-	sendPlaylistEvent()
 }
 
 // plMove begins to move the position of a playlist entry.
@@ -1129,7 +1077,7 @@ func plSaveAs(savepath string) {
 // overwritten to a playlist file. If appendfile is set, it reads the playlist
 // file, filters out the duplicates from the playlist entry list, and appends entries
 // to the already existing playlist entries from the playlist file.
-func plGetEntries(savepath string, list []EntryData, appendfile bool) (string, error) {
+func plGetEntries(savepath string, list []PlaylistData, appendfile bool) (string, error) {
 	var skipped int
 	var entries string
 	var fileEntries map[string]struct{}

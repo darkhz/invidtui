@@ -35,6 +35,9 @@ var (
 
 	// MPVFileLoaded is a channel to receive file-loaded events.
 	MPVFileLoaded chan struct{}
+
+	//MPVPlaylistData is a channel to receive playlist data events.
+	MPVPlaylistData chan []map[string]interface{}
 )
 
 // NewConnector returns a Connector with an active mpvipc connection.
@@ -65,6 +68,7 @@ func MPVStart() error {
 
 	MPVErrors = make(chan string, 100)
 	MPVFileLoaded = make(chan struct{}, 100)
+	MPVPlaylistData = make(chan []map[string]interface{}, 10)
 	go mpvctl.eventListener()
 
 	mpvInfoChan = make(chan int, 100)
@@ -620,22 +624,32 @@ func clearMonitor() {
 func (c *Connector) eventListener() {
 	events, stopListening := c.conn.NewEventListener()
 
-	shutdown := func() {
-		c.conn.Close()
-		close(MPVErrors)
-		close(mpvInfoChan)
-		close(mpvErrorChan)
-		stopListening <- struct{}{}
-	}
+	defer c.conn.Close()
+	defer func() { stopListening <- struct{}{} }()
 
-	c.Call("observe_property", 1, "shutdown")
+	c.Call("observe_property", 1, "playlist")
 
 	for {
 		select {
 		case event, ok := <-events:
 			if !ok {
-				shutdown()
 				return
+			}
+
+			if event.ID == 1 {
+				if data, ok := event.Data.([]interface{}); ok {
+					pldata := make([]map[string]interface{}, len(data))
+
+					for i, d := range data {
+						if p, ok := d.(map[string]interface{}); ok {
+							pldata[i] = p
+						}
+					}
+
+					MPVPlaylistData <- pldata
+
+					break
+				}
 			}
 
 			switch event.Name {
@@ -663,10 +677,6 @@ func (c *Connector) eventListener() {
 
 			case "file-loaded":
 				MPVFileLoaded <- struct{}{}
-
-			case "shutdown":
-				shutdown()
-				return
 			}
 		}
 	}
