@@ -196,7 +196,17 @@ func closeCommentView() {
 
 // addCommentNode adds a comment node.
 func addCommentNode(node *tview.TreeNode, comment lib.CommentsInfo) *tview.TreeNode {
-	commentNode := tview.NewTreeNode("- [purple::bu]" + comment.Author)
+	authorInfo := "- [purple::bu]" + comment.Author + "[-:-:-]"
+	authorInfo += " [grey::b]" + lib.FormatPublished(comment.PublishedText) + "[-:-:-]"
+	if comment.Verified {
+		authorInfo += " [aqua::b](Verified)[-:-:-]"
+	}
+	if comment.AuthorIsChannelOwner {
+		authorInfo += " [plum::b](Owner)"
+	}
+	authorInfo += " [red::b](" + strconv.Itoa(comment.LikeCount) + " likes)"
+
+	commentNode := tview.NewTreeNode(authorInfo)
 	for _, line := range splitLines(comment.Content) {
 		commentNode.AddChild(
 			tview.NewTreeNode(" " + line).
