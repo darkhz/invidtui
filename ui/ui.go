@@ -194,6 +194,11 @@ func showBanner() tview.Primitive {
 		switch event.Rune() {
 		case '/':
 			searchText(false)
+
+		case 'i', 'u', 'U':
+			if event.Modifiers() == tcell.ModAlt {
+				ResultsList.InputHandler()(event, nil)
+			}
 		}
 
 		return event
