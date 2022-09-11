@@ -973,7 +973,9 @@ func plDelete() {
 
 	switch {
 	case row >= rows-1:
-		lib.GetMPV().Prev()
+		if lib.GetMPV().LoopType() != "R-P" {
+			lib.GetMPV().Prev()
+		}
 		plistPopup.Select(row-1, 0)
 
 	case row < rows && row >= 0:
