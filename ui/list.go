@@ -20,10 +20,13 @@ var (
 	ResultsList    *tview.Table
 	resultPageMark *tview.TextView
 
-	listWidth    int
-	searchLock   *semaphore.Weighted
-	searchString string
-	stype        string
+	suggestionList *tview.Table
+
+	listWidth     int
+	searchLock    *semaphore.Weighted
+	stype         string
+	searchString  string
+	suggestChange string
 )
 
 const loadingText = "Search still in progress, please wait"
@@ -60,6 +63,16 @@ func SetupList() {
 		capturePlayerEvent(event)
 
 		return event
+	})
+
+	suggestionList = tview.NewTable()
+	suggestionList.SetSelectorWrap(true)
+	suggestionList.SetSelectable(true, false)
+	suggestionList.SetBackgroundColor(tcell.ColorDefault)
+	suggestionList.SetSelectionChangedFunc(func(row, column int) {
+		cell := suggestionList.GetCell(row, 0)
+
+		InputBox.SetText(cell.Text)
 	})
 
 	searchLock = semaphore.NewWeighted(1)
@@ -270,6 +283,56 @@ func showLinkPopup() {
 	App.SetFocus(linkPopup)
 }
 
+// searchSuggestions shows a popup with search recommendations.
+func searchSuggestions(text string) {
+	if text == suggestChange {
+		return
+	}
+
+	suggestChange = text
+
+	suggestion, err := lib.GetClient().Suggestions(text)
+	if err != nil {
+		return
+	}
+
+	App.QueueUpdateDraw(func() {
+		if len(suggestion.Suggestions) == 0 {
+			MPage.HidePage("suggestion")
+			App.SetFocus(InputBox)
+
+			return
+		}
+
+		suggestionList.Clear()
+
+		for row, suggest := range suggestion.Suggestions {
+			suggestionList.SetCell(row, 0, tview.NewTableCell(suggest).
+				SetSelectedStyle(auxStyle),
+			)
+		}
+
+		suggestionList.Select(0, 0)
+
+		suggestFlex := tview.NewFlex().
+			AddItem(tview.NewBox().SetBackgroundColor(tcell.ColorDefault), 1, 0, false).
+			AddItem(suggestionList, 0, 1, false).
+			SetDirection(tview.FlexRow)
+
+		if pg, _ := MPage.GetFrontPage(); pg != "suggestion" {
+			MPage.AddAndSwitchToPage(
+				"suggestion",
+				statusmodal(suggestFlex, suggestionList),
+				true,
+			).ShowPage("ui")
+		}
+
+		resizemodal()
+
+		App.SetFocus(InputBox)
+	})
+}
+
 // captureListEvents binds keys to ResultsList's InputCapture.
 func captureListEvents(event *tcell.EventKey) {
 	switch event.Key() {
@@ -362,8 +425,10 @@ func searchText(channel bool) {
 			table = ResultsList
 		}
 
-		App.SetFocus(table)
 		Status.SwitchToPage("messages")
+		MPage.RemovePage("suggestion")
+
+		App.SetFocus(table)
 
 		return table
 	}
@@ -389,17 +454,30 @@ func searchText(channel bool) {
 		case tcell.KeyEnter:
 			sfunc(InputBox.GetText())
 
+		case tcell.KeyTab:
+			go searchSuggestions(InputBox.GetText())
+
 		case tcell.KeyEscape:
 			srchfocus()
 			lib.HistoryReset()
 
 		case tcell.KeyUp:
+			if e.Modifiers() == tcell.ModCtrl {
+				suggestionList.InputHandler()(tcell.NewEventKey(tcell.KeyUp, ' ', tcell.ModNone), nil)
+				return e
+			}
+
 			t := lib.HistoryReverse()
 			if t != "" {
 				InputBox.SetText(t)
 			}
 
 		case tcell.KeyDown:
+			if e.Modifiers() == tcell.ModCtrl {
+				suggestionList.InputHandler()(tcell.NewEventKey(tcell.KeyDown, ' ', tcell.ModNone), nil)
+				return e
+			}
+
 			t := lib.HistoryForward()
 			if t != "" {
 				InputBox.SetText(t)

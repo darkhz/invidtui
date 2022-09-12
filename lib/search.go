@@ -26,6 +26,12 @@ type SearchResult struct {
 	LiveNow       bool   `json:"liveNow"`
 }
 
+// SuggestResult stores the search suggestions.
+type SuggestResult struct {
+	Query       string   `json:"query"`
+	Suggestions []string `json:"suggestions"`
+}
+
 var (
 	page      int
 	pageMutex sync.Mutex
@@ -106,6 +112,27 @@ func (c *Client) Search(stype, text string, getmore bool, chanid ...string) ([]S
 	setpg(newpg)
 
 	return results, nil
+}
+
+// Suggestions gets the search suggestions.
+func (c *Client) Suggestions(text string) (SuggestResult, error) {
+	var result SuggestResult
+
+	query := "search/suggestions?q=" + url.QueryEscape(text)
+
+	SearchCancel()
+	res, err := c.ClientRequest(SearchCtx(), query)
+	if err != nil {
+		return SuggestResult{}, err
+	}
+	defer res.Body.Close()
+
+	err = json.NewDecoder(res.Body).Decode(&result)
+	if err != nil {
+		return SuggestResult{}, err
+	}
+
+	return result, nil
 }
 
 // SearchCtx returns the search context.

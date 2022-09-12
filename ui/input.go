@@ -27,7 +27,7 @@ func SetupInputBox() {
 		if label != inputLabel {
 			inputLabel = strings.TrimSpace(label)
 
-			if !strings.Contains(inputLabel, "Filter") {
+			if !MPage.HasPage("suggestion") {
 				InputBox.SetText("")
 			}
 		}
