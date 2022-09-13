@@ -341,9 +341,6 @@ func captureListEvents(event *tcell.EventKey) {
 	}
 
 	switch event.Rune() {
-	case ',':
-		go searchParamPopup()
-
 	case '/':
 		searchText(event.Modifiers() == tcell.ModAlt)
 
@@ -427,6 +424,7 @@ func searchText(channel bool) {
 
 		Status.SwitchToPage("messages")
 		MPage.RemovePage("suggestion")
+		MPage.RemovePage("searchparam")
 
 		App.SetFocus(table)
 
@@ -491,6 +489,13 @@ func searchText(channel bool) {
 			InputBox.SetLabel(toggleSearch())
 		}
 
+		switch e.Rune() {
+		case 'e':
+			if e.Modifiers() == tcell.ModAlt {
+				go searchParamPopup()
+			}
+		}
+
 		return e
 	}
 
@@ -540,11 +545,8 @@ func loadMoreResults() {
 // searchParamPopup displays a popup with modifiable search parameters.
 func searchParamPopup() {
 	App.QueueUpdateDraw(func() {
+		var paramForm *tview.Form
 		var savedFeatures []string
-
-		if pg, _ := VPage.GetFrontPage(); pg != "search" || pg == "searchparams" {
-			return
-		}
 
 		if !searchLock.TryAcquire(1) {
 			InfoMessage(loadingText, false)
@@ -597,10 +599,64 @@ func searchParamPopup() {
 			"Region:": {"region": []string{}},
 		}
 
-		paramForm := tview.NewForm()
+		exit := func() {
+			exitFocus()
+			App.SetFocus(InputBox)
+		}
+
+		setparams := func() {
+			var features []string
+
+			for i := 0; i < paramForm.GetFormItemCount(); i++ {
+				var curropt string
+
+				item := paramForm.GetFormItem(i)
+				label := item.GetLabel()
+				optMap := selparams[label]
+
+				if list, ok := item.(*tview.DropDown); ok {
+					_, curropt = list.GetCurrentOption()
+				} else if input, ok := item.(*tview.InputField); ok {
+					curropt = input.GetText()
+				} else if chkbox, ok := item.(*tview.Checkbox); ok {
+					if chkbox.IsChecked() {
+						features = append(features, label)
+					}
+
+					continue
+				}
+
+				for p := range optMap {
+					params[p] = curropt
+				}
+			}
+
+			params["features"] = strings.Join(features, ",")
+
+			lib.SetSearchParams(params)
+
+			exit()
+		}
+
+		paramForm = tview.NewForm()
 		paramForm.SetItemPadding(2)
 		paramForm.SetHorizontal(true)
 		paramForm.SetBackgroundColor(tcell.ColorDefault)
+		paramForm.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+			switch event.Key() {
+			case tcell.KeyEscape:
+				exit()
+			}
+
+			switch event.Rune() {
+			case 'e':
+				if event.Modifiers() == tcell.ModAlt {
+					setparams()
+				}
+			}
+
+			return event
+		})
 
 		for splabel, spvalue := range selparams {
 			var options []string
@@ -647,45 +703,10 @@ func searchParamPopup() {
 			}
 		}
 
-		paramForm.AddButton("Search", func() {
-			var features []string
-
-			for i := 0; i < paramForm.GetFormItemCount(); i++ {
-				var curropt string
-
-				item := paramForm.GetFormItem(i)
-				label := item.GetLabel()
-				optMap := selparams[label]
-
-				if list, ok := item.(*tview.DropDown); ok {
-					_, curropt = list.GetCurrentOption()
-				} else if input, ok := item.(*tview.InputField); ok {
-					curropt = input.GetText()
-				} else if chkbox, ok := item.(*tview.Checkbox); ok {
-					if chkbox.IsChecked() {
-						features = append(features, label)
-					}
-
-					continue
-				}
-
-				for p := range optMap {
-					params[p] = curropt
-				}
-			}
-
-			params["features"] = strings.Join(features, ",")
-
-			exitFocus()
-
-			lib.SetSearchParams(params)
-
-			ResultsList.Clear()
-			go SearchAndList(searchString)
-		})
+		paramForm.AddButton("Set parameters", setparams)
 
 		paramForm.AddButton("Cancel", func() {
-			exitFocus()
+			exit()
 		})
 
 		paramTitle := tview.NewTextView()
