@@ -18,3 +18,6 @@ Currently, it is tested on Linux and Windows, and it should work on MacOS.
 
 ## Documentation
 Refer to the [wiki](https://github.com/darkhz/invidtui/wiki) for installation and operational instructions.
+
+## License
+MIT
