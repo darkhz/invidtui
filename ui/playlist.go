@@ -1011,8 +1011,15 @@ func plSaveAs(savepath string) {
 			App.QueueUpdateDraw(func() {
 				SetInput(
 					"Overwrite? [y/n/a]", 1,
-					func(text string) {
+					nil,
+					func(e *tcell.EventKey) *tcell.EventKey {
 						var exit, cancel bool
+
+						if e.Key() != tcell.KeyEnter {
+							return e
+						}
+
+						text := InputBox.GetText()
 
 						switch text {
 						case "y", "n", "a":
@@ -1038,7 +1045,9 @@ func plSaveAs(savepath string) {
 							Status.SwitchToPage("messages")
 							cancelled <- cancel
 						}
-					}, nil,
+
+						return e
+					},
 				)
 			})
 		}()

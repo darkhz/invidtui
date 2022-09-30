@@ -44,12 +44,13 @@ func SetupInputBox() {
 
 			inputBoxFunc(text)
 
+			fallthrough
+
 		case tcell.KeyEscape:
 			_, item := VPage.GetFrontPage()
 			App.SetFocus(item)
 
-			pg, _ := Status.GetFrontPage()
-			Status.SwitchToPage(pg)
+			Status.SwitchToPage("messages")
 		}
 
 		return event
