@@ -21,6 +21,8 @@ var (
 	vidsearch       string
 	plistsearch     string
 	channelsearch   string
+	playaudio       string
+	playvideo       string
 	connretries     int
 	fcSocket        bool
 	currInstance    bool
@@ -105,6 +107,20 @@ func SetupFlags() error {
 	)
 
 	flag.StringVar(
+		&playaudio,
+		"play-audio",
+		"",
+		"Specify video/playlist URL to play audio from.",
+	)
+
+	flag.StringVar(
+		&playvideo,
+		"play-video",
+		"",
+		"Specify video/playlist URL to play video from.",
+	)
+
+	flag.StringVar(
 		&downloadFolder,
 		"download-dir",
 		"",
@@ -157,6 +173,8 @@ func SetupFlags() error {
 					"search-video",
 					"search-channel",
 					"search-playlist",
+					"play-audio",
+					"play-video",
 					"close-instances",
 					"download-dir",
 					"use-current-instance",
@@ -330,6 +348,19 @@ func GetSearchQuery() (string, string, error) {
 	}
 
 	return "", "", fmt.Errorf("No search query specified")
+}
+
+// GetPlayParams returns the video URL and media type to play.
+func GetPlayParams() (string, bool, error) {
+	if playaudio != "" {
+		return playaudio, true, nil
+	}
+
+	if playvideo != "" {
+		return playvideo, false, nil
+	}
+
+	return "", false, fmt.Errorf("No player parameters specified")
 }
 
 // findYoutubeDL searches for the youtube-dl or yt-dlp executables.

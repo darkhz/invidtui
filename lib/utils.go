@@ -264,6 +264,36 @@ func GetLinks(info SearchResult) (string, string) {
 	return invlink, ytlink
 }
 
+// GetVPIDFromURL gets the video/playlist ID from a URL.
+func GetVPIDFromURL(uri string) (string, string, error) {
+	mediaURL := uri
+
+	if !strings.HasPrefix(uri, "https://") {
+		mediaURL = "https://" + uri
+	}
+
+	u, err := IsValidURL(mediaURL)
+	if err != nil {
+		return "", "", err
+	}
+	if strings.Contains(uri, "watch?v=") {
+		return u.Query().Get("v"), "video", nil
+	} else if strings.Contains(uri, "playlist?list=") {
+		return u.Query().Get("list"), "playlist", nil
+	}
+
+	if strings.Index(uri, "/channel") != -1 ||
+		(strings.HasPrefix(uri, "UC") && len(uri) >= 24) {
+		return "", "", fmt.Errorf("The URL or ID is a channel")
+	}
+
+	if strings.HasPrefix(uri, "PL") && len(uri) >= 34 {
+		return uri, "playlist", nil
+	}
+
+	return uri, "video", nil
+}
+
 // GetHostname gets the hostname of the given URL.
 func GetHostname(hostURL string) string {
 	uri, _ := url.Parse(hostURL)

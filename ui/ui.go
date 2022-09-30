@@ -106,6 +106,7 @@ func SetupUI() error {
 	go detectMPVClose()
 
 	parseSearchCmd()
+	parsePlayParams()
 
 	_, focusedItem := VPage.GetFrontPage()
 	if err := App.SetRoot(MPage, true).SetFocus(focusedItem).Run(); err != nil {

@@ -200,12 +200,18 @@ func SetPlayer(play bool) {
 }
 
 // PlaySelected plays the current selection.
-func PlaySelected(audio, current bool) {
+func PlaySelected(audio, current bool, mediaInfo ...lib.SearchResult) {
+	var err error
 	var media string
+	var info lib.SearchResult
 
-	info, err := getListReference()
-	if err != nil {
-		return
+	if mediaInfo != nil {
+		info = mediaInfo[0]
+	} else {
+		info, err = getListReference()
+		if err != nil {
+			return
+		}
 	}
 
 	if audio {
@@ -258,6 +264,53 @@ func PlaySelected(audio, current bool) {
 			lib.GetMPV().PlaylistPlayLatest()
 		}
 	}()
+}
+
+// parsePlayParams parses the url or ID and media type from the
+// command-line options.
+func parsePlayParams() {
+	urlOrID, audio, err := lib.GetPlayParams()
+	if err != nil {
+		return
+	}
+
+	playFromURL(urlOrID, audio)
+}
+
+// playInputURL plays media from a URL/ID in the input box.
+func playInputURL(audio bool) {
+	media := "video"
+	if audio {
+		media = "audio"
+	}
+
+	dofunc := func(text string) {
+		playFromURL(text, audio)
+	}
+
+	SetInput("Play "+media+" for video/playlist URL or ID:", 0, dofunc, nil)
+}
+
+// playFromURL plays the media from a video/playlist URL or ID.
+func playFromURL(text string, audio bool) {
+	id, mtype, err := lib.GetVPIDFromURL(text)
+	if err != nil {
+		ErrorMessage(err)
+		return
+	}
+
+	info := lib.SearchResult{
+		Title: "media",
+		Type:  mtype,
+	}
+
+	if mtype == "video" {
+		info.VideoID = id
+	} else {
+		info.PlaylistID = id
+	}
+
+	PlaySelected(audio, false, info)
 }
 
 // isPlaying returns the currently playing status.
@@ -654,6 +707,9 @@ func captureSendPlayerEvent(event *tcell.EventKey) {
 
 	case 'y':
 		go ShowDownloadOptions()
+
+	case 'b', 'B':
+		playInputURL(event.Rune() == 'b')
 
 	default:
 		norune = true
