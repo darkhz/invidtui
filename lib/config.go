@@ -36,105 +36,107 @@ var (
 func SetupFlags() error {
 	var validres bool
 
-	flag.StringVar(
+	fs := flag.NewFlagSetWithEnvPrefix("invidtui", "INVIDTUI", flag.ExitOnError)
+
+	fs.StringVar(
 		&videoResolution,
 		"video-res",
 		"720p",
 		"Set the default video resolution.",
 	)
 
-	flag.BoolVar(
+	fs.BoolVar(
 		&fcSocket,
 		"close-instances",
 		false,
 		"Close all currently running instances.",
 	)
 
-	flag.BoolVar(
+	fs.BoolVar(
 		&currInstance,
 		"use-current-instance",
 		false,
 		"Use the current invidious instance to retrieve media.",
 	)
 
-	flag.BoolVar(
+	fs.BoolVar(
 		&genTokenLink,
 		"token-link",
 		false,
 		"Display a link to the token generation page.",
 	)
 
-	flag.StringVar(
+	fs.StringVar(
 		&customInstance,
 		"force-instance",
 		"",
 		"Force load media from specified invidious instance.",
 	)
 
-	flag.StringVar(
+	fs.StringVar(
 		&mpvpath,
 		"mpv-path",
 		"mpv",
 		"Specify path to the mpv executable.",
 	)
 
-	flag.StringVar(
+	fs.StringVar(
 		&ytdlpath,
 		"ytdl-path",
 		"",
 		"Specify path to youtube-dl executable or its forks (yt-dlp, yt-dtlp_x86)",
 	)
 
-	flag.StringVar(
+	fs.StringVar(
 		&vidsearch,
 		"search-video",
 		"",
 		"Search for a video.",
 	)
 
-	flag.StringVar(
+	fs.StringVar(
 		&plistsearch,
 		"search-playlist",
 		"",
 		"Search for a playlist.",
 	)
 
-	flag.StringVar(
+	fs.StringVar(
 		&channelsearch,
 		"search-channel",
 		"",
 		"Search for a channel.",
 	)
 
-	flag.StringVar(
+	fs.StringVar(
 		&playaudio,
 		"play-audio",
 		"",
 		"Specify video/playlist URL to play audio from.",
 	)
 
-	flag.StringVar(
+	fs.StringVar(
 		&playvideo,
 		"play-video",
 		"",
 		"Specify video/playlist URL to play video from.",
 	)
 
-	flag.StringVar(
+	fs.StringVar(
 		&downloadFolder,
 		"download-dir",
 		"",
 		"Specify directory to download media into.",
 	)
 
-	flag.StringVar(
+	fs.StringVar(
 		&authToken,
 		"token",
 		"",
 		"Specify an authorization token. "+
 			"This has to be used along with the --force-instance option.",
 	)
-	flag.IntVar(
+	fs.IntVar(
 		&connretries,
 		"num-retries",
 		100,
@@ -145,16 +147,16 @@ func SetupFlags() error {
 	if err != nil {
 		return err
 	}
-	flag.CommandLine.ParseFile(config)
+	fs.ParseFile(config)
 
-	flag.Usage = func() {
+	fs.Usage = func() {
 		fmt.Fprintf(
-			flag.CommandLine.Output(),
+			fs.Output(),
 			"invidtui [<flags>]\n\nConfig file is %s\n\nFlags:\n",
 			config,
 		)
 
-		flag.CommandLine.VisitAll(func(f *flag.Flag) {
+		fs.VisitAll(func(f *flag.Flag) {
 			s := fmt.Sprintf("  --%s", f.Name)
 
 			if len(s) <= 4 {
@@ -192,11 +194,11 @@ func SetupFlags() error {
 			}
 
 		cmdOutPrint:
-			fmt.Fprint(flag.CommandLine.Output(), s, "\n")
+			fmt.Fprint(fs.Output(), s, "\n")
 		})
 	}
 
-	flag.Parse()
+	fs.Parse(os.Args[1:])
 
 	for _, q := range []string{
 		"144p",
@@ -395,11 +397,11 @@ func findYoutubeDL() error {
 
 // CheckAuthConfig checks and loads the token and instance.
 func CheckAuthConfig() (string, error) {
-	instanceName := GetHostname(customInstance)
-
 	if (genTokenLink || authToken != "") && customInstance == "" {
 		return "", fmt.Errorf("Instance is not specified")
 	}
+
+	instanceName := GetHostname(customInstance)
 
 	if genTokenLink {
 		return GetAuthLink(instanceName), nil
