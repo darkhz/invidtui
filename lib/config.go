@@ -280,12 +280,16 @@ func SetupConfig() error {
 				return fmt.Errorf("Cannot create %s", configDirs[0])
 			}
 
+			configPath = configDirs[0]
+
 		} else {
 
 			err := os.Mkdir(configDirs[1], 0700)
 			if err != nil {
 				return fmt.Errorf("Cannot create %s", configDirs[1])
 			}
+
+			configPath = configDirs[1]
 		}
 	}
 
