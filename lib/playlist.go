@@ -98,18 +98,18 @@ func (c *Client) AuthPlaylists() ([]PlaylistResult, error) {
 // LoadPlaylist takes a playlist ID, determines whether to play
 // video or just audio (according to the audio parameter), and
 // appropriately loads the URLs into mpv.
-func LoadPlaylist(id string, audio bool) error {
+func LoadPlaylist(id string, audio bool) (string, error) {
 	var err error
 
 	playlist, err := GetClient().Playlist(id, false)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	for _, p := range playlist.Videos {
 		select {
 		case <-videoCtx.Done():
-			return videoCtx.Err()
+			return "", videoCtx.Err()
 
 		default:
 		}
@@ -117,7 +117,7 @@ func LoadPlaylist(id string, audio bool) error {
 		LoadVideo(p.VideoID, audio)
 	}
 
-	return nil
+	return playlist.Title, nil
 }
 
 // CreatePlaylist creates a new playlist.

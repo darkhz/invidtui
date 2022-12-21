@@ -276,7 +276,10 @@ func GetVPIDFromURL(uri string) (string, string, error) {
 	if err != nil {
 		return "", "", err
 	}
-	if strings.Contains(uri, "watch?v=") {
+
+	if strings.Contains(uri, "youtu.be") {
+		return strings.TrimLeft(u.Path, "/"), "video", nil
+	} else if strings.Contains(uri, "watch?v=") {
 		return u.Query().Get("v"), "video", nil
 	} else if strings.Contains(uri, "playlist?list=") {
 		return u.Query().Get("list"), "playlist", nil

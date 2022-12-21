@@ -73,14 +73,14 @@ func (c *Client) Video(id string) (VideoResult, error) {
 // LoadVideo takes a video ID, determines whether to play
 // video or just audio (according to the audio parameter), and
 // appropriately loads the URLs into mpv.
-func LoadVideo(id string, audio bool) error {
+func LoadVideo(id string, audio bool) (string, error) {
 	var err error
 	var liveaudio bool
 	var mtype, lentext, audioUrl, videoUrl string
 
 	video, err := GetClient().Video(id)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	if audio {
@@ -100,11 +100,11 @@ func LoadVideo(id string, audio bool) error {
 	}
 
 	if audio && audioUrl == "" {
-		return fmt.Errorf("Could not find an audio stream")
+		return "", fmt.Errorf("Could not find an audio stream")
 	}
 
 	if !audio && videoUrl == "" {
-		return fmt.Errorf("Could not find a video stream")
+		return "", fmt.Errorf("Could not find a video stream")
 	}
 
 	// A data parameter is appended to audioUrl/videoUrl so that
@@ -118,7 +118,7 @@ func LoadVideo(id string, audio bool) error {
 	if audio {
 		_, err = IsValidURL(audioUrl + titleparam)
 		if err != nil {
-			return fmt.Errorf("Could not find an audio stream")
+			return "", fmt.Errorf("Could not find an audio stream")
 		}
 
 		audioUrl += titleparam
@@ -132,7 +132,7 @@ func LoadVideo(id string, audio bool) error {
 	} else {
 		_, err = IsValidURL(videoUrl + titleparam)
 		if err != nil {
-			return fmt.Errorf("Could not find a video stream")
+			return "", fmt.Errorf("Could not find a video stream")
 		}
 
 		videoUrl += titleparam
@@ -144,10 +144,10 @@ func LoadVideo(id string, audio bool) error {
 			videoUrl, audioUrl)
 	}
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	return nil
+	return video.Title, nil
 }
 
 // VideoNewCtx renews the video's context.

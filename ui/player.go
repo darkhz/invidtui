@@ -228,6 +228,8 @@ func PlaySelected(audio, current bool, mediaInfo ...lib.SearchResult) {
 	InfoMessage("Loading "+media+" for "+info.Type+" "+info.Title, true)
 
 	go func() {
+		var title string
+
 		err := addRateLimit.Acquire(context.Background(), 1)
 		if err != nil {
 			return
@@ -238,10 +240,10 @@ func PlaySelected(audio, current bool, mediaInfo ...lib.SearchResult) {
 
 		switch info.Type {
 		case "playlist":
-			err = lib.LoadPlaylist(info.PlaylistID, audio)
+			title, err = lib.LoadPlaylist(info.PlaylistID, audio)
 
 		case "video":
-			err = lib.LoadVideo(info.VideoID, audio)
+			title, err = lib.LoadVideo(info.VideoID, audio)
 
 		default:
 			return
@@ -251,11 +253,10 @@ func PlaySelected(audio, current bool, mediaInfo ...lib.SearchResult) {
 				ErrorMessage(err)
 			}
 
-			if info.Type == "playlist" && err.Error() != "context canceled" {
-				return
-			}
+			return
 		}
 
+		info.Title = title
 		go addToPlayHistory(info)
 
 		InfoMessage("Added "+info.Title, false)
@@ -300,7 +301,7 @@ func playFromURL(text string, audio bool) {
 	}
 
 	info := lib.SearchResult{
-		Title: "media",
+		Title: text,
 		Type:  mtype,
 	}
 
