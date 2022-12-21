@@ -663,6 +663,8 @@ func capturePlayerEvent(event *tcell.EventKey) {
 
 // captureSendPlayerEvent maps custom keybindings to
 // the relevant mpv commands and sends a player event.
+//
+//gocyclo:ignore
 func captureSendPlayerEvent(event *tcell.EventKey) {
 	var nokey, norune bool
 

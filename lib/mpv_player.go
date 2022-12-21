@@ -621,6 +621,8 @@ func clearMonitor() {
 }
 
 // eventListener listens for events from the mpv instance.
+//
+//gocyclo:ignore
 func (c *Connector) eventListener() {
 	events, stopListening := c.conn.NewEventListener()
 

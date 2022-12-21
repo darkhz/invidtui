@@ -58,8 +58,9 @@ func ShowDownloadView() {
 	App.SetFocus(downloadView)
 }
 
-//gocyclo:ignore
 // ShowDownloadOptions shows the download options for the video.
+//
+//gocyclo:ignore
 func ShowDownloadOptions() {
 	var err error
 	var vpg, mpg string

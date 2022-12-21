@@ -29,8 +29,9 @@ const (
 	dashTabs    = ` ["feed"][darkcyan]Feed[""] ["playlist"][darkcyan]Playlists[""] ["subscription"]Subscriptions[""]`
 )
 
-//gocyclo: ignore
 // ShowDashboard shows the dashboard.
+//
+//gocyclo:ignore
 func ShowDashboard() {
 	dashFeed = tview.NewTable()
 	dashFeed.SetSelectorWrap(true)

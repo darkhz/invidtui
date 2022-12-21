@@ -404,6 +404,8 @@ func resizeListEntries(width int) {
 
 // searchText takes the search string from user input,
 // clears ResultsList, and displays new search results.
+//
+//gocyclo:ignore
 func searchText(channel bool) {
 	srchfn := func(text string) {
 		if channel {
@@ -541,8 +543,9 @@ func loadMoreResults() {
 	go SearchAndList("")
 }
 
-//gocyclo: ignore
 // searchParamPopup displays a popup with modifiable search parameters.
+//
+//gocyclo:ignore
 func searchParamPopup() {
 	App.QueueUpdateDraw(func() {
 		var paramForm *tview.Form

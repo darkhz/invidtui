@@ -95,8 +95,9 @@ func FormatNumber(num int) string {
 	return strconv.Itoa(num)
 }
 
-//gocyclo:ignore
 // GetProgress renders a progress bar and media data.
+//
+//gocyclo:ignore
 func GetProgress(width int) (string, string, []string, error) {
 	var lhs, rhs string
 	var states []string

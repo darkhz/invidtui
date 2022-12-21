@@ -216,8 +216,9 @@ func playlistPopup() {
 	sendPlaylistEvent()
 }
 
-//gocyclo: ignore
 // startPlaylist is the playlist update loop.
+//
+//gocyclo:ignore
 func startPlaylist() {
 	var playlistData []map[string]interface{}
 
@@ -983,6 +984,8 @@ func plOpenAppend(openpath string) {
 }
 
 // plSaveAs saves a playlist to a file.
+//
+//gocyclo:ignore
 func plSaveAs(savepath string) {
 	var entries string
 	var appendfile bool

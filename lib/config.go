@@ -35,6 +35,8 @@ var (
 )
 
 // SetupFlags sets up the commandline flags
+//
+//gocyclo:ignore
 func SetupFlags() error {
 	var validres bool
 
