@@ -708,6 +708,9 @@ func captureSendPlayerEvent(event *tcell.EventKey) {
 	case 'y':
 		go ShowDownloadOptions()
 
+	case 'o':
+		go ViewInstances()
+
 	case 'b', 'B':
 		playInputURL(event.Rune() == 'b')
 

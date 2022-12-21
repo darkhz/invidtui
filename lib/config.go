@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/jnovack/flag"
@@ -26,6 +27,7 @@ var (
 	connretries     int
 	fcSocket        bool
 	currInstance    bool
+	instanceList    bool
 	customInstance  string
 	downloadFolder  string
 	authToken       string
@@ -57,6 +59,13 @@ func SetupFlags() error {
 		"use-current-instance",
 		false,
 		"Use the current invidious instance to retrieve media.",
+	)
+
+	fs.BoolVar(
+		&instanceList,
+		"show-instances",
+		false,
+		"Show a list of instances.",
 	)
 
 	fs.BoolVar(
@@ -175,6 +184,7 @@ func SetupFlags() error {
 					"search-video",
 					"search-channel",
 					"search-playlist",
+					"show-instances",
 					"play-audio",
 					"play-video",
 					"close-instances",
@@ -423,4 +433,26 @@ func CheckAuthConfig() (string, error) {
 	}
 
 	return "", nil
+}
+
+// ListInstances prints a list of instances.
+func ListInstances() (string, error) {
+	var list string
+
+	if !instanceList {
+		return "", nil
+	}
+
+	instances, err := GetInstanceList()
+	if err != nil {
+		return "", err
+	}
+
+	list += "Instances list:\n"
+	list += strings.Repeat("-", len(list)) + "\n"
+	for i, instance := range instances {
+		list += strconv.Itoa(i+1) + ": " + instance + "\n"
+	}
+
+	return list, nil
 }

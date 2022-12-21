@@ -31,6 +31,16 @@ func main() {
 		return
 	}
 
+	list, err := lib.ListInstances()
+	if err != nil {
+		errMessage(err.Error())
+		return
+	}
+	if list != "" {
+		infoMessage(list)
+		return
+	}
+
 	infoMessage("Authenticating...")
 	link, err := lib.CheckAuthConfig()
 	if err != nil {

@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -20,7 +21,7 @@ type Client struct {
 }
 
 const api = "/api/v1/"
-const instanceApi = "https://api.invidious.io/instances.json?sort_by=health"
+const instanceApi = "https://api.invidious.io/instances.json?sort_by=api,health"
 const userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36"
 
 var (
@@ -30,6 +31,8 @@ var (
 	cliSendCancel context.CancelFunc
 
 	currentClient *Client
+
+	clientLock sync.Mutex
 )
 
 // NewClient creates a new client.
@@ -60,7 +63,18 @@ func UpdateClient() error {
 
 // GetClient returns the Current client.
 func GetClient() *Client {
+	clientLock.Lock()
+	defer clientLock.Unlock()
+
 	return currentClient
+}
+
+// SetClient sets the current client.
+func SetClient(instance string) {
+	clientLock.Lock()
+	defer clientLock.Unlock()
+
+	currentClient = NewClient(instance)
 }
 
 // SetRequest sets the request type, sends a request and returns a response.
@@ -212,50 +226,36 @@ func ClientSendCancel() {
 	cliSendCtx, cliSendCancel = context.WithCancel(context.Background())
 }
 
-// queryInstances searches for the best instance and returns a Client.
-func queryInstances() (*Client, error) {
-	var bestInstance string
-	var instances [][]interface{}
+// CheckInstance checks if an instance is functional.
+func CheckInstance(cli *Client, inst string) (string, error) {
+	insturl := "https://" + inst
 
-	ctx := context.Background()
+	if strings.Contains(insturl, ".onion") {
+		return "", fmt.Errorf("Invalid URL")
+	}
+
+	req, err := http.NewRequestWithContext(ClientCtx(), "HEAD", insturl+api+"search", nil)
+	req.Header.Set("User-Agent", userAgent)
+	if err != nil {
+		return "", err
+	}
+
+	res, err := cli.client.Do(req)
+	if err == nil && res.StatusCode == 200 {
+		return insturl, nil
+	}
+
+	return "", err
+}
+
+// GetInstanceList returns a list of instances.
+func GetInstanceList() ([]string, error) {
+	var instances [][]interface{}
+	var list []string
+
 	cli := NewClient(instanceApi)
 
-	checkInstance := func(inst string) (string, bool) {
-		insturl := "https://" + inst
-
-		if strings.Contains(insturl, ".onion") {
-			return "", false
-		}
-
-		req, err := http.NewRequest("HEAD", insturl+api+"search", nil)
-		req.Header.Set("User-Agent", userAgent)
-		if err != nil {
-			return "", false
-		}
-
-		res, err := cli.client.Do(req)
-		if err == nil && res.StatusCode == 200 {
-			return insturl, true
-		}
-
-		return "", false
-	}
-
-	if customInstance != "" {
-		if uri, err := url.Parse(customInstance); err == nil {
-			host := uri.Hostname()
-
-			if host != "" {
-				customInstance = host
-			}
-		}
-
-		if inst, ok := checkInstance(customInstance); ok {
-			return NewClient(inst), nil
-		}
-	}
-
-	res, err := cli.GetRequest(ctx, "")
+	res, err := cli.GetRequest(ClientCtx(), "")
 	if err != nil {
 		return nil, err
 	}
@@ -266,7 +266,46 @@ func queryInstances() (*Client, error) {
 	}
 
 	for _, instance := range instances {
-		if inst, ok := checkInstance(instance[0].(string)); ok {
+		if inst, ok := instance[0].(string); ok {
+			if !strings.Contains(inst, ".onion") {
+				list = append(list, inst)
+			}
+		}
+	}
+
+	return list, nil
+}
+
+// queryInstances searches for the best instance and returns a Client.
+func queryInstances() (*Client, error) {
+	var bestInstance string
+
+	cli := NewClient(instanceApi)
+
+	if customInstance != "" {
+		if uri, err := url.Parse(customInstance); err == nil {
+			host := uri.Hostname()
+
+			if host != "" {
+				customInstance = host
+			}
+		}
+
+		inst, err := CheckInstance(cli, customInstance)
+		if err != nil {
+			return nil, err
+		}
+
+		return NewClient(inst), nil
+	}
+
+	instances, err := GetInstanceList()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, instance := range instances {
+		if inst, err := CheckInstance(cli, instance); err == nil {
 			bestInstance = inst
 			break
 		}
