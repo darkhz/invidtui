@@ -35,6 +35,9 @@ func ShowVideoLink() {
 
 		return event
 	})
+	linkView.SetFocusFunc(func() {
+		app.SetContextMenu("", nil)
+	})
 
 	linkModal = app.NewModal("link", "Copy link", linkView, 10, len(invlink)+10)
 	linkModal.Show(false)

@@ -3,6 +3,7 @@ package view
 import (
 	"strconv"
 
+	"github.com/darkhz/invidtui/cmd"
 	inv "github.com/darkhz/invidtui/invidious"
 	"github.com/darkhz/invidtui/ui/app"
 	"github.com/darkhz/invidtui/utils"
@@ -37,6 +38,9 @@ func (c *CommentsView) Init() {
 	)
 	c.view.SetSelectedFunc(c.selectorHandler)
 	c.view.SetInputCapture(c.Keybindings)
+	c.view.SetFocusFunc(func() {
+		app.SetContextMenu("Comments", c.view)
+	})
 
 	c.root = tview.NewTreeNode("")
 
@@ -155,17 +159,15 @@ func (c *CommentsView) Close() {
 
 // Keybindings describes the keybindings for the comments view.
 func (c *CommentsView) Keybindings(event *tcell.EventKey) *tcell.EventKey {
-	switch event.Key() {
-	case tcell.KeyEscape:
-		c.Close()
-	}
-
-	switch event.Rune() {
-	case ' ':
+	switch cmd.KeyOperation("Comments", event) {
+	case "Replies":
 		node := c.view.GetCurrentNode()
 		if node.GetLevel() > 2 {
 			node.GetParent().SetExpanded(!node.GetParent().IsExpanded())
 		}
+
+	case "Exit":
+		c.Close()
 	}
 
 	return event

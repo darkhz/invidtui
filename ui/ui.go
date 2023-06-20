@@ -93,7 +93,7 @@ func Keybindings(event *tcell.EventKey) *tcell.EventKey {
 	case "InstancesList":
 		go popup.ShowInstancesList()
 
-	case "Quit":
+	case "Ctrl-C", "Quit":
 		StopUI(true)
 	}
 

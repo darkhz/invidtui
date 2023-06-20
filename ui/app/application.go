@@ -10,8 +10,8 @@ import (
 
 // Application describes the layout of the app.
 type Application struct {
-	MenuLayout           *tview.Flex
-	MenuButton, MenuTabs *tview.TextView
+	MenuLayout *tview.Flex
+	Menu, Tabs *tview.TextView
 
 	Area   *tview.Pages
 	Layout *tview.Flex
@@ -51,24 +51,28 @@ func Setup() {
 	UI.ColumnStyle = tcell.Style{}.
 		Attributes(tcell.AttrBold)
 
-	UI.MenuButton, UI.MenuTabs = tview.NewTextView(), tview.NewTextView()
-	UI.MenuButton.SetText("Menu")
-	UI.MenuButton.SetWrap(false)
-	UI.MenuButton.SetRegions(true)
-	UI.MenuTabs.SetWrap(false)
-	UI.MenuTabs.SetRegions(true)
-	UI.MenuTabs.SetDynamicColors(true)
-	UI.MenuButton.SetDynamicColors(true)
-	UI.MenuTabs.SetTextAlign(tview.AlignRight)
-	UI.MenuButton.SetBackgroundColor(tcell.ColorDefault)
-	UI.MenuTabs.SetBackgroundColor(tcell.ColorDefault)
+	UI.Menu, UI.Tabs = tview.NewTextView(), tview.NewTextView()
+	UI.Menu.SetWrap(false)
+	UI.Menu.SetRegions(true)
+	UI.Tabs.SetWrap(false)
+	UI.Tabs.SetRegions(true)
+	UI.Tabs.SetDynamicColors(true)
+	UI.Menu.SetDynamicColors(true)
+	UI.Tabs.SetTextAlign(tview.AlignRight)
+	UI.Menu.SetBackgroundColor(tcell.ColorDefault)
+	UI.Tabs.SetBackgroundColor(tcell.ColorDefault)
+	UI.Menu.SetHighlightedFunc(MenuHighlightHandler)
+	UI.Menu.SetInputCapture(MenuKeybindings)
 	UI.MenuLayout = tview.NewFlex().
 		SetDirection(tview.FlexColumn).
-		AddItem(UI.MenuButton, 6, 0, false).
-		AddItem(UI.MenuTabs, 0, 1, false)
+		AddItem(UI.Menu, 0, 1, false).
+		AddItem(UI.Tabs, 0, 1, false)
 	UI.MenuLayout.SetBackgroundColor(tcell.ColorDefault)
 
 	UI.Pages = tview.NewPages()
+	UI.Pages.SetChangedFunc(func() {
+		MenuExit()
+	})
 
 	UI.Layout = tview.NewFlex().
 		SetDirection(tview.FlexRow).
@@ -81,6 +85,14 @@ func Setup() {
 
 	UI.Area = tview.NewPages()
 	UI.Area.AddPage("ui", UI.Layout, true, true)
+	UI.Area.SetChangedFunc(func() {
+		pg, _ := UI.Area.GetFrontPage()
+		if pg == "ui" || pg == "menu" {
+			return
+		}
+
+		MenuExit()
+	})
 
 	UI.Closed = make(chan struct{})
 
@@ -93,8 +105,13 @@ func Setup() {
 
 // SetPrimaryFocus sets the focus to the appropriate primitive.
 func SetPrimaryFocus() {
-	if currentModal != nil {
-		UI.SetFocus(currentModal.Flex)
+	if pg, _ := UI.Status.GetFrontPage(); pg == "input" {
+		UI.SetFocus(UI.Status.InputField)
+		return
+	}
+
+	if len(modals) > 0 {
+		UI.SetFocus(modals[len(modals)-1].Flex)
 		return
 	}
 

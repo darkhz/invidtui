@@ -11,8 +11,8 @@ type Modal struct {
 	Open          bool
 	Height, Width int
 
-	attach                bool
-	pageHeight, pageWidth int
+	attach, menu                            bool
+	regionX, regionY, pageHeight, pageWidth int
 
 	Flex  *tview.Flex
 	Table *tview.Table
@@ -65,29 +65,63 @@ func NewModal(name, title string, item tview.Primitive, height, width int) *Moda
 	}
 }
 
+// NewMenuModal returns a menu modal.
+func NewMenuModal(name string, regionX, regionY int) *Modal {
+	table := tview.NewTable()
+	table.SetBorder(true)
+	table.SetSelectable(true, false)
+	table.SetBackgroundColor(tcell.ColorDefault)
+
+	flex := tview.NewFlex().
+		SetDirection(tview.FlexRow).
+		AddItem(table, 0, 1, true)
+
+	return &Modal{
+		Name:  name,
+		Table: table,
+		Flex:  flex,
+
+		menu:    true,
+		regionX: regionX,
+		regionY: regionY,
+	}
+}
+
 // Show shows the modal. If attachToStatus is true, the modal will
 // attach to the top part of the status bar rather than float in the middle.
 func (m *Modal) Show(attachToStatus bool) {
-	var attach int
+	var x, y, xprop, xattach, yattach int
 
-	if attachToStatus {
+	if len(modals) > 0 && modals[len(modals)-1].Name == m.Name {
+		return
+	}
+
+	switch {
+	case m.menu:
+		xprop = 1
+		x, y = m.regionX, m.regionY
+
+	case attachToStatus:
 		m.attach = true
-		attach++
+		xattach, yattach = 1, 1
+
+	default:
+		xattach = 1
 	}
 
 	m.Open = true
 
 	m.y = tview.NewFlex().
 		SetDirection(tview.FlexRow).
-		AddItem(nil, 0, attach, false).
+		AddItem(nil, y, yattach, false).
 		AddItem(m.Flex, m.Height, 0, true).
-		AddItem(nil, attach, 0, false)
+		AddItem(nil, yattach, 0, false)
 
 	m.x = tview.NewFlex().
 		SetDirection(tview.FlexColumn).
-		AddItem(nil, 0, 1, false).
+		AddItem(nil, x, xattach, false).
 		AddItem(m.y, m.Width, 0, true).
-		AddItem(nil, 0, 1, false)
+		AddItem(nil, xprop, xattach, false)
 
 	UI.Area.AddAndSwitchToPage(m.Name, m.x, true)
 	for _, modal := range modals {
@@ -131,6 +165,8 @@ func (m *Modal) Exit(focusInput bool) {
 }
 
 // ResizeModal resizes the modal according to the current screen dimensions.
+//
+//gocyclo:ignore
 func ResizeModal() {
 	var drawn bool
 
@@ -172,8 +208,14 @@ func ResizeModal() {
 			modal.x.ResizeItem(modal.y, pageWidth, 0)
 
 		default:
-			x := (pageWidth - modal.Width) / 2
-			y := (pageHeight - modal.Height) / 2
+			var x, y int
+
+			if modal.menu {
+				x, y = modal.regionX, modal.regionY
+			} else {
+				x = (pageWidth - modal.Width) / 2
+				y = (pageHeight - modal.Height) / 2
+			}
 
 			modal.y.ResizeItem(modal.Flex, height, 0)
 			modal.y.ResizeItem(nil, y, 0)

@@ -297,7 +297,7 @@ func (s *SearchView) ParseQuery() {
 // Keybindings describes the keybindings for the search view.
 func (s *SearchView) Keybindings(event *tcell.EventKey) *tcell.EventKey {
 	switch cmd.KeyOperation("Search", event) {
-	case "Search":
+	case "Start":
 		go s.Start("")
 		app.UI.Status.SetFocusFunc()
 
@@ -324,9 +324,6 @@ func (s *SearchView) Keybindings(event *tcell.EventKey) *tcell.EventKey {
 
 	case "Link":
 		popup.ShowVideoLink()
-
-	case "DownloadOptions":
-		Downloads.ShowOptions()
 	}
 
 	return event
@@ -335,7 +332,7 @@ func (s *SearchView) Keybindings(event *tcell.EventKey) *tcell.EventKey {
 // inputFunc describes the keybindings for the search input box.
 func (s *SearchView) inputFunc(e *tcell.EventKey) *tcell.EventKey {
 	switch cmd.KeyOperation("Search", e) {
-	case "Search":
+	case "Start":
 		text := app.UI.Status.GetText()
 		if text != "" {
 			go s.Start(text)

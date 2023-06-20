@@ -145,6 +145,9 @@ func showHistory() {
 	player.history.table.SetSelectable(true, false)
 	player.history.table.SetBackgroundColor(tcell.ColorDefault)
 	player.history.table.SetInputCapture(historyTableKeybindings)
+	player.history.table.SetFocusFunc(func() {
+		app.SetContextMenu("History", player.history.table)
+	})
 
 	player.history.input = tview.NewInputField()
 	player.history.input.SetLabel("[::b]Filter: ")
@@ -176,27 +179,22 @@ Render:
 
 // historyTableKeybindings defines the keybindings for the history popup.
 func historyTableKeybindings(event *tcell.EventKey) *tcell.EventKey {
-	switch event.Key() {
-	case tcell.KeyEscape:
-		player.history.modal.Exit(false)
-	}
-
-	switch event.Rune() {
-	case '/':
+	switch cmd.KeyOperation("History", event) {
+	case "Query":
 		app.UI.SetFocus(player.history.input)
 
-	case 'i':
-		view.Playlist.EventHandler(event.Modifiers() == tcell.ModAlt)
-
-	case 'u':
+	case "ChannelVideos":
 		view.Channel.EventHandler("video", event.Modifiers() == tcell.ModAlt)
 
-	case 'U':
+	case "ChannelPlaylists":
 		view.Channel.EventHandler("playlist", event.Modifiers() == tcell.ModAlt)
-	}
 
-	for _, r := range []rune{'i', 'u', 'U'} {
-		if event.Key() == tcell.KeyRune && event.Rune() == r {
+	case "Exit":
+		player.history.modal.Exit(false)
+	}
+	
+	for _, k := range []string{"ChannelVideos", "ChannelPlaylists"} {
+		if cmd.KeyOperation("History", event) == k {
 			player.history.modal.Exit(false)
 			app.UI.Status.SwitchToPage("messages")
 

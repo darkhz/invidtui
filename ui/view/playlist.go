@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/darkhz/invidtui/client"
+	"github.com/darkhz/invidtui/cmd"
 	inv "github.com/darkhz/invidtui/invidious"
 	"github.com/darkhz/invidtui/ui/app"
 	"github.com/darkhz/invidtui/ui/popup"
@@ -43,6 +44,9 @@ func (p *PlaylistView) Init() bool {
 	p.table.SetSelectorWrap(true)
 	p.table.SetInputCapture(p.Keybindings)
 	p.table.SetBackgroundColor(tcell.ColorDefault)
+	p.table.SetFocusFunc(func() {
+		app.SetContextMenu("Playlist", p.table)
+	})
 
 	p.infoView.Init(p.table)
 
@@ -159,30 +163,27 @@ func (p *PlaylistView) Load(id string, loadMore ...struct{}) {
 
 // Keybindings describes the keybindings for the playlist view.
 func (p *PlaylistView) Keybindings(event *tcell.EventKey) *tcell.EventKey {
-	switch event.Key() {
-	case tcell.KeyEnter:
+	switch cmd.KeyOperation("Playlist", event) {
+	case "LoadMore":
 		go p.Load(p.currentID, struct{}{})
 
-	case tcell.KeyEscape:
+	case "Exit":
 		CloseView()
-	}
 
-	switch event.Rune() {
-	case '+':
+	case "AddToPlaylist":
 		if !Dashboard.IsFocused() {
 			Dashboard.ModifyHandler(true)
 		}
 
-	case '_':
-		p.removed = true
+	case "RemoveFromPlaylist":
 		if v := PreviousView(); v != nil && v.Name() == Dashboard.Name() {
 			Dashboard.ModifyHandler(false)
 		}
 
-	case ';':
+	case "Link":
 		popup.ShowVideoLink()
 
-	case 'C':
+	case "Comments":
 		Comments.Show()
 	}
 

@@ -8,6 +8,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/darkhz/invidtui/cmd"
 	"github.com/darkhz/invidtui/utils"
 	"github.com/darkhz/tview"
 	"github.com/gdamore/tcell/v2"
@@ -55,6 +56,9 @@ func (f *FileBrowser) setup() {
 	f.input.SetLabelColor(tcell.ColorWhite)
 	f.input.SetBackgroundColor(tcell.ColorDefault)
 	f.input.SetFieldBackgroundColor(tcell.ColorDefault)
+	f.input.SetFocusFunc(func() {
+		SetContextMenu("Files", f.input)
+	})
 
 	f.flex = tview.NewFlex().
 		SetDirection(tview.FlexRow).
@@ -63,7 +67,7 @@ func (f *FileBrowser) setup() {
 		AddItem(HorizontalLine(), 1, 0, false).
 		AddItem(f.input, 1, 0, true)
 
-	f.modal = NewModal("file_browser", "Browse", f.flex, 60, 100)
+	f.modal = NewModal("Files", "Browse", f.flex, 60, 100)
 
 	f.lock = semaphore.NewWeighted(1)
 
@@ -133,16 +137,16 @@ func (f *FileBrowser) Query(
 
 // Keybindings define the keybindings for the file browser.
 func (f *FileBrowser) Keybindings(event *tcell.EventKey) *tcell.EventKey {
-	switch event.Key() {
-	case tcell.KeyLeft:
-		go f.cd("", false, true)
-
-	case tcell.KeyRight:
+	switch cmd.KeyOperation("Files", event) {
+	case "CDFwd":
 		sel, _ := f.table.GetSelection()
 		cell := f.table.GetCell(sel, 0)
 		go f.cd(filepath.Clean(cell.Text), true, false)
 
-	case tcell.KeyCtrlH:
+	case "CDBack":
+		go f.cd("", false, true)
+
+	case "ToggleHidden":
 		f.hiddenStatus(struct{}{})
 		go f.cd("", false, false)
 	}
@@ -162,8 +166,9 @@ func (f *FileBrowser) inputFunc(e *tcell.EventKey) *tcell.EventKey {
 	case tcell.KeyPgUp, tcell.KeyPgDn:
 		fallthrough
 
-	case tcell.KeyCtrlH:
-		f.table.InputHandler()(e, nil)
+	case tcell.KeyCtrlG:
+		f.table.InputHandler()(tcell.NewEventKey(e.Key(), ' ', e.Modifiers()), nil)
+		return nil
 
 	case tcell.KeyEnter:
 		text := f.input.GetText()
@@ -264,7 +269,7 @@ func (f *FileBrowser) list(testPath string) ([]fs.DirEntry, bool) {
 
 	list, err := os.ReadDir(testPath)
 	if err != nil {
-		if err.Error() != "EOF"  {
+		if err.Error() != "EOF" {
 			ShowError(err)
 		}
 

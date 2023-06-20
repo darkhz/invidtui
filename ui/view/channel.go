@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/darkhz/invidtui/client"
+	"github.com/darkhz/invidtui/cmd"
 	inv "github.com/darkhz/invidtui/invidious"
 	"github.com/darkhz/invidtui/ui/app"
 	"github.com/darkhz/invidtui/ui/popup"
@@ -78,6 +79,9 @@ func (c *ChannelView) Init() bool {
 			table.SetBackgroundColor(tcell.ColorDefault)
 			table.SetSelectionChangedFunc(func(row, col int) {
 				c.selectorHandler(table, row, col)
+			})
+			table.SetFocusFunc(func() {
+				app.SetContextMenu("Channel", c.views)
 			})
 
 			c.tableMap[info.Title] = &ChannelTable{
@@ -504,8 +508,8 @@ func (c *ChannelView) Query() {
 
 // Keybindings describes the keybindings for the channel view.
 func (c *ChannelView) Keybindings(event *tcell.EventKey) *tcell.EventKey {
-	switch event.Key() {
-	case tcell.KeyTab:
+	switch cmd.KeyOperation("Channel", event) {
+	case "Switch":
 		tab := c.Tabs()
 		tab.Selected = c.currentType
 		c.currentType = app.SwitchTab(false, tab)
@@ -513,29 +517,27 @@ func (c *ChannelView) Keybindings(event *tcell.EventKey) *tcell.EventKey {
 		c.View(c.currentType)
 		go c.Load(c.currentType)
 
-	case tcell.KeyEnter:
+	case "LoadMore":
 		go c.Load(c.currentType, struct{}{})
 
-	case tcell.KeyEscape:
+	case "Exit":
 		CloseView()
-	}
 
-	switch event.Rune() {
-	case 'i':
-		go Playlist.EventHandler(event.Modifiers() == tcell.ModAlt)
-
-	case '/':
+	case "Query":
 		c.currentType = "search"
 		go c.Load(c.currentType)
 
-	case '+':
+	case "Playlist":
+		go Playlist.EventHandler(event.Modifiers() == tcell.ModAlt)
+
+	case "AddTo":
 		Dashboard.ModifyHandler(true)
 
-	case ';':
-		popup.ShowVideoLink()
-
-	case 'C':
+	case "Comments":
 		Comments.Show()
+
+	case "Link":
+		popup.ShowVideoLink()
 	}
 
 	return event
@@ -574,7 +576,6 @@ func (c *ChannelView) selectorHandler(table *tview.Table, row, col int) {
 		Background(tcell.ColorBlue).
 		Foreground(tcell.ColorWhite).
 		Attributes(cell.Attributes | tcell.AttrBold))
-
 }
 
 // getTableMap returns a map of tables within the channel view.

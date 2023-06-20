@@ -16,28 +16,28 @@ type TabInfo struct {
 // SetTab sets the tab.
 func SetTab(tabInfo Tab) {
 	if tabInfo.Title == "" {
-		UI.MenuTabs.Clear()
+		UI.Tabs.Clear()
 		return
 	}
 
-	tab := fmt.Sprintf("[::b]%s[-:-:-] ", tabInfo.Title)
+	tab := ""
 	for _, info := range tabInfo.Info {
 		tab += fmt.Sprintf("[\"%s\"][darkcyan]%s[\"\"] ", info.ID, info.Title)
 	}
 
-	UI.MenuTabs.SetText(tab)
+	UI.Tabs.SetText(tab)
 
 	SelectTab(tabInfo.Selected)
 }
 
 // SelectTab selects a tab.
 func SelectTab(tab string) {
-	UI.MenuTabs.Highlight(tab)
+	UI.Tabs.Highlight(tab)
 }
 
 // GetCurrentTab returns the currently selected tab.
 func GetCurrentTab() string {
-	tab := UI.MenuTabs.GetHighlights()
+	tab := UI.Tabs.GetHighlights()
 	if tab == nil {
 		return ""
 	}
@@ -61,12 +61,12 @@ func SwitchTab(reverse bool, tabs ...Tab) string {
 		goto Selected
 	}
 
-	regions = UI.MenuTabs.GetRegionIDs()
+	regions = UI.Tabs.GetRegionIDs()
 	if len(regions) == 0 {
 		return ""
 	}
 
-	if highlights := UI.MenuTabs.GetHighlights(); highlights != nil {
+	if highlights := UI.Tabs.GetHighlights(); highlights != nil {
 		selected = highlights[0]
 	} else {
 		return ""
@@ -91,8 +91,8 @@ Selected:
 		currentView = len(regions) - 1
 	}
 
-	UI.MenuTabs.Highlight(regions[currentView])
-	UI.MenuTabs.ScrollToHighlight()
+	UI.Tabs.Highlight(regions[currentView])
+	UI.Tabs.ScrollToHighlight()
 
 	return regions[currentView]
 }

@@ -181,26 +181,39 @@ func Play(audio, current bool, mediaInfo ...inv.SearchData) {
 	go loadSelected(info, audio, current)
 }
 
+// IsQueueFocused returns whether the queue is focused.
+func IsQueueFocused() bool {
+	return player.queue.table != nil && player.queue.table.HasFocus()
+}
+
+// IsQueueEmpty returns whether the queue is empty.
+func IsQueueEmpty() bool {
+	return player.queue.table == nil || len(player.queue.data) == 0
+}
+
+// IsHistoryInputFocused returns whether the history search bar is focused.
+func IsHistoryInputFocused() bool {
+	return player.history.input != nil && player.history.input.HasFocus()
+}
+
 // Keybindings define the main player keybindings.
 func Keybindings(event *tcell.EventKey) *tcell.EventKey {
 	playerKeybindings(event)
 
-	switch event.Key() {
-	case tcell.KeyCtrlO:
+	switch cmd.KeyOperation("Player", event) {
+	case "Open":
 		app.UI.FileBrowser.Show("Open playlist:", openPlaylist)
 
-	case tcell.KeyCtrlH:
+	case "History":
 		showHistory()
-	}
 
-	switch event.Rune() {
-	case 'a', 'A', 'v', 'V':
+	case "QueueAudio", "QueueVideo", "PlayAudio", "PlayVideo":
 		playSelected(event.Rune())
 
-	case 'q':
+	case "Queue":
 		player.queue.Show()
 
-	case 'b', 'B':
+	case "AudioURL", "VideoURL":
 		playInputURL(event.Rune() == 'b')
 		return nil
 	}
@@ -211,52 +224,47 @@ func Keybindings(event *tcell.EventKey) *tcell.EventKey {
 // playerKeybindings define the playback-related keybindings
 // for the player.
 func playerKeybindings(event *tcell.EventKey) {
-	var nokey, norune bool
+	var nokey bool
 
-	switch event.Key() {
-	case tcell.KeyRight:
+	switch cmd.KeyOperation("Player", event) {
+	case "Stop":
+		sendPlayingStatus(false)
+
+	case "Pause":
+		mp.Player().TogglePaused()
+
+	case "SeekForward":
 		mp.Player().SeekForward()
 
-	case tcell.KeyLeft:
+	case "SeekBackward":
 		mp.Player().SeekBackward()
+
+	case "ToggleLoop":
+		mp.Player().ToggleLoopMode()
+
+	case "ToggleShuffle":
+		mp.Player().ToggleShuffled()
+
+	case "ToggleMute":
+		mp.Player().ToggleMuted()
+
+	case "VolumeIncrease":
+		mp.Player().VolumeIncrease()
+
+	case "VolumeDecrease":
+		mp.Player().VolumeDecrease()
+
+	case "Prev":
+		mp.Player().Prev()
+
+	case "Next":
+		mp.Player().Next()
 
 	default:
 		nokey = true
 	}
 
-	switch event.Rune() {
-	case 'S':
-		sendPlayingStatus(false)
-
-	case 'l':
-		mp.Player().ToggleLoopMode()
-
-	case 's':
-		mp.Player().ToggleShuffled()
-
-	case 'm':
-		mp.Player().ToggleMuted()
-
-	case ' ':
-		mp.Player().TogglePaused()
-
-	case '=':
-		mp.Player().VolumeIncrease()
-
-	case '-':
-		mp.Player().VolumeDecrease()
-
-	case '<':
-		mp.Player().Prev()
-
-	case '>':
-		mp.Player().Next()
-
-	default:
-		norune = true
-	}
-
-	if !nokey || !norune {
+	if !nokey {
 		sendPlayerEvents()
 	}
 }

@@ -58,6 +58,9 @@ func (d *DownloadsView) Init() bool {
 	d.options.SetSelectable(true, false)
 	d.options.SetBackgroundColor(tcell.ColorDefault)
 	d.options.SetInputCapture(d.OptionKeybindings)
+	d.options.SetFocusFunc(func() {
+		app.SetContextMenu("Downloads", d.options)
+	})
 
 	d.view = tview.NewTable()
 	d.view.SetBorder(true)
@@ -66,7 +69,10 @@ func (d *DownloadsView) Init() bool {
 	d.view.SetSelectable(true, false)
 	d.view.SetTitleAlign(tview.AlignLeft)
 	d.view.SetBackgroundColor(tcell.ColorDefault)
-	d.view.SetInputCapture(d.ViewKeybindings)
+	d.view.SetInputCapture(d.Keybindings)
+	d.view.SetFocusFunc(func() {
+		app.SetContextMenu("Downloads", d.view)
+	})
 
 	d.modal = app.NewModal("downloads", "Select Download Option", d.options, 40, 60)
 
@@ -172,8 +178,8 @@ func (d *DownloadsView) Start(id, itag, filename string) {
 
 // OptionKeybindings describes the keybindings for the download options popup.
 func (d *DownloadsView) OptionKeybindings(event *tcell.EventKey) *tcell.EventKey {
-	switch event.Key() {
-	case tcell.KeyEnter:
+	switch cmd.KeyOperation("Downloads", event) {
+	case "Select":
 		row, _ := d.options.GetSelection()
 		cell := d.options.GetCell(row, 0)
 
@@ -184,28 +190,26 @@ func (d *DownloadsView) OptionKeybindings(event *tcell.EventKey) *tcell.EventKey
 
 		fallthrough
 
-	case tcell.KeyEscape:
+	case "Exit":
 		d.modal.Exit(false)
 	}
 
 	return event
 }
 
-// ViewKeybindings describes the keybindings for the downloads view.
-func (d *DownloadsView) ViewKeybindings(event *tcell.EventKey) *tcell.EventKey {
-	switch event.Key() {
-	case tcell.KeyEscape:
-		CloseView()
-	}
-
-	switch event.Rune() {
-	case 'x':
+// Keybindings describes the keybindings for the downloads view.
+func (d *DownloadsView) Keybindings(event *tcell.EventKey) *tcell.EventKey {
+	switch cmd.KeyOperation("Downloads", event) {
+	case "Cancel":
 		row, _ := Downloads.view.GetSelection()
 
 		cell := Downloads.view.GetCell(row, 0)
 		if progress, ok := cell.GetReference().(*DownloadProgress); ok {
 			progress.cancelFunc()
 		}
+
+	case "Exit":
+		CloseView()
 	}
 
 	return event

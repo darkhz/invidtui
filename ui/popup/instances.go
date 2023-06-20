@@ -39,7 +39,9 @@ func ShowInstancesList() {
 		}
 
 		return event
-
+	})
+	instancesView.SetFocusFunc(func() {
+		app.SetContextMenu("", nil)
 	})
 
 	app.UI.QueueUpdateDraw(func() {

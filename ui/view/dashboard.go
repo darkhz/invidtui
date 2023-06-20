@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/darkhz/invidtui/client"
+	"github.com/darkhz/invidtui/cmd"
 	inv "github.com/darkhz/invidtui/invidious"
 	"github.com/darkhz/invidtui/ui/app"
 	"github.com/darkhz/invidtui/ui/popup"
@@ -86,9 +87,13 @@ func (d *DashboardView) Init() bool {
 
 		for _, info := range d.Tabs().Info {
 			table := tview.NewTable()
+			table.SetTitle(info.Title)
 			table.SetSelectorWrap(true)
 			table.SetBackgroundColor(tcell.ColorDefault)
 			table.SetInputCapture(kbMap[info.Title])
+			table.SetFocusFunc(func() {
+				app.SetContextMenu("Dashboard", table)
+			})
 
 			d.tableMap[info.Title] = &DashboardTable{
 				table: table,
@@ -209,7 +214,7 @@ func (d *DashboardView) Load(pageType string, reload ...struct{}) {
 
 // EventHandler checks whether authentication is needed
 // before showing the dashboard view.
-func (d *DashboardView) EventHandler(reset ...struct{}) {
+func (d *DashboardView) EventHandler() {
 	d.Init()
 
 	if pg, _ := d.views.GetFrontPage(); d.views.HasFocus() && pg != "Authentication" {
@@ -327,8 +332,8 @@ func (d *DashboardView) PlaylistForm(edit bool) {
 
 // Keybindings defines the keybindings for the dashboard view.
 func (d *DashboardView) Keybindings(event *tcell.EventKey) *tcell.EventKey {
-	switch event.Key() {
-	case tcell.KeyTab:
+	switch cmd.KeyOperation("Dashboard", event) {
+	case "Switch":
 		tab := d.Tabs()
 		tab.Selected = d.CurrentPage()
 		d.CurrentPage(app.SwitchTab(false, tab))
@@ -337,11 +342,11 @@ func (d *DashboardView) Keybindings(event *tcell.EventKey) *tcell.EventKey {
 		app.ShowInfo("", false)
 		d.Load(d.CurrentPage())
 
-	case tcell.KeyEscape:
+	case "Exit":
 		client.Cancel()
 		CloseView()
 
-	case tcell.KeyCtrlD:
+	case "Reload":
 		d.Load(d.CurrentPage(), struct{}{})
 	}
 
@@ -352,19 +357,17 @@ func (d *DashboardView) Keybindings(event *tcell.EventKey) *tcell.EventKey {
 func (d *DashboardView) feedKeybindings(event *tcell.EventKey) *tcell.EventKey {
 	d.Keybindings(event)
 
-	switch event.Key() {
-	case tcell.KeyEnter:
+	switch cmd.KeyOperation("Dashboard", event) {
+	case "LoadMore":
 		d.loadFeed(false, struct{}{})
-	}
 
-	switch event.Rune() {
-	case '+':
+	case "AddVideo":
 		d.ModifyHandler(true)
 
-	case ';':
+	case "Link":
 		popup.ShowVideoLink()
 
-	case 'C':
+	case "Comments":
 		Comments.Show()
 	}
 
@@ -375,17 +378,17 @@ func (d *DashboardView) feedKeybindings(event *tcell.EventKey) *tcell.EventKey {
 func (d *DashboardView) plKeybindings(event *tcell.EventKey) *tcell.EventKey {
 	d.Keybindings(event)
 
-	switch event.Rune() {
-	case 'i':
+	switch cmd.KeyOperation("Dashboard", event) {
+	case "Playlist":
 		Playlist.EventHandler(event.Modifiers() == tcell.ModAlt)
 
-	case 'c', 'e':
+	case "Create", "Edit":
 		d.PlaylistForm(event.Rune() == 'e')
 
-	case '_':
+	case "Remove":
 		d.ModifyHandler(false)
 
-	case ';':
+	case "Link":
 		popup.ShowVideoLink()
 	}
 
@@ -396,18 +399,18 @@ func (d *DashboardView) plKeybindings(event *tcell.EventKey) *tcell.EventKey {
 func (d *DashboardView) subKeybindings(event *tcell.EventKey) *tcell.EventKey {
 	d.Keybindings(event)
 
-	switch event.Rune() {
-	case 'u':
+	switch cmd.KeyOperation("Dashboard", event) {
+	case "ChannelVideos":
 		Channel.EventHandler("video", event.Modifiers() == tcell.ModAlt)
 
-	case 'U':
+	case "ChannelPlaylists":
 		Channel.EventHandler("playlist", event.Modifiers() == tcell.ModAlt)
 
-	case '_':
+	case "Remove":
 		d.ModifyHandler(false)
 
-	case ';':
-		popup.ShowVideoLink()
+	case "Comments":
+		Comments.Show()
 	}
 
 	return event

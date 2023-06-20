@@ -3,6 +3,7 @@ package view
 import (
 	"strings"
 
+	"github.com/darkhz/invidtui/cmd"
 	"github.com/darkhz/invidtui/ui/app"
 	"github.com/darkhz/tview"
 	"github.com/gdamore/tcell/v2"
@@ -27,7 +28,7 @@ var Banner BannerView
 
 // Name returns the name of the banner view.
 func (b *BannerView) Name() string {
-	return "Banner"
+	return "Start"
 }
 
 // Init intializes the banner view.
@@ -61,6 +62,16 @@ func (b *BannerView) Primitive() tview.Primitive {
 	return b.flex
 }
 
+// Keybindings describes the banner view's keybindings.
+func (b *BannerView) Keybindings(event *tcell.EventKey) *tcell.EventKey {
+	switch cmd.KeyOperation("Start", event) {
+	case "Search":
+		Search.Query()
+	}
+
+	return event
+}
+
 // setup sets up the banner view.
 func (b *BannerView) setup() {
 	lines := strings.Split(bannerText, "\n")
@@ -90,18 +101,9 @@ func (b *BannerView) setup() {
 			AddItem(box, 0, 1, false), bannerHeight, 1, true).
 		AddItem(box, 0, 7, false)
 	b.flex.SetBackgroundColor(tcell.ColorDefault)
-	b.flex.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		switch event.Rune() {
-		case '/':
-			Search.Query()
-
-		case 'i', 'u', 'U':
-			if event.Modifiers() == tcell.ModAlt && Search.table != nil {
-				Search.table.InputHandler()(event, nil)
-			}
-		}
-
-		return event
+	b.flex.SetInputCapture(b.Keybindings)
+	bannerBox.SetFocusFunc(func() {
+		app.SetContextMenu(b.Name(), b.flex)
 	})
 
 	b.shown = true

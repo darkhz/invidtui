@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/darkhz/invidtui/cmd"
 	inv "github.com/darkhz/invidtui/invidious"
 	mp "github.com/darkhz/invidtui/mediaplayer"
 	"github.com/darkhz/invidtui/ui/app"
@@ -52,6 +53,9 @@ func (q *Queue) setup() {
 	q.table.SetInputCapture(q.Keybindings)
 	q.table.SetBackgroundColor(tcell.ColorDefault)
 	q.table.SetSelectionChangedFunc(q.selectorHandler)
+	q.table.SetFocusFunc(func() {
+		app.SetContextMenu("Queue", q.table)
+	})
 
 	q.modal = app.NewModal("queue", "Queue", q.table, 40, 0)
 
@@ -96,43 +100,44 @@ func (q *Queue) Hide() {
 
 // Keybindings define the keybindings for the queue.
 func (q *Queue) Keybindings(event *tcell.EventKey) *tcell.EventKey {
-	playerKeybindings(event)
+	operation := cmd.KeyOperation("Queue", event)
 
-	for _, key := range []tcell.Key{
-		tcell.KeyEscape,
-		tcell.KeyCtrlS,
-		tcell.KeyCtrlA,
+	for _, op := range []string{
+		"Exit",
+		"Save",
+		"Append",
 	} {
-		if event.Key() == key {
+		if operation == op {
 			q.Hide()
 			break
 		}
 	}
 
-	switch event.Key() {
-	case tcell.KeyEnter:
+	switch operation {
+	case "Play":
 		q.play()
 
-	case tcell.KeyCtrlS:
+	case "Save":
 		app.UI.FileBrowser.Show("Save as:", q.saveAs)
 
-	case tcell.KeyCtrlA:
+	case "Append":
 		app.UI.FileBrowser.Show("Append from:", q.appendFrom)
-	}
 
-	switch event.Rune() {
-	case 'd':
+	case "Delete":
 		q.remove()
 
-	case 'M':
+	case "Move":
 		q.move()
 
-	case 'S':
+	case "Stop", "Exit":
 		q.Hide()
 	}
 
-	for _, r := range []rune{'d', 'M'} {
-		if event.Rune() == r {
+	for _, o := range []string{
+		"Move",
+		"Delete",
+	} {
+		if operation == o {
 			app.ResizeModal()
 			break
 		}

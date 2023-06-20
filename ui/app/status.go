@@ -47,12 +47,7 @@ func (s *Status) Setup() {
 	s.InputField.SetLabelColor(tcell.ColorWhite)
 	s.InputField.SetBackgroundColor(tcell.ColorDefault)
 	s.InputField.SetFieldBackgroundColor(tcell.ColorDefault)
-	s.InputField.SetFocusFunc(func() {
-		label := s.InputField.GetLabel()
-		if label != s.inputLabel {
-			s.inputLabel = strings.TrimSpace(label)
-		}
-	})
+	s.InputField.SetFocusFunc(s.inputFocus)
 	s.InputField.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		switch event.Key() {
 		case tcell.KeyEnter:
@@ -151,6 +146,16 @@ func (s *Status) SetInput(label string,
 	UI.SetFocus(s.InputField)
 }
 
+// SetFocusFunc sets the function to be executed when the input is focused.
+func (s *Status) SetFocusFunc(focus ...func()) {
+	if focus == nil {
+		s.InputField.SetFocusFunc(s.inputFocus)
+		return
+	}
+
+	s.InputField.SetFocusFunc(focus[0])
+}
+
 // startStatus starts the message event loop
 func (s *Status) startStatus() {
 	var text string
@@ -175,7 +180,6 @@ func (s *Status) startStatus() {
 
 			if msg.persist {
 				text = msg.text
-
 			}
 
 			if !msg.persist && text != "" {
@@ -197,6 +201,13 @@ func (s *Status) startStatus() {
 				s.Message.SetText(text)
 			})
 		}
+	}
+}
+
+func (s *Status) inputFocus() {
+	label := s.InputField.GetLabel()
+	if label != s.inputLabel {
+		s.inputLabel = strings.TrimSpace(label)
 	}
 }
 
