@@ -235,15 +235,14 @@ func (q *Queue) selectorHandler(row, col int) {
 
 // render renders the player queue.
 func (q *Queue) render(data []map[string]interface{}) {
-	if len(data) == 0 && q.table.HasFocus() {
-		q.Hide()
-		return
-	}
-
-	q.table.Clear()
 	q.data = data
+	q.table.Clear()
 
-	if !q.table.HasFocus() {
+	if len(data) == 0 {
+		if q.table.HasFocus() {
+			q.Hide()
+		}
+
 		return
 	}
 
