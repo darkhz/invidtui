@@ -13,9 +13,9 @@ type Application struct {
 	MenuLayout *tview.Flex
 	Menu, Tabs *tview.TextView
 
-	Area   *tview.Pages
-	Layout *tview.Flex
-	Pages  *tview.Pages
+	Area           *tview.Pages
+	Pages          *tview.Pages
+	Layout, Region *tview.Flex
 
 	Status      Status
 	FileBrowser FileBrowser
@@ -74,11 +74,14 @@ func Setup() {
 		MenuExit()
 	})
 
+	UI.Region = tview.NewFlex().
+		AddItem(UI.Pages, 0, 1, true)
+
 	UI.Layout = tview.NewFlex().
 		SetDirection(tview.FlexRow).
 		AddItem(UI.MenuLayout, 1, 0, false).
 		AddItem(box, 1, 0, false).
-		AddItem(UI.Pages, 0, 10, false).
+		AddItem(UI.Region, 0, 10, false).
 		AddItem(box, 1, 0, false).
 		AddItem(UI.Status.Pages, 1, 0, false)
 	UI.Layout.SetBackgroundColor(tcell.ColorDefault)

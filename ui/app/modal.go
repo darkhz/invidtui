@@ -171,7 +171,7 @@ func ResizeModal() {
 	var drawn bool
 
 	for _, modal := range modals {
-		_, _, pageWidth, pageHeight := UI.Pages.GetInnerRect()
+		_, _, pageWidth, pageHeight := UI.Region.GetInnerRect()
 
 		if modal == nil || !modal.Open ||
 			(modal.pageHeight == pageHeight && modal.pageWidth == pageWidth) {

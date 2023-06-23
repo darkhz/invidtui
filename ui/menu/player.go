@@ -22,6 +22,11 @@ var playerItems = &app.Menu{
 			Visible: playerQueue,
 		},
 		{
+			Title:   "Track Information",
+			MenuID:  "Info",
+			Visible: infoShown,
+		},
+		{
 			Title:   "Queue Audio",
 			MenuID:  "QueueAudio",
 			Visible: isVideo,
@@ -42,11 +47,11 @@ var playerItems = &app.Menu{
 			Visible: isVideo,
 		},
 		{
-			Title: "Play audio from URL",
+			Title:  "Play audio from URL",
 			MenuID: "AudioURL",
 		},
 		{
-			Title: "Play video from URL",
+			Title:  "Play video from URL",
 			MenuID: "VideoURL",
 		},
 	},
@@ -54,4 +59,8 @@ var playerItems = &app.Menu{
 
 func playerQueue() bool {
 	return !player.IsQueueEmpty() && !player.IsQueueFocused()
+}
+
+func infoShown() bool {
+	return player.IsInfoShown()
 }

@@ -15,7 +15,6 @@ func HorizontalLine() *tview.Box {
 		SetDrawFunc(func(
 			screen tcell.Screen,
 			x, y, width, height int) (int, int, int, int) {
-
 			centerY := y + height/2
 			for cx := x; cx < x+width; cx++ {
 				screen.SetContent(
@@ -31,6 +30,23 @@ func HorizontalLine() *tview.Box {
 				centerY + 1,
 				width - 2,
 				height - (centerY + 1 - y)
+		})
+}
+
+// VerticalLine returns a box with a thick vertical line.
+func VerticalLine() *tview.Box {
+	return tview.NewBox().
+		SetBackgroundColor(tcell.ColorDefault).
+		SetDrawFunc(func(
+			screen tcell.Screen,
+			x, y, width, height int,
+		) (int, int, int, int) {
+			for cy := y; cy < y+height; cy++ {
+				screen.SetContent(x, cy, tview.BoxDrawingsLightVertical, nil, tcell.StyleDefault.Foreground(tcell.ColorWhite))
+				screen.SetContent(x+width-1, cy, tview.BoxDrawingsLightVertical, nil, tcell.StyleDefault.Foreground(tcell.ColorWhite))
+			}
+
+			return x, y, width, height
 		})
 }
 

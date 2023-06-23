@@ -118,6 +118,9 @@ var (
 			"VolumeIncrease": {tcell.KeyRune, '=', tcell.ModNone},
 			"VolumeDecrease": {tcell.KeyRune, '-', tcell.ModNone},
 			"Pause":          {tcell.KeyRune, ' ', tcell.ModNone},
+			"Info":           {tcell.KeyRune, ' ', tcell.ModAlt},
+			"InfoScrollUp":   {tcell.KeyUp, ' ', tcell.ModCtrl | tcell.ModAlt},
+			"InfoScrollDown": {tcell.KeyDown, ' ', tcell.ModCtrl | tcell.ModAlt},
 		},
 		"Queue": {
 			"Play":   {tcell.KeyEnter, ' ', tcell.ModNone},

@@ -3,6 +3,8 @@ package player
 import (
 	"context"
 	"fmt"
+	"image/jpeg"
+	"net/url"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -24,16 +26,20 @@ import (
 type Player struct {
 	queue Queue
 
-	init, playing bool
-	width         int
-	states        []string
-	history       History
+	currentID             string
+	init, playing, toggle bool
+	width                 int
+	states                []string
+	history               History
+	videos                map[string]*inv.VideoData
 
 	channel chan bool
 	events  chan struct{}
 
-	flex        *tview.Flex
-	title, desc *tview.TextView
+	image        *tview.Image
+	infoDesc     *tview.TextView
+	flex, region *tview.Flex
+	title, desc  *tview.TextView
 
 	lock  *semaphore.Weighted
 	mutex sync.Mutex
@@ -48,6 +54,7 @@ func setup() {
 	}
 
 	player.init = true
+	player.videos = make(map[string]*inv.VideoData)
 
 	player.channel = make(chan bool, 10)
 	player.events = make(chan struct{}, 100)
@@ -60,11 +67,26 @@ func setup() {
 	player.desc.SetBackgroundColor(tcell.ColorDefault)
 	player.title.SetBackgroundColor(tcell.ColorDefault)
 
+	player.image = tview.NewImage()
+	player.image.SetBackgroundColor(tcell.ColorDefault)
+	player.image.SetDithering(tview.DitheringFloydSteinberg)
+
+	player.infoDesc = tview.NewTextView()
+	player.infoDesc.SetDynamicColors(true)
+	player.infoDesc.SetTextAlign(tview.AlignCenter)
+	player.infoDesc.SetBackgroundColor(tcell.ColorDefault)
+
 	player.flex = tview.NewFlex().
 		SetDirection(tview.FlexRow).
 		AddItem(player.title, 1, 0, false).
 		AddItem(player.desc, 1, 0, false)
 	player.flex.SetBackgroundColor(tcell.ColorDefault)
+
+	player.region = tview.NewFlex().
+		SetDirection(tview.FlexRow).
+		AddItem(player.image, 0, 1, false).
+		AddItem(player.infoDesc, 0, 1, false)
+	player.region.SetBackgroundColor(tcell.ColorDefault)
 
 	player.lock = semaphore.NewWeighted(10)
 }
@@ -110,6 +132,34 @@ func Show() {
 	})
 }
 
+// ToggleInfo toggle the player information view.
+func ToggleInfo(hide ...struct{}) {
+	if hide != nil || player.toggle {
+		player.toggle = false
+
+		app.UI.Region.Clear().
+			AddItem(app.UI.Pages, 0, 1, true)
+
+		return
+	}
+
+	if !player.toggle && playingStatus() {
+		player.toggle = true
+
+		box := tview.NewBox()
+		box.SetBackgroundColor(tcell.ColorDefault)
+
+		app.UI.Region.Clear().
+			AddItem(player.region, 25, 0, false).
+			AddItem(box, 1, 0, false).
+			AddItem(app.VerticalLine(), 1, 0, false).
+			AddItem(box, 1, 0, false).
+			AddItem(app.UI.Pages, 0, 1, true)
+
+		Resize(0, struct{}{})
+	}
+}
+
 // Hide hides the player.
 func Hide() {
 	if !playingStatus() {
@@ -129,12 +179,21 @@ func Hide() {
 }
 
 // Resize resizes the player according to the screen width.
-func Resize(width int) {
+func Resize(width int, force ...struct{}) {
+	if force != nil {
+		_, _, w, _ := app.UI.Area.GetRect()
+		width = w
+
+		goto ResizePlayer
+	}
+
 	if width == player.width {
 		return
 	}
 
+ResizePlayer:
 	sendPlayerEvents()
+	app.UI.Region.ResizeItem(player.region, (width / 4), 0)
 
 	player.width = width
 }
@@ -191,6 +250,11 @@ func IsQueueEmpty() bool {
 	return player.queue.table == nil || len(player.queue.data) == 0
 }
 
+// IsInfoShown returns whether the player information is shown.
+func IsInfoShown() bool {
+	return player.region != nil && playingStatus()
+}
+
 // IsHistoryInputFocused returns whether the history search bar is focused.
 func IsHistoryInputFocused() bool {
 	return player.history.input != nil && player.history.input.HasFocus()
@@ -207,6 +271,17 @@ func Keybindings(event *tcell.EventKey) *tcell.EventKey {
 	case "History":
 		showHistory()
 
+	case "Info":
+		ToggleInfo()
+
+	case "InfoScrollDown":
+		player.infoDesc.InputHandler()(tcell.NewEventKey(tcell.KeyDown, ' ', tcell.ModNone), nil)
+		return nil
+
+	case "InfoScrollUp":
+		player.infoDesc.InputHandler()(tcell.NewEventKey(tcell.KeyUp, ' ', tcell.ModNone), nil)
+		return nil
+
 	case "QueueAudio", "QueueVideo", "PlayAudio", "PlayVideo":
 		playSelected(event.Rune())
 
@@ -216,6 +291,7 @@ func Keybindings(event *tcell.EventKey) *tcell.EventKey {
 	case "AudioURL", "VideoURL":
 		playInputURL(event.Rune() == 'b')
 		return nil
+
 	}
 
 	return event
@@ -369,6 +445,8 @@ func loadVideo(id string, audio bool) (string, error) {
 		return "", err
 	}
 
+	currentVideo(id, &video)
+
 	mp.Player().LoadFile(
 		video.Title,
 		video.LengthSeconds,
@@ -413,7 +491,7 @@ func renderPlayer(cancel context.CancelFunc) {
 	_, _, width, _ = player.desc.GetRect()
 	app.UI.RUnlock()
 
-	title, progress, states, err = getProgress(width)
+	title, progress, states, err = updateProgressAndInfo(width)
 	if err != nil {
 		cancel()
 		return
@@ -426,6 +504,63 @@ func renderPlayer(cancel context.CancelFunc) {
 	app.UI.QueueUpdateDraw(func() {
 		player.desc.SetText(progress)
 		player.title.SetText("[::b]" + tview.Escape(title))
+	})
+}
+
+// renderInfo renders the track information.
+func renderInfo(data url.Values) {
+	id := data.Get("id")
+	if id == "" || id != "" && id == player.currentID {
+		return
+	}
+
+	player.currentID = id
+
+	video := currentVideo(id)
+	if video == nil {
+		return
+	}
+
+	text := "\n"
+
+	if video.Author != "" {
+		text += fmt.Sprintf("[::bu]%s[-:-:-]\n\n", video.Author)
+	}
+
+	if video.PublishedText != "" {
+		text += fmt.Sprintf("[lightpink::b]Uploaded %s[-:-:-]\n", video.PublishedText)
+	}
+
+	text += fmt.Sprintf(
+		"[aqua::b]%s views[-:-:-] / [red::b]%s likes[-:-:-] / [purple::b]%s subscribers[-:-:-]\n\n",
+		utils.FormatNumber(video.ViewCount),
+		utils.FormatNumber(video.LikeCount),
+		video.SubCountText,
+	)
+
+	text += "[::b]" + tview.Escape(video.Description)
+
+	player.infoDesc.SetText(text)
+
+	go renderInfoImage(id)
+}
+
+// renderInfoImage renders the image for the track information display.
+func renderInfoImage(id string) {
+	thumbdata, err := inv.VideoThumbnail(id, "default")
+	if err != nil {
+		app.ShowError(fmt.Errorf("Player: Unable to download thumbnail"))
+		return
+	}
+
+	thumbnail, err := jpeg.Decode(thumbdata.Body)
+	if err != nil {
+		app.ShowError(fmt.Errorf("Player: Unable to decode thumbnail"))
+		return
+	}
+
+	app.UI.QueueUpdateDraw(func() {
+		player.image.SetImage(thumbnail)
 	})
 }
 
@@ -462,6 +597,7 @@ func playerUpdateLoop(ctx context.Context, cancel context.CancelFunc) {
 		select {
 		case <-ctx.Done():
 			Hide()
+			ToggleInfo(struct{}{})
 			player.desc.SetText("")
 			player.title.SetText("")
 			return
@@ -533,11 +669,11 @@ func checkLiveURL(uri string, audio bool) bool {
 	return expired
 }
 
-// getProgress returns the progress bar and information
-// of the currently playing track.
+// updateProgressAndInfo returns the progress bar and information
+// of the currently playing track, and updates the track information.
 //
 //gocyclo:ignore
-func getProgress(width int) (string, string, []string, error) {
+func updateProgressAndInfo(width int) (string, string, []string, error) {
 	var lhs, rhs string
 	var states []string
 	var state, mtype, totaltime, vol string
@@ -582,6 +718,8 @@ func getProgress(width int) (string, string, []string, error) {
 
 	data := utils.GetDataFromURL(title)
 	if data != nil {
+		renderInfo(data)
+
 		if t := data.Get("title"); t != "" {
 			title = t
 		}
@@ -672,6 +810,40 @@ func sendPlayerEvents() {
 
 	default:
 	}
+}
+
+// currentVideo sets or returns the video to/from the store
+// according to the provided ID.
+func currentVideo(id string, set ...*inv.VideoData) *inv.VideoData {
+	player.mutex.Lock()
+	defer player.mutex.Unlock()
+
+	if set != nil {
+		player.videos[id] = set[0]
+	}
+
+	video, ok := player.videos[id]
+	if !ok {
+		return nil
+	}
+
+	return video
+}
+
+// removeVideo removes a video from the store.
+func removeVideo(pos int) {
+	player.mutex.Lock()
+	defer player.mutex.Unlock()
+
+	title := mp.Player().Title(pos)
+	data := utils.GetDataFromURL(title)
+
+	id := data.Get("id")
+	if id == "" {
+		return
+	}
+
+	delete(player.videos, id)
 }
 
 // playingStatus sets the current status of the player.

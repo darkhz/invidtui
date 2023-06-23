@@ -189,6 +189,8 @@ func (q *Queue) remove() {
 		q.table.Select(row, 0)
 	}
 
+	removeVideo(row)
+
 	mp.Player().QueueDelete(row)
 
 	pos := mp.Player().QueuePosition()

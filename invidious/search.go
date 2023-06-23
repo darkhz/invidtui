@@ -19,6 +19,7 @@ type SearchData struct {
 	PlaylistID    string `json:"playlistId"`
 	Author        string `json:"author"`
 	IndexID       string `json:"indexId"`
+	ViewCountText string `json:"viewCountText"`
 	PublishedText string `json:"publishedText"`
 	Duration      string `json:"duration"`
 	Description   string `json:"description"`

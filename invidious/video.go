@@ -1,7 +1,10 @@
 package invidious
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
+	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
@@ -13,18 +16,24 @@ import (
 	"github.com/etherlabsio/go-m3u8/m3u8"
 )
 
-const videoFields = "?fields=title,videoId,author,hlsUrl,publishedText,lengthSeconds,formatStreams,adaptiveFormats,liveNow&hl=en"
+const videoFields = "?fields=title,videoId,author,hlsUrl,publishedText,lengthSeconds,formatStreams,adaptiveFormats,liveNow,viewCount,likeCount,subCountText,description&hl=en"
 
 // VideoData stores information about a video.
 type VideoData struct {
-	Title           string        `json:"title"`
-	Author          string        `json:"author"`
-	VideoID         string        `json:"videoId"`
-	HlsURL          string        `json:"hlsUrl"`
-	LengthSeconds   int64         `json:"lengthSeconds"`
-	LiveNow         bool          `json:"liveNow"`
-	FormatStreams   []VideoFormat `json:"formatStreams"`
-	AdaptiveFormats []VideoFormat `json:"adaptiveFormats"`
+	Title           string          `json:"title"`
+	Author          string          `json:"author"`
+	VideoID         string          `json:"videoId"`
+	HlsURL          string          `json:"hlsUrl"`
+	LengthSeconds   int64           `json:"lengthSeconds"`
+	LiveNow         bool            `json:"liveNow"`
+	ViewCount       int             `json:"viewCount"`
+	LikeCount       int             `json:"likeCount"`
+	PublishedText   string          `json:"publishedText"`
+	SubCountText    string          `json:"subCountText"`
+	Description     string          `json:"description"`
+	Thumbnails      VideoThumbnails `json:"videoThumbnails"`
+	FormatStreams   []VideoFormat   `json:"formatStreams"`
+	AdaptiveFormats []VideoFormat   `json:"adaptiveFormats"`
 }
 
 // VideoFormat stores information about the video's format.
@@ -40,6 +49,14 @@ type VideoFormat struct {
 	FPS             int    `json:"fps"`
 	AudioSampleRate int    `json:"audioSampleRate"`
 	AudioChannels   int    `json:"audioChannels"`
+}
+
+// VideoThumbnails stores the video's thumbnails.
+type VideoThumbnails struct {
+	Quality string `json:"quality"`
+	URL     string `json:"url"`
+	Width   int    `json:"width"`
+	Height  int    `json:"height"`
 }
 
 // Video retrieves a video.
@@ -58,6 +75,16 @@ func Video(id string) (VideoData, error) {
 	}
 
 	return data, nil
+}
+
+// VideoThumbnail returns data to parse a video thumbnail.
+func VideoThumbnail(id, image string) (*http.Response, error) {
+	res, err := client.Get(context.Background(), fmt.Sprintf("/vi/%s/%s.jpg", id, image))
+	if err != nil {
+		return nil, err
+	}
+
+	return res, nil
 }
 
 // VideoLoadParams returns the appropriate parameters to load the video
@@ -97,6 +124,7 @@ func VideoLoadParams(id string, audio bool) (VideoData, []string, error) {
 		urls = append(urls, audioURL)
 	}
 
+	mediaURL += "&id=" + url.QueryEscape(id)
 	mediaURL += "&title=" + url.QueryEscape(video.Title)
 	mediaURL += "&author=" + url.QueryEscape(video.Author)
 	mediaURL += "&mediatype=" + url.QueryEscape(mediatype)

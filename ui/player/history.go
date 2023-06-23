@@ -192,7 +192,7 @@ func historyTableKeybindings(event *tcell.EventKey) *tcell.EventKey {
 	case "Exit":
 		player.history.modal.Exit(false)
 	}
-	
+
 	for _, k := range []string{"ChannelVideos", "ChannelPlaylists"} {
 		if cmd.KeyOperation("History", event) == k {
 			player.history.modal.Exit(false)
