@@ -23,6 +23,7 @@ type Queue struct {
 	init, moveMode bool
 	prevrow        int
 	data           []map[string]interface{}
+	videos         map[string]*inv.VideoData
 
 	status chan struct{}
 
@@ -48,6 +49,7 @@ func (q *Queue) setup() {
 	}
 
 	q.status = make(chan struct{}, 100)
+	q.videos = make(map[string]*inv.VideoData)
 
 	q.table = tview.NewTable()
 	q.table.SetInputCapture(q.Keybindings)
@@ -189,7 +191,7 @@ func (q *Queue) remove() {
 		q.table.Select(row, 0)
 	}
 
-	removeVideo(row)
+	q.removeVideo(row)
 
 	mp.Player().QueueDelete(row)
 
@@ -239,6 +241,7 @@ func (q *Queue) render(data []map[string]interface{}) {
 	q.table.Clear()
 
 	if len(data) == 0 {
+		q.removeVideo(-1, struct{}{})
 		if q.table.HasFocus() {
 			q.Hide()
 		}
@@ -565,6 +568,45 @@ func (q *Queue) generatePlaylist(file string, list []QueueData, appendToFile boo
 	}
 
 	return entries, nil
+}
+
+// currentVideo sets or returns the video to/from the store
+// according to the provided ID.
+func (q *Queue) currentVideo(id string, set ...*inv.VideoData) *inv.VideoData {
+	player.mutex.Lock()
+	defer player.mutex.Unlock()
+
+	if set != nil {
+		q.videos[id] = set[0]
+	}
+
+	video, ok := q.videos[id]
+	if !ok {
+		return nil
+	}
+
+	return video
+}
+
+// removeVideo removes a video from the store.
+func (q *Queue) removeVideo(pos int, reset ...struct{}) {
+	player.mutex.Lock()
+	defer player.mutex.Unlock()
+
+	if reset != nil && len(q.videos) > 0 {
+		q.videos = make(map[string]*inv.VideoData)
+		return
+	}
+
+	title := mp.Player().Title(pos)
+	data := utils.GetDataFromURL(title)
+
+	id := data.Get("id")
+	if id == "" {
+		return
+	}
+
+	delete(q.videos, id)
 }
 
 // sendStatus sends status events to the queue.

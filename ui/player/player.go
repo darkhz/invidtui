@@ -31,7 +31,6 @@ type Player struct {
 	width                 int
 	states                []string
 	history               History
-	videos                map[string]*inv.VideoData
 
 	channel chan bool
 	events  chan struct{}
@@ -54,7 +53,6 @@ func setup() {
 	}
 
 	player.init = true
-	player.videos = make(map[string]*inv.VideoData)
 
 	player.channel = make(chan bool, 10)
 	player.events = make(chan struct{}, 100)
@@ -444,7 +442,7 @@ func loadVideo(id string, audio bool) (string, error) {
 		return "", err
 	}
 
-	currentVideo(id, &video)
+	player.queue.currentVideo(id, &video)
 
 	mp.Player().LoadFile(
 		video.Title,
@@ -515,7 +513,7 @@ func renderInfo(data url.Values) {
 
 	player.currentID = id
 
-	video := currentVideo(id)
+	video := player.queue.currentVideo(id)
 	if video == nil {
 		return
 	}
@@ -810,40 +808,6 @@ func sendPlayerEvents() {
 
 	default:
 	}
-}
-
-// currentVideo sets or returns the video to/from the store
-// according to the provided ID.
-func currentVideo(id string, set ...*inv.VideoData) *inv.VideoData {
-	player.mutex.Lock()
-	defer player.mutex.Unlock()
-
-	if set != nil {
-		player.videos[id] = set[0]
-	}
-
-	video, ok := player.videos[id]
-	if !ok {
-		return nil
-	}
-
-	return video
-}
-
-// removeVideo removes a video from the store.
-func removeVideo(pos int) {
-	player.mutex.Lock()
-	defer player.mutex.Unlock()
-
-	title := mp.Player().Title(pos)
-	data := utils.GetDataFromURL(title)
-
-	id := data.Get("id")
-	if id == "" {
-		return
-	}
-
-	delete(player.videos, id)
 }
 
 // playingStatus sets the current status of the player.
