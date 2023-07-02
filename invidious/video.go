@@ -2,7 +2,6 @@ package invidious
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -69,7 +68,7 @@ func Video(id string) (VideoData, error) {
 	}
 	defer res.Body.Close()
 
-	err = json.NewDecoder(res.Body).Decode(&data)
+	err = utils.JSON().NewDecoder(res.Body).Decode(&data)
 	if err != nil {
 		return VideoData{}, err
 	}

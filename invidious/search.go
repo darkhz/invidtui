@@ -1,11 +1,11 @@
 package invidious
 
 import (
-	"encoding/json"
 	"net/url"
 	"strconv"
 
 	"github.com/darkhz/invidtui/client"
+	"github.com/darkhz/invidtui/utils"
 )
 
 const searchField = "&fields=type,title,videoId,playlistId,author,authorId,publishedText,description,videoCount,subCount,lengthSeconds,videos,liveNow&hl=en"
@@ -66,7 +66,7 @@ func Search(stype, text string, parameters map[string]string, page int, ucid ...
 		}
 
 		s := []SearchData{}
-		err = json.NewDecoder(res.Body).Decode(&s)
+		err = utils.JSON().NewDecoder(res.Body).Decode(&s)
 		if err != nil {
 			return nil, newpg, err
 		}
@@ -93,7 +93,7 @@ func SearchSuggestions(text string) (SuggestData, error) {
 	}
 	defer res.Body.Close()
 
-	err = json.NewDecoder(res.Body).Decode(&data)
+	err = utils.JSON().NewDecoder(res.Body).Decode(&data)
 	if err != nil {
 		return SuggestData{}, err
 	}

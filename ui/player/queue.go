@@ -2,7 +2,6 @@ package player
 
 import (
 	"bufio"
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -492,7 +491,7 @@ func (q *Queue) getQueueData() []QueueData {
 		return []QueueData{}
 	}
 
-	err := json.Unmarshal([]byte(playlistJSON), &data)
+	err := utils.JSON().Unmarshal([]byte(playlistJSON), &data)
 	if err != nil {
 		app.ShowError(fmt.Errorf("Queue: Error while parsing playlist data"))
 		return []QueueData{}

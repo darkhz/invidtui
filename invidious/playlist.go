@@ -1,11 +1,11 @@
 package invidious
 
 import (
-	"encoding/json"
 	"fmt"
 	"strconv"
 
 	"github.com/darkhz/invidtui/client"
+	"github.com/darkhz/invidtui/utils"
 )
 
 const playlistFields = "?fields=title,playlistId,author,description,videoCount,viewCount,videos&hl=en"
@@ -47,7 +47,7 @@ func Playlist(id string, auth bool, page int) (PlaylistData, error) {
 	}
 	defer res.Body.Close()
 
-	err = json.NewDecoder(res.Body).Decode(&data)
+	err = utils.JSON().NewDecoder(res.Body).Decode(&data)
 	if err != nil {
 		return PlaylistData{}, err
 	}
@@ -65,7 +65,7 @@ func UserPlaylists() ([]PlaylistData, error) {
 	}
 	defer res.Body.Close()
 
-	err = json.NewDecoder(res.Body).Decode(&data)
+	err = utils.JSON().NewDecoder(res.Body).Decode(&data)
 	if err != nil {
 		return nil, err
 	}

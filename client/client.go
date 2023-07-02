@@ -3,7 +3,6 @@ package client
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net"
@@ -233,7 +232,7 @@ func checkStatusCode(res *http.Response, codes ...int) (*http.Response, error) {
 
 		message := "API request returned %d"
 
-		if err := json.NewDecoder(res.Body).Decode(&responseError); err == nil {
+		if err := utils.JSON().NewDecoder(res.Body).Decode(&responseError); err == nil {
 			message += ": " + responseError.Error
 		}
 

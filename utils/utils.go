@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/url"
 	"path/filepath"
@@ -10,7 +9,13 @@ import (
 	"time"
 
 	urlverify "github.com/davidmytton/url-verifier"
+	jsoniter "github.com/json-iterator/go"
 )
+
+// JSON returns the jsoniter API for json encoding/decoding.
+func JSON() jsoniter.API {
+	return jsoniter.ConfigCompatibleWithStandardLibrary
+}
 
 // FormatDuration takes a duration as seconds and returns a hh:mm:ss string.
 func FormatDuration(duration int64) string {
@@ -181,9 +186,9 @@ func IsValidURL(uri string) (*url.URL, error) {
 
 // IsValidJSON checks if the text is valid JSON.
 func IsValidJSON(text string) bool {
-	var msg json.RawMessage
+	var msg jsoniter.RawMessage
 
-	return json.Unmarshal([]byte(text), &msg) == nil
+	return JSON().Unmarshal([]byte(text), &msg) == nil
 }
 
 // GetDataFromURL parses specific url fields and returns their values.

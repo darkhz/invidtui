@@ -1,10 +1,10 @@
 package invidious
 
 import (
-	"encoding/json"
 	"strconv"
 
 	"github.com/darkhz/invidtui/client"
+	"github.com/darkhz/invidtui/utils"
 )
 
 // FeedData stores videos in the user's feed.
@@ -37,7 +37,7 @@ func Feed(page int) (FeedData, error) {
 	}
 	defer res.Body.Close()
 
-	err = json.NewDecoder(res.Body).Decode(&data)
+	err = utils.JSON().NewDecoder(res.Body).Decode(&data)
 	if err != nil {
 		return FeedData{}, err
 	}

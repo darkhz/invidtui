@@ -1,7 +1,6 @@
 package player
 
 import (
-	"encoding/json"
 	"os"
 	"strings"
 
@@ -9,6 +8,7 @@ import (
 	inv "github.com/darkhz/invidtui/invidious"
 	"github.com/darkhz/invidtui/ui/app"
 	"github.com/darkhz/invidtui/ui/view"
+	"github.com/darkhz/invidtui/utils"
 	"github.com/darkhz/tview"
 	"github.com/gdamore/tcell/v2"
 )
@@ -43,7 +43,7 @@ func loadHistory() {
 	}
 	defer phfile.Close()
 
-	err = json.NewDecoder(phfile).Decode(&player.history.entries)
+	err = utils.JSON().NewDecoder(phfile).Decode(&player.history.entries)
 	if err != nil && err.Error() != "EOF" {
 		app.ShowError(err)
 		return
@@ -95,7 +95,7 @@ func saveHistory() {
 		return
 	}
 
-	data, err := json.MarshalIndent(player.history.entries, "", " ")
+	data, err := utils.JSON().MarshalIndent(player.history.entries, "", " ")
 	if err != nil {
 		cmd.PrintError("Player: Unable to encode history data")
 		return

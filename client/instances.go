@@ -1,11 +1,12 @@
 package client
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
+
+	"github.com/darkhz/invidtui/utils"
 )
 
 // Instance returns the client's current instance.
@@ -27,7 +28,7 @@ func GetInstances() ([]string, error) {
 		return nil, err
 	}
 
-	err = json.NewDecoder(res.Body).Decode(&instances)
+	err = utils.JSON().NewDecoder(res.Body).Decode(&instances)
 	if err != nil {
 		return nil, err
 	}

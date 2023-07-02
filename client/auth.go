@@ -1,10 +1,11 @@
 package client
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"sync"
+
+	"github.com/darkhz/invidtui/utils"
 )
 
 // Auth stores information about instances and the user's authentication
@@ -37,7 +38,7 @@ func LoadAuthFile(filename string) error {
 	}
 	defer authfile.Close()
 
-	err = json.NewDecoder(authfile).Decode(&credentials)
+	err = utils.JSON().NewDecoder(authfile).Decode(&credentials)
 	if err != nil && err.Error() != "EOF" {
 		return err
 	}
@@ -70,7 +71,7 @@ func SaveAuthCredentials() error {
 		)
 	}
 
-	data, err := json.MarshalIndent(credentials, "", " ")
+	data, err := utils.JSON().MarshalIndent(credentials, "", " ")
 	if err != nil {
 		return fmt.Errorf("Credential: Cannot decode auth data: %s", err)
 	}
