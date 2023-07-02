@@ -540,6 +540,7 @@ func renderInfo(data url.Values) {
 	text += "[::b]" + tview.Escape(video.Description)
 
 	player.infoDesc.SetText(text)
+	player.infoDesc.ScrollToBeginning()
 
 	go renderInfoImage(id)
 }
