@@ -8,9 +8,9 @@ import (
 	"github.com/gdamore/tcell/v2"
 )
 
-// ShowVideoLink shows a popup with Invidious and Youtube
+// ShowLink shows a popup with Invidious and Youtube
 // links for the currently selected video/playlist/channel entry.
-func ShowVideoLink() {
+func ShowLink() {
 	var linkModal *app.Modal
 
 	info, err := app.FocusedTableReference()

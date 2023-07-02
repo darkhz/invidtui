@@ -537,7 +537,7 @@ func (c *ChannelView) Keybindings(event *tcell.EventKey) *tcell.EventKey {
 		Comments.Show()
 
 	case "Link":
-		popup.ShowVideoLink()
+		popup.ShowLink()
 	}
 
 	return event

@@ -365,7 +365,7 @@ func (d *DashboardView) feedKeybindings(event *tcell.EventKey) *tcell.EventKey {
 		d.ModifyHandler(true)
 
 	case "Link":
-		popup.ShowVideoLink()
+		popup.ShowLink()
 
 	case "Comments":
 		Comments.Show()
@@ -389,7 +389,7 @@ func (d *DashboardView) plKeybindings(event *tcell.EventKey) *tcell.EventKey {
 		d.ModifyHandler(false)
 
 	case "Link":
-		popup.ShowVideoLink()
+		popup.ShowLink()
 	}
 
 	return event

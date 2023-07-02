@@ -181,7 +181,7 @@ func (p *PlaylistView) Keybindings(event *tcell.EventKey) *tcell.EventKey {
 		}
 
 	case "Link":
-		popup.ShowVideoLink()
+		popup.ShowLink()
 
 	case "Comments":
 		Comments.Show()

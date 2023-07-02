@@ -323,7 +323,7 @@ func (s *SearchView) Keybindings(event *tcell.EventKey) *tcell.EventKey {
 		Dashboard.ModifyHandler(true)
 
 	case "Link":
-		popup.ShowVideoLink()
+		popup.ShowLink()
 	}
 
 	return event
