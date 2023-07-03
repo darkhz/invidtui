@@ -7,183 +7,140 @@ import (
 	"strconv"
 	"strings"
 
+	flag "github.com/spf13/pflag"
+
 	"github.com/darkhz/invidtui/client"
 	"github.com/darkhz/invidtui/utils"
-	"github.com/jnovack/flag"
+	"github.com/knadh/koanf/parsers/hjson"
+	"github.com/knadh/koanf/providers/file"
+	"github.com/knadh/koanf/providers/posflag"
 )
-
-// Parameters describes the command-line parameter types.
-type Parameters struct {
-	stringValue map[string]map[string]*string
-	boolValue   map[string]*bool
-
-	err string
-}
 
 // Option describes a command-line option.
 type Option struct {
-	name, description string
-	value, optionType string
+	Name, Description string
+	Value, Type       string
 }
 
 var options = []Option{
 	{
-		name:        "token",
-		description: "Specify an authorization token. Use with --force-instance.",
-		value:       "",
-		optionType:  "auth",
+		Name:        "token",
+		Description: "Specify an authorization token. Use with --force-instance.",
+		Value:       "",
+		Type:        "auth",
 	},
 	{
-		name:        "mpv-path",
-		description: "Specify path to the mpv executable.",
-		value:       "mpv",
-		optionType:  "path",
+		Name:        "mpv-path",
+		Description: "Specify path to the mpv executable.",
+		Value:       "mpv",
+		Type:        "path",
 	},
 	{
-		name:        "ytdl-path",
-		description: "Specify path to youtube-dl executable or its forks (yt-dlp, yt-dtlp_x86)",
-		value:       "youtube-dl",
-		optionType:  "path",
+		Name:        "ytdl-path",
+		Description: "Specify path to youtube-dl executable or its forks (yt-dlp, yt-dtlp_x86)",
+		Value:       "youtube-dl",
+		Type:        "path",
 	},
 	{
-		name:        "ffmpeg-path",
-		description: "Specify path to ffmpeg executable.",
-		value:       "ffmpeg",
-		optionType:  "path",
+		Name:        "ffmpeg-path",
+		Description: "Specify path to ffmpeg executable.",
+		Value:       "ffmpeg",
+		Type:        "path",
 	},
 	{
-		name:        "download-dir",
-		description: "Specify directory to download media into.",
-		value:       "",
-		optionType:  "path",
+		Name:        "download-dir",
+		Description: "Specify directory to download media into.",
+		Value:       "",
+		Type:        "path",
 	},
 	{
-		name:        "search-video",
-		description: "Search for a video.",
-		value:       "",
-		optionType:  "search",
+		Name:        "search-video",
+		Description: "Search for a video.",
+		Value:       "",
+		Type:        "search",
 	},
 	{
-		name:        "search-playlist",
-		description: "Search for a playlist.",
-		value:       "",
-		optionType:  "search",
+		Name:        "search-playlist",
+		Description: "Search for a playlist.",
+		Value:       "",
+		Type:        "search",
 	},
 	{
-		name:        "search-channel",
-		description: "Search for a channel.",
-		value:       "",
-		optionType:  "search",
+		Name:        "search-channel",
+		Description: "Search for a channel.",
+		Value:       "",
+		Type:        "search",
 	},
 	{
-		name:        "play-audio",
-		description: "Specify video/playlist URL to play audio from.",
-		value:       "",
-		optionType:  "play",
+		Name:        "play-audio",
+		Description: "Specify video/playlist URL to play audio from.",
+		Value:       "",
+		Type:        "play",
 	},
 	{
-		name:        "play-video",
-		description: "Specify video/playlist URL to play video from.",
-		value:       "",
-		optionType:  "play",
+		Name:        "play-video",
+		Description: "Specify video/playlist URL to play video from.",
+		Value:       "",
+		Type:        "play",
 	},
 	{
-		name:        "video-res",
-		description: "Set the default video resolution.",
-		value:       "720p",
-		optionType:  "other",
+		Name:        "video-res",
+		Description: "Set the default video resolution.",
+		Value:       "720p",
+		Type:        "other",
 	},
 	{
-		name:        "num-retries",
-		description: "Set the number of retries for connecting to the socket.",
-		value:       "100",
-		optionType:  "other",
+		Name:        "num-retries",
+		Description: "Set the number of retries for connecting to the socket.",
+		Value:       "100",
+		Type:        "other",
 	},
 	{
-		name:        "force-instance",
-		description: "Force load media from specified invidious instance.",
-		value:       "",
-		optionType:  "other",
+		Name:        "force-instance",
+		Description: "Force load media from specified invidious instance.",
+		Value:       "",
+		Type:        "other",
 	},
 	{
-		name:        "close-instances",
-		description: "Close all currently running instances.",
-		value:       "",
-		optionType:  "bool",
+		Name:        "close-instances",
+		Description: "Close all currently running instances.",
+		Value:       "",
+		Type:        "bool",
 	},
 	{
-		name:        "use-current-instance",
-		description: "Use the current invidious instance to retrieve media.",
-		value:       "",
-		optionType:  "bool",
+		Name:        "use-current-instance",
+		Description: "Use the current invidious instance to retrieve media.",
+		Value:       "",
+		Type:        "bool",
 	},
 	{
-		name:        "show-instances",
-		description: "Show a list of instances.",
-		value:       "",
-		optionType:  "bool",
+		Name:        "show-instances",
+		Description: "Show a list of instances.",
+		Value:       "",
+		Type:        "bool",
 	},
 	{
-		name:        "token-link",
-		description: "Display a link to the token generation page.",
-		value:       "",
-		optionType:  "bool",
+		Name:        "token-link",
+		Description: "Display a link to the token generation page.",
+		Value:       "",
+		Type:        "bool",
 	},
 	{
-		name:        "version",
-		description: "Print version information.",
-		value:       "",
-		optionType:  "bool",
+		Name:        "version",
+		Description: "Print version information.",
+		Value:       "",
+		Type:        "bool",
 	},
 }
 
-var parameters Parameters
-
 // parse parses the command-line parameters.
 func parse() {
-	parameters.stringValue = make(map[string]map[string]*string)
-	parameters.boolValue = make(map[string]*bool)
-
-	fs := flag.NewFlagSetWithEnvPrefix("invidtui", "INVIDTUI", flag.ContinueOnError)
-	fs.SetOutput(&parameters)
-
-	for _, option := range options {
-		var s string
-		var b bool
-
-		if option.optionType == "bool" {
-			fs.BoolVar(
-				&b,
-				option.name,
-				false,
-				option.description,
-			)
-
-			parameters.boolValue[option.name] = &b
-
-			continue
-		}
-
-		if v := parameters.stringValue[option.optionType]; v == nil {
-			parameters.stringValue[option.optionType] = make(map[string]*string)
-		}
-
-		fs.StringVar(
-			&s,
-			option.name,
-			option.value,
-			option.description,
-		)
-
-		parameters.stringValue[option.optionType][option.name] = &s
-	}
-
-	configFile, err := GetPath("config")
+	configFile, err := GetPath("invidtui.conf")
 	if err != nil {
 		printer.Error(err.Error())
 	}
-	fs.ParseFile(configFile)
 
+	fs := flag.NewFlagSet("invidtui", flag.ContinueOnError)
 	fs.Usage = func() {
 		var usage string
 
@@ -191,10 +148,6 @@ func parse() {
 			"invidtui [<flags>]\n\nConfig file is %s\n\nFlags:\n",
 			configFile,
 		)
-
-		if parameters.err != "" {
-			usage = fmt.Sprintf("%s\n", parameters.err) + usage
-		}
 
 		fs.VisitAll(func(f *flag.Flag) {
 			s := fmt.Sprintf("  --%s", f.Name)
@@ -236,21 +189,45 @@ func parse() {
 			usage += fmt.Sprintf(s + "\n")
 		})
 
-		if parameters.err != "" {
-			printer.Error(usage)
-		}
-
 		printer.Print(usage, 0)
 	}
 
-	fs.Parse(os.Args[1:])
+	for _, option := range options {
+		switch option.Type {
+		case "bool":
+			fs.Bool(option.Name, false, option.Description)
+
+		default:
+			fs.String(option.Name, option.Value, option.Description)
+		}
+	}
+
+	if err = fs.Parse(os.Args[1:]); err != nil {
+		printer.Error(err.Error())
+	}
+
+	if err := config.Load(file.Provider(configFile), hjson.Parser()); err != nil {
+		printer.Error(err.Error())
+	}
+
+	if err := config.Load(posflag.Provider(fs, ".", config.Koanf), nil); err != nil {
+		printer.Error(err.Error())
+	}
 }
 
-// Write writes parameter parsing errors to the screen.
-func (p *Parameters) Write(b []byte) (int, error) {
-	p.err = string(b)
+// check validates all the command-line and configuration values.
+func check() {
+	checkAuth()
 
-	return 0, nil
+	for _, option := range options {
+		switch option.Type {
+		case "path":
+			checkExecutablePaths(option.Name, GetOptionValue(option.Name))
+
+		case "other":
+			checkOtherOptions(option.Name, GetOptionValue(option.Name))
+		}
+	}
 }
 
 // checkAuth parses and checks the 'token' and 'token-link' command-line parameters.
@@ -258,7 +235,7 @@ func (p *Parameters) Write(b []byte) (int, error) {
 func checkAuth() {
 	var instance string
 
-	token := *parameters.stringValue["auth"]["token"]
+	token := GetOptionValue("token")
 	generateLink := IsOptionEnabled("token-link")
 	customInstance := GetOptionValue("force-instance")
 
@@ -293,36 +270,24 @@ func checkAuth() {
 
 	client.AddAuth(instance, token)
 
-	EnableOption("instance-validated")
-}
-
-// checkQuery parses and checks the command-line parameters
-// related to the 'search' and 'play' option types.
-func checkQuery() {
-	for _, valueType := range []string{"search", "play"} {
-		for queryType, query := range parameters.stringValue[valueType] {
-			if *query != "" {
-				SetOptionValue(queryType, *query)
-				break
-			}
-		}
-	}
+	SetOptionValue("instance-validated", true)
 }
 
 // checkExecutablePaths checks the mpv, youtube-dl and ffmpeg
 // application paths and the download directory.
-func checkExecutablePaths() {
-CheckPath:
-	for pathType, path := range parameters.stringValue["path"] {
-		if pathType == "download-dir" && *path != "" {
-			if dir, err := os.Stat(*path); err != nil || !dir.IsDir() {
-				printer.Error(fmt.Sprintf("Cannot access %s for downloads\n", *path))
-			}
+func checkExecutablePaths(pathType, path string) {
+	if pathType != "ytdl-path" && path == "" {
+		return
+	}
 
-			continue
+	switch pathType {
+	case "download-dir":
+		if dir, err := os.Stat(path); err != nil || !dir.IsDir() {
+			printer.Error(fmt.Sprintf("Cannot access %s for downloads\n", path))
 		}
 
-		if pathType == "ytdl-path" && *path == "" {
+	case "ytdl-path":
+		if path == "" {
 			for _, ytdl := range []string{
 				"youtube-dl",
 				"yt-dlp",
@@ -330,82 +295,62 @@ CheckPath:
 			} {
 				_, err := exec.LookPath(ytdl)
 				if err == nil {
-					parameters.stringValue["path"]["ytdl-path"] = &ytdl
-					continue CheckPath
+					SetOptionValue(pathType, path)
 				}
 			}
 		}
 
-		if *path == "" {
-			continue
-		}
+		fallthrough
 
-		if _, err := exec.LookPath(*path); err != nil {
-			printer.Error(fmt.Sprintf("%s: Could not find %s", pathType, *path))
+	default:
+		if _, err := exec.LookPath(path); err != nil {
+			printer.Error(fmt.Sprintf("%s: Could not find %s", pathType, path))
 		}
 	}
 
-	if *parameters.stringValue["path"]["ytdl-path"] == "" {
+	if GetOptionValue("ytdl-path") == "" {
 		printer.Error("Could not find the youtube-dl/yt-dlp/yt-dtlp_x86 executables")
 	}
-
-	for p, path := range parameters.stringValue["path"] {
-		SetOptionValue(p, *path)
-	}
 }
 
-// handleBoolOptions parses and checks the command-line parameters
-// related to the 'bool' option type.
-func handleBoolOptions() {
-	for boolType, enabled := range parameters.boolValue {
-		if !*enabled {
-			continue
-		}
-
-		EnableOption(boolType)
-	}
-}
-
-// handleOtherOptions parses and checks the command-line parameters
+// checkOtherOptions parses and checks the command-line parameters
 // related to the 'other' option type.
-func handleOtherOptions() {
+func checkOtherOptions(otherType, other string) {
 	var resValid bool
 
-	for otherType, other := range parameters.stringValue["other"] {
-		if otherType == "force-instance" && *other != "" {
-			if _, err := utils.IsValidURL(*other); err != nil {
-				printer.Error("Invalid instance URL")
-			}
-		}
-
-		if otherType == "num-retries" {
-			if _, err := strconv.Atoi(*other); err != nil {
-				printer.Error("Invalid value for num-retries")
-			}
-		}
-
-		if otherType == "video-res" {
-			for _, res := range []string{
-				"144p",
-				"240p",
-				"360p",
-				"480p",
-				"720p",
-				"1080p",
-				"1440p",
-				"2160p",
-			} {
-				if res == *other {
-					resValid = true
-					continue
-				}
-			}
-		}
-
-		SetOptionValue(otherType, *other)
+	if other == "" {
+		return
 	}
 
-	if !resValid {
+	switch otherType {
+	case "force-instance":
+		if _, err := utils.IsValidURL(other); err != nil {
+			printer.Error("Invalid instance URL")
+		}
+
+	case "num-retries":
+		if _, err := strconv.Atoi(other); err != nil {
+			printer.Error("Invalid value for num-retries")
+		}
+
+	case "video-res":
+		for _, res := range []string{
+			"144p",
+			"240p",
+			"360p",
+			"480p",
+			"720p",
+			"1080p",
+			"1440p",
+			"2160p",
+		} {
+			if res == other {
+				resValid = true
+			}
+		}
+	}
+
+	if otherType == "video-res" && !resValid {
 		printer.Error("Invalid video resolution")
 	}
 }

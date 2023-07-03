@@ -9,6 +9,7 @@ import (
 	mp "github.com/darkhz/invidtui/mediaplayer"
 )
 
+// Version stores the version information.
 var Version string
 
 // Init parses the command-line parameters and initializes the application.
@@ -23,20 +24,12 @@ func Init() {
 	client.Init()
 	printInstances()
 
-	handleBoolOptions()
-	handleOtherOptions()
-
-	checkAuth()
-	checkQuery()
-	checkExecutablePaths()
+	check()
 
 	loadInstance()
 	loadPlayer()
 
 	printer.Stop()
-
-	parameters.stringValue = nil
-	parameters.boolValue = nil
 }
 
 // loadInstance selects an instance.
@@ -86,7 +79,7 @@ func loadPlayer() {
 
 // printVersion prints the version information.
 func printVersion() {
-	if !*parameters.boolValue["version"] {
+	if !IsOptionEnabled("version") {
 		return
 	}
 
@@ -105,7 +98,7 @@ func printVersion() {
 func printInstances() {
 	var list string
 
-	if !*parameters.boolValue["show-instances"] {
+	if !IsOptionEnabled("show-instances") {
 		return
 	}
 

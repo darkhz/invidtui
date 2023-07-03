@@ -2,11 +2,13 @@ package cmd
 
 import "github.com/gdamore/tcell/v2"
 
+// KeyData stores the metadata for the key.
 type KeyData struct {
 	Title, Context string
 	Kb             Keybinding
 }
 
+// Keybinding stores the keybinding.
 type Keybinding struct {
 	Key  tcell.Key
 	Rune rune
@@ -326,7 +328,7 @@ var (
 	Keys map[string]map[Keybinding]string
 )
 
-// OperationKey returns the keybinding associated with
+// OperationData returns the key data associated with
 // the provided keyID and operation name.
 func OperationData(operation string) *KeyData {
 	return OperationKeys[operation]

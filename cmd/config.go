@@ -8,32 +8,29 @@ import (
 	"sync"
 
 	"github.com/darkhz/invidtui/platform"
+	"github.com/knadh/koanf/v2"
 )
 
 // Config describes the configuration for the app.
 type Config struct {
 	path string
 
-	values  map[string]string
-	enabled map[string]struct{}
-
 	mutex sync.Mutex
+
+	*koanf.Koanf
 }
 
 var config Config
 
-// setup sets up the configuration.
+// Init sets up the configuration.
 func (c *Config) setup() {
 	var configExists bool
 
-	printer.Print("Loading configuration")
-
-	c.values = make(map[string]string)
-	c.enabled = make(map[string]struct{})
+	c.Koanf = koanf.New(".")
 
 	homedir, err := os.UserHomeDir()
 	if err != nil {
-		printer.Error(fmt.Sprintf("Cannot get home directory: %s\n", err.Error()))
+		printer.Error(err.Error())
 	}
 
 	dirs := []string{".config/invidtui", ".invidtui"}
@@ -67,7 +64,7 @@ func (c *Config) setup() {
 		}
 
 		if err != nil {
-			printer.Error(fmt.Sprintf("Cannot create %s", dirs[pos]))
+			printer.Error(err.Error())
 		}
 
 		c.path = dirs[pos]
@@ -98,18 +95,17 @@ func GetPath(ftype string) (string, error) {
 		}
 		fd.Close()
 
-		goto ReturnPath
+		return cfpath, nil
 	}
 
 	cfpath = filepath.Join(config.path, ftype)
 
-	if fd, err := os.OpenFile(cfpath, os.O_CREATE, os.ModePerm); err != nil {
+	fd, err := os.OpenFile(cfpath, os.O_CREATE, os.ModePerm)
+	if err != nil {
 		return "", fmt.Errorf("Config: Cannot create %s file at %s", ftype, cfpath)
-	} else {
-		fd.Close()
 	}
+	fd.Close()
 
-ReturnPath:
 	return cfpath, nil
 }
 
@@ -118,14 +114,19 @@ func GetQueryParams(queryType string) (string, string, error) {
 	config.mutex.Lock()
 	defer config.mutex.Unlock()
 
-	for key, value := range config.values {
-		t := strings.Split(key, "-")
-		if len(t) != 2 {
-			return "", "", fmt.Errorf("Config: Invalid query type")
+	for _, option := range options {
+		if option.Type != queryType {
+			continue
 		}
 
-		if t[0] != queryType {
+		value := config.String(option.Name)
+		if value == "" {
 			continue
+		}
+
+		t := strings.Split(option.Name, "-")
+		if len(t) != 2 {
+			return "", "", fmt.Errorf("Config: Invalid query type")
 		}
 
 		return t[1], value, nil
@@ -140,16 +141,16 @@ func GetOptionValue(key string) string {
 	config.mutex.Lock()
 	defer config.mutex.Unlock()
 
-	return config.values[key]
+	return config.String(key)
 }
 
 // SetOptionValue sets a value for an option
 // in the configuration store.
-func SetOptionValue(key, value string) {
+func SetOptionValue(key string, value interface{}) {
 	config.mutex.Lock()
 	defer config.mutex.Unlock()
 
-	config.values[key] = value
+	config.Set(key, value)
 }
 
 // IsOptionEnabled returns if an option is enabled.
@@ -157,15 +158,5 @@ func IsOptionEnabled(key string) bool {
 	config.mutex.Lock()
 	defer config.mutex.Unlock()
 
-	_, ok := config.enabled[key]
-
-	return ok
-}
-
-// EnableOption enables an option.
-func EnableOption(key string) {
-	config.mutex.Lock()
-	defer config.mutex.Unlock()
-
-	config.enabled[key] = struct{}{}
+	return config.Bool(key)
 }
