@@ -422,15 +422,21 @@ func (s *SearchView) setupHistory() {
 	}
 	defer file.Close()
 
-	entries, err := bufio.NewReader(file).ReadSlice('\n')
-	if err != nil && err != io.EOF {
+	scanner := bufio.NewScanner(file)
+	scanner.Split(bufio.ScanLines)
+	for scanner.Scan() {
+		line := scanner.Text()
+		if line != "" {
+			s.entries = append(s.entries, line)
+		}
+	}
+	if err := scanner.Err(); err != nil && err != io.EOF {
 		app.ShowError(err)
 	}
-	if len(entries) <= 0 {
+	if len(s.entries) <= 0 {
 		return
 	}
 
-	s.entries = strings.Split(string(entries), "\n")
 	s.pos = len(s.entries)
 }
 
@@ -453,7 +459,14 @@ func (s *SearchView) addToHistory(text string) {
 // historyForward moves a step forward in the history.entries buffer, and returns a text.
 func (s *SearchView) historyForward() string {
 	if s.pos+1 >= len(s.entries) {
-		return ""
+		var entry string
+
+		if s.entries != nil {
+			entry = s.entries[len(s.entries)-1]
+
+		}
+
+		return entry
 	}
 
 	s.pos++
@@ -464,7 +477,13 @@ func (s *SearchView) historyForward() string {
 // historyReverse moves a step back in the s.entries buffer, and returns a text.
 func (s *SearchView) historyReverse() string {
 	if s.pos-1 < 0 || s.pos-1 >= len(s.entries) {
-		return ""
+		var entry string
+
+		if s.entries != nil {
+			entry = s.entries[0]
+		}
+
+		return entry
 	}
 
 	s.pos--
