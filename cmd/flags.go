@@ -131,6 +131,12 @@ var options = []Option{
 		Value:       "",
 		Type:        "bool",
 	},
+	{
+		Name:        "generate",
+		Description: "Generate configuration",
+		Value:       "",
+		Type:        "bool",
+	},
 }
 
 // parse parses the command-line parameters.

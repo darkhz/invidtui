@@ -20,6 +20,7 @@ func Init() {
 	parse()
 
 	printVersion()
+	generate()
 
 	client.Init()
 	printInstances()
@@ -116,4 +117,15 @@ func printInstances() {
 	}
 
 	printer.Print(list, 0)
+}
+
+// generate generates the configuration.
+func generate() {
+	if !IsOptionEnabled("generate") {
+		return
+	}
+
+	generateConfig()
+
+	printer.Print("Configuration is generated", 0)
 }

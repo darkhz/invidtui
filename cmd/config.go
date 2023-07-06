@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/darkhz/invidtui/platform"
+	"github.com/hjson/hjson-go/v4"
 	"github.com/knadh/koanf/v2"
 )
 
@@ -159,4 +160,57 @@ func IsOptionEnabled(key string) bool {
 	defer config.mutex.Unlock()
 
 	return config.Bool(key)
+}
+
+// generateConfig generates and updates the configuration.
+// Any existing values are appended to it.
+func generateConfig() {
+	genMap := make(map[string]interface{})
+
+	for _, option := range options {
+		for _, name := range []string{
+			"force-instance",
+			"download-dir",
+			"num-retries",
+			"use-current-instance",
+			"video-res",
+		} {
+			if option.Type == "path" || option.Name == name {
+				genMap[option.Name] = config.Get(option.Name)
+			}
+		}
+	}
+
+	keys := config.Get("keybindings")
+	if keys == nil {
+		keys = make(map[string]interface{})
+	}
+	genMap["keybindings"] = keys
+
+	data, err := hjson.Marshal(genMap)
+	if err != nil {
+		printer.Error(err.Error())
+	}
+
+	conf, err := GetPath("invidtui.conf")
+	if err != nil {
+		printer.Error(err.Error())
+	}
+
+	file, err := os.OpenFile(conf, os.O_WRONLY, os.ModePerm)
+	if err != nil {
+		printer.Error(err.Error())
+	}
+	defer file.Close()
+
+	_, err = file.Write(data)
+	if err != nil {
+		printer.Error(err.Error())
+		return
+	}
+
+	if err := file.Sync(); err != nil {
+		printer.Error(err.Error())
+		return
+	}
 }
