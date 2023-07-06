@@ -217,6 +217,8 @@ func parse() {
 
 // check validates all the command-line and configuration values.
 func check() {
+	parseKeybindings()
+
 	checkAuth()
 
 	for _, option := range options {

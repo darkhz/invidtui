@@ -1,6 +1,12 @@
 package cmd
 
-import "github.com/gdamore/tcell/v2"
+import (
+	"fmt"
+	"strings"
+	"unicode"
+
+	"github.com/gdamore/tcell/v2"
+)
 
 // KeyData stores the metadata for the key.
 type KeyData struct {
@@ -366,4 +372,158 @@ func KeyOperation(event *tcell.EventKey, contexts ...string) string {
 	}
 
 	return ""
+}
+
+// parseKeybindings parses the keybindings from the configuration.
+func parseKeybindings() {
+	if !config.Exists("keybindings") {
+		return
+	}
+
+	kbMap := config.StringMap("keybindings")
+	if len(kbMap) == 0 {
+		return
+	}
+
+	keyNames := make(map[string]tcell.Key)
+	for key, names := range tcell.KeyNames {
+		keyNames[names] = key
+	}
+
+	for keyType, key := range kbMap {
+		checkBindings(keyType, key, keyNames)
+	}
+}
+
+// checkBindings validates the provided keybinding.
+//
+//gocyclo:ignore
+func checkBindings(keyType, key string, keyNames map[string]tcell.Key) {
+	var runes []rune
+	var keys []tcell.Key
+
+	if _, ok := OperationKeys[keyType]; !ok {
+		printer.Error(fmt.Sprintf("Config: Invalid key type %s", keyType))
+	}
+
+	keybinding := Keybinding{
+		Key:  tcell.KeyRune,
+		Rune: ' ',
+		Mod:  tcell.ModNone,
+	}
+
+	tokens := strings.FieldsFunc(key, func(c rune) bool {
+		return unicode.IsSpace(c) || c == '+'
+	})
+
+	for _, token := range tokens {
+		if len(token) > 1 {
+			token = strings.Title(token)
+		} else if len(token) == 1 {
+			keybinding.Rune = rune(token[0])
+			runes = append(runes, keybinding.Rune)
+
+			continue
+		}
+
+		switch token {
+		case "Ctrl":
+			keybinding.Mod |= tcell.ModCtrl
+
+		case "Alt":
+			keybinding.Mod |= tcell.ModAlt
+
+		case "Shift":
+			keybinding.Mod |= tcell.ModShift
+
+		case "Space", "Plus":
+			keybinding.Rune = ' '
+			if token == "Plus" {
+				keybinding.Rune = '+'
+			}
+
+			runes = append(runes, keybinding.Rune)
+
+		default:
+			if key, ok := keyNames[token]; ok {
+				keybinding.Key = key
+				keybinding.Rune = ' '
+				keys = append(keys, keybinding.Key)
+			}
+		}
+	}
+
+	if keys != nil && runes != nil || len(runes) > 1 || len(keys) > 1 {
+		printer.Error(
+			fmt.Sprintf("Config: More than one key entered for %s (%s)", keyType, key),
+		)
+	}
+
+	if keybinding.Mod&tcell.ModShift != 0 {
+		keybinding.Rune = unicode.ToUpper(keybinding.Rune)
+
+		if unicode.IsLetter(keybinding.Rune) {
+			keybinding.Mod &^= tcell.ModShift
+		}
+	}
+
+	if keybinding.Mod&tcell.ModCtrl != 0 {
+		var modKey string
+
+		switch {
+		case len(keys) > 0:
+			if key, ok := tcell.KeyNames[keybinding.Key]; ok {
+				modKey = key
+			}
+
+		case len(runes) > 0:
+			if keybinding.Rune == ' ' {
+				modKey = "Space"
+			} else {
+				modKey = string(keybinding.Rune)
+			}
+		}
+
+		if modKey != "" {
+			modKey = "Ctrl-" + modKey
+			if key, ok := keyNames[modKey]; ok {
+				keybinding.Key = key
+				keys = append(keys, keybinding.Key)
+			}
+		}
+	}
+
+	if keys == nil && runes == nil {
+		printer.Error(
+			fmt.Sprintf("Config: No key specified or invalid keybinding for %s (%s)", keyType, key),
+		)
+	}
+
+	keydata := OperationKeys[keyType]
+
+	for existing, data := range OperationKeys {
+		if data.Kb == keybinding && data.Title != keydata.Title {
+			if data.Context == keydata.Context {
+				goto KeyError
+			}
+
+			for _, context := range []string{
+				"App",
+				"Player",
+			} {
+				if data.Context == context || keydata.Context == context {
+					goto KeyError
+				}
+			}
+
+			continue
+
+		KeyError:
+			printer.Error(
+				fmt.Sprintf("Config: Keybinding for %s will override %s (%s)", keyType, existing, key),
+			)
+		}
+	}
+
+	OperationKeys[keyType].Kb = keybinding
 }
