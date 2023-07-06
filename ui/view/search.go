@@ -296,15 +296,15 @@ func (s *SearchView) ParseQuery() {
 
 // Keybindings describes the keybindings for the search view.
 func (s *SearchView) Keybindings(event *tcell.EventKey) *tcell.EventKey {
-	switch cmd.KeyOperation("Search", event) {
-	case "Start":
+	switch cmd.KeyOperation(event, "Search") {
+	case "SearchStart":
 		go s.Start("")
 		app.UI.Status.SetFocusFunc()
 
 	case "Exit":
 		CloseView()
 
-	case "Query":
+	case "SearchQuery":
 		s.Query()
 
 	case "Playlist":
@@ -319,7 +319,7 @@ func (s *SearchView) Keybindings(event *tcell.EventKey) *tcell.EventKey {
 	case "Comments":
 		Comments.Show()
 
-	case "AddVideo":
+	case "Add":
 		Dashboard.ModifyHandler(true)
 
 	case "Link":
@@ -331,8 +331,8 @@ func (s *SearchView) Keybindings(event *tcell.EventKey) *tcell.EventKey {
 
 // inputFunc describes the keybindings for the search input box.
 func (s *SearchView) inputFunc(e *tcell.EventKey) *tcell.EventKey {
-	switch cmd.KeyOperation("Search", e) {
-	case "Start":
+	switch cmd.KeyOperation(e, "Search") {
+	case "SearchStart":
 		text := app.UI.Status.GetText()
 		if text != "" {
 			go s.Start(text)
@@ -350,7 +350,7 @@ func (s *SearchView) inputFunc(e *tcell.EventKey) *tcell.EventKey {
 		app.UI.Status.SwitchToPage("messages")
 		app.SetPrimaryFocus()
 
-	case "Suggestions":
+	case "SearchSuggestions":
 		go s.Suggestions(app.UI.Status.GetText())
 
 	case "SwitchMode":
@@ -360,22 +360,22 @@ func (s *SearchView) inputFunc(e *tcell.EventKey) *tcell.EventKey {
 		s.currentType = app.SwitchTab(false, tab)
 		s.Query(struct{}{})
 
-	case "Parameters":
+	case "SearchParameters":
 		go s.Parameters()
 
-	case "SuggestionReverse":
+	case "SearchSuggestionReverse":
 		s.suggestBox.Table.InputHandler()(tcell.NewEventKey(tcell.KeyUp, ' ', tcell.ModNone), nil)
 
-	case "SuggestionForward":
+	case "SearchSuggestionForward":
 		s.suggestBox.Table.InputHandler()(tcell.NewEventKey(tcell.KeyDown, ' ', tcell.ModNone), nil)
 
-	case "HistoryReverse":
-		if t := s.historyReverse(); t != "" {
+	case "SearchHistoryReverse":
+		if t := s.historyReverse(); t != "Search" {
 			app.UI.Status.SetText(t)
 		}
 
-	case "HistoryForward":
-		if t := s.historyForward(); t != "" {
+	case "SearchHistoryForward":
+		if t := s.historyForward(); t != "Search" {
 			app.UI.Status.SetText(t)
 		}
 	}

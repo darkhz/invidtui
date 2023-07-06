@@ -64,8 +64,8 @@ func (b *BannerView) Primitive() tview.Primitive {
 
 // Keybindings describes the banner view's keybindings.
 func (b *BannerView) Keybindings(event *tcell.EventKey) *tcell.EventKey {
-	switch cmd.KeyOperation("Start", event) {
-	case "Search":
+	switch cmd.KeyOperation(event, "Search") {
+	case "SearchQuery":
 		Search.Query()
 	}
 

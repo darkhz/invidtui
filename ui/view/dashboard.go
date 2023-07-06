@@ -332,7 +332,7 @@ func (d *DashboardView) PlaylistForm(edit bool) {
 
 // Keybindings defines the keybindings for the dashboard view.
 func (d *DashboardView) Keybindings(event *tcell.EventKey) *tcell.EventKey {
-	switch cmd.KeyOperation("Dashboard", event) {
+	switch cmd.KeyOperation(event, "Dashboard") {
 	case "Switch":
 		tab := d.Tabs()
 		tab.Selected = d.CurrentPage()
@@ -346,7 +346,7 @@ func (d *DashboardView) Keybindings(event *tcell.EventKey) *tcell.EventKey {
 		client.Cancel()
 		CloseView()
 
-	case "Reload":
+	case "DashboardReload":
 		d.Load(d.CurrentPage(), struct{}{})
 	}
 
@@ -357,11 +357,11 @@ func (d *DashboardView) Keybindings(event *tcell.EventKey) *tcell.EventKey {
 func (d *DashboardView) feedKeybindings(event *tcell.EventKey) *tcell.EventKey {
 	d.Keybindings(event)
 
-	switch cmd.KeyOperation("Dashboard", event) {
+	switch cmd.KeyOperation(event) {
 	case "LoadMore":
 		d.loadFeed(false, struct{}{})
 
-	case "AddVideo":
+	case "Add":
 		d.ModifyHandler(true)
 
 	case "Link":
@@ -378,11 +378,11 @@ func (d *DashboardView) feedKeybindings(event *tcell.EventKey) *tcell.EventKey {
 func (d *DashboardView) plKeybindings(event *tcell.EventKey) *tcell.EventKey {
 	d.Keybindings(event)
 
-	switch cmd.KeyOperation("Dashboard", event) {
+	switch cmd.KeyOperation(event, "Dashboard") {
 	case "Playlist":
 		Playlist.EventHandler(event.Modifiers() == tcell.ModAlt)
 
-	case "Create", "Edit":
+	case "DashboardCreatePlaylist", "DashboardEditPlaylist":
 		d.PlaylistForm(event.Rune() == 'e')
 
 	case "Remove":
@@ -399,7 +399,7 @@ func (d *DashboardView) plKeybindings(event *tcell.EventKey) *tcell.EventKey {
 func (d *DashboardView) subKeybindings(event *tcell.EventKey) *tcell.EventKey {
 	d.Keybindings(event)
 
-	switch cmd.KeyOperation("Dashboard", event) {
+	switch cmd.KeyOperation(event) {
 	case "ChannelVideos":
 		Channel.EventHandler("video", event.Modifiers() == tcell.ModAlt)
 

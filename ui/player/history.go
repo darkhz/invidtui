@@ -179,8 +179,8 @@ Render:
 
 // historyTableKeybindings defines the keybindings for the history popup.
 func historyTableKeybindings(event *tcell.EventKey) *tcell.EventKey {
-	switch cmd.KeyOperation("History", event) {
-	case "Query":
+	switch cmd.KeyOperation(event, "Search") {
+	case "SearchQuery":
 		app.UI.SetFocus(player.history.input)
 
 	case "ChannelVideos":
@@ -194,7 +194,7 @@ func historyTableKeybindings(event *tcell.EventKey) *tcell.EventKey {
 	}
 
 	for _, k := range []string{"ChannelVideos", "ChannelPlaylists"} {
-		if cmd.KeyOperation("History", event) == k {
+		if cmd.KeyOperation(event) == k {
 			player.history.modal.Exit(false)
 			app.UI.Status.SwitchToPage("messages")
 

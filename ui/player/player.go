@@ -264,25 +264,25 @@ func IsHistoryInputFocused() bool {
 func Keybindings(event *tcell.EventKey) *tcell.EventKey {
 	playerKeybindings(event)
 
-	switch cmd.KeyOperation("Player", event) {
-	case "Open":
+	switch cmd.KeyOperation(event, "Player", "Queue") {
+	case "PlayerOpenPlaylist":
 		app.UI.FileBrowser.Show("Open playlist:", openPlaylist)
 
-	case "History":
+	case "PlayerHistory":
 		showHistory()
 
-	case "Info":
+	case "PlayerInfo":
 		ToggleInfo()
 
-	case "InfoScrollDown":
+	case "PlayerInfoScrollDown":
 		player.infoDesc.InputHandler()(tcell.NewEventKey(tcell.KeyDown, ' ', tcell.ModNone), nil)
 		return nil
 
-	case "InfoScrollUp":
+	case "PlayerInfoScrollUp":
 		player.infoDesc.InputHandler()(tcell.NewEventKey(tcell.KeyUp, ' ', tcell.ModNone), nil)
 		return nil
 
-	case "QueueAudio", "QueueVideo", "PlayAudio", "PlayVideo":
+	case "PlayerQueueAudio", "PlayerQueueVideo", "PlayerPlayAudio", "PlayerPlayVideo":
 		playSelected(event.Rune())
 
 	case "Queue":
@@ -291,7 +291,6 @@ func Keybindings(event *tcell.EventKey) *tcell.EventKey {
 	case "AudioURL", "VideoURL":
 		playInputURL(event.Rune() == 'b')
 		return nil
-
 	}
 
 	return event
@@ -302,38 +301,38 @@ func Keybindings(event *tcell.EventKey) *tcell.EventKey {
 func playerKeybindings(event *tcell.EventKey) {
 	var nokey bool
 
-	switch cmd.KeyOperation("Player", event) {
-	case "Stop":
+	switch cmd.KeyOperation(event, "Player") {
+	case "PlayerStop":
 		sendPlayingStatus(false)
 
-	case "Pause":
-		mp.Player().TogglePaused()
-
-	case "SeekForward":
+	case "PlayerSeekForward":
 		mp.Player().SeekForward()
 
-	case "SeekBackward":
+	case "PlayerSeekBackward":
 		mp.Player().SeekBackward()
 
-	case "ToggleLoop":
+	case "PlayerTogglePlay":
+		mp.Player().TogglePaused()
+
+	case "PlayerToggleLoop":
 		mp.Player().ToggleLoopMode()
 
-	case "ToggleShuffle":
+	case "PlayerToggleShuffle":
 		mp.Player().ToggleShuffled()
 
-	case "ToggleMute":
+	case "PlayerToggleMute":
 		mp.Player().ToggleMuted()
 
-	case "VolumeIncrease":
+	case "PlayerVolumeIncrease":
 		mp.Player().VolumeIncrease()
 
-	case "VolumeDecrease":
+	case "PlayerVolumeDecrease":
 		mp.Player().VolumeDecrease()
 
-	case "Prev":
+	case "PlayerPrev":
 		mp.Player().Prev()
 
-	case "Next":
+	case "PlayerNext":
 		mp.Player().Next()
 
 	default:

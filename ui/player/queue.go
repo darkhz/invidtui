@@ -100,12 +100,12 @@ func (q *Queue) Hide() {
 
 // Keybindings define the keybindings for the queue.
 func (q *Queue) Keybindings(event *tcell.EventKey) *tcell.EventKey {
-	operation := cmd.KeyOperation("Queue", event)
+	operation := cmd.KeyOperation(event, "Queue")
 
 	for _, op := range []string{
-		"Exit",
-		"Save",
-		"Append",
+		"QueueExit",
+		"QueueSave",
+		"QueueAppend",
 	} {
 		if operation == op {
 			q.Hide()
@@ -114,28 +114,28 @@ func (q *Queue) Keybindings(event *tcell.EventKey) *tcell.EventKey {
 	}
 
 	switch operation {
-	case "Play":
+	case "QueuePlayMove":
 		q.play()
 
-	case "Save":
+	case "QueueSave":
 		app.UI.FileBrowser.Show("Save as:", q.saveAs)
 
-	case "Append":
+	case "QueueAppend":
 		app.UI.FileBrowser.Show("Append from:", q.appendFrom)
 
-	case "Delete":
+	case "QueueDelete":
 		q.remove()
 
-	case "Move":
+	case "QueueMove":
 		q.move()
 
-	case "Stop", "Exit":
+	case "PlayerStop", "Exit":
 		q.Hide()
 	}
 
 	for _, o := range []string{
-		"Move",
-		"Delete",
+		"QueueMove",
+		"QueueDelete",
 	} {
 		if operation == o {
 			app.ResizeModal()

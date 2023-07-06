@@ -159,8 +159,8 @@ func (c *CommentsView) Close() {
 
 // Keybindings describes the keybindings for the comments view.
 func (c *CommentsView) Keybindings(event *tcell.EventKey) *tcell.EventKey {
-	switch cmd.KeyOperation("Comments", event) {
-	case "Replies":
+	switch cmd.KeyOperation(event, "Comments") {
+	case "CommentReplies":
 		node := c.view.GetCurrentNode()
 		if node.GetLevel() > 2 {
 			node.GetParent().SetExpanded(!node.GetParent().IsExpanded())

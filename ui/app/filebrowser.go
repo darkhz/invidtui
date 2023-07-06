@@ -137,16 +137,16 @@ func (f *FileBrowser) Query(
 
 // Keybindings define the keybindings for the file browser.
 func (f *FileBrowser) Keybindings(event *tcell.EventKey) *tcell.EventKey {
-	switch cmd.KeyOperation("Files", event) {
-	case "CDFwd":
+	switch cmd.KeyOperation(event, "Files") {
+	case "FilebrowserDirForward":
 		sel, _ := f.table.GetSelection()
 		cell := f.table.GetCell(sel, 0)
 		go f.cd(filepath.Clean(cell.Text), true, false)
 
-	case "CDBack":
+	case "FilebrowserDirBack":
 		go f.cd("", false, true)
 
-	case "ToggleHidden":
+	case "FilebrowserToggleHidden":
 		f.hiddenStatus(struct{}{})
 		go f.cd("", false, false)
 	}

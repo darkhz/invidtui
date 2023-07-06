@@ -508,7 +508,7 @@ func (c *ChannelView) Query() {
 
 // Keybindings describes the keybindings for the channel view.
 func (c *ChannelView) Keybindings(event *tcell.EventKey) *tcell.EventKey {
-	switch cmd.KeyOperation("Channel", event) {
+	switch cmd.KeyOperation(event, "Search") {
 	case "Switch":
 		tab := c.Tabs()
 		tab.Selected = c.currentType
@@ -523,14 +523,14 @@ func (c *ChannelView) Keybindings(event *tcell.EventKey) *tcell.EventKey {
 	case "Exit":
 		CloseView()
 
-	case "Query":
+	case "SearchQuery":
 		c.currentType = "search"
 		go c.Load(c.currentType)
 
 	case "Playlist":
 		go Playlist.EventHandler(event.Modifiers() == tcell.ModAlt)
 
-	case "AddTo":
+	case "Add":
 		Dashboard.ModifyHandler(true)
 
 	case "Comments":

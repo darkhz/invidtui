@@ -57,8 +57,10 @@ func Resize(screen tcell.Screen) {
 
 // Keybindings defines the global keybindings for the application.
 func Keybindings(event *tcell.EventKey) *tcell.EventKey {
+	operation := cmd.KeyOperation(event, "App", "Dashboard", "Downloads")
+
 	focused := app.UI.GetFocus()
-	if _, ok := focused.(*tview.InputField); ok && cmd.KeyOperation("App", event) != "Menu" {
+	if _, ok := focused.(*tview.InputField); ok && operation != "Menu" {
 		goto Event
 	}
 
@@ -66,7 +68,7 @@ func Keybindings(event *tcell.EventKey) *tcell.EventKey {
 		return nil
 	}
 
-	switch cmd.KeyOperation("App", event) {
+	switch operation {
 	case "Menu":
 		app.FocusMenu()
 		return nil
@@ -93,7 +95,7 @@ func Keybindings(event *tcell.EventKey) *tcell.EventKey {
 	case "InstancesList":
 		go popup.ShowInstancesList()
 
-	case "Ctrl-C", "Quit":
+	case "Quit":
 		StopUI(true)
 	}
 

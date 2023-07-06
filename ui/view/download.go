@@ -178,8 +178,8 @@ func (d *DownloadsView) Start(id, itag, filename string) {
 
 // OptionKeybindings describes the keybindings for the download options popup.
 func (d *DownloadsView) OptionKeybindings(event *tcell.EventKey) *tcell.EventKey {
-	switch cmd.KeyOperation("Downloads", event) {
-	case "Select":
+	switch cmd.KeyOperation(event, "Downloads") {
+	case "DownloadOptionSelect":
 		row, _ := d.options.GetSelection()
 		cell := d.options.GetCell(row, 0)
 
@@ -199,8 +199,8 @@ func (d *DownloadsView) OptionKeybindings(event *tcell.EventKey) *tcell.EventKey
 
 // Keybindings describes the keybindings for the downloads view.
 func (d *DownloadsView) Keybindings(event *tcell.EventKey) *tcell.EventKey {
-	switch cmd.KeyOperation("Downloads", event) {
-	case "Cancel":
+	switch cmd.KeyOperation(event, "Downloads") {
+	case "DownloadCancel":
 		row, _ := Downloads.view.GetSelection()
 
 		cell := Downloads.view.GetCell(row, 0)

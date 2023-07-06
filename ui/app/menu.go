@@ -9,16 +9,10 @@ import (
 	"github.com/gdamore/tcell/v2"
 )
 
-// Menu describes a menu and its options.
-type Menu struct {
-	Title   string
-	Options []*MenuOption
-}
-
-// MenuOption describes a menu option.
-type MenuOption struct {
-	Title, MenuID string
-	Visible       func() bool
+// MenuData stores the menu items and handlers.
+type MenuData struct {
+	Visible map[string]func(menuType string) bool
+	Items   map[string][]string
 }
 
 // MenuArea stores the menu modal and the current context menu.
@@ -26,15 +20,15 @@ type MenuArea struct {
 	context string
 
 	modal *Modal
+	data  *MenuData
 	focus tview.Primitive
-	items map[string]*Menu
 }
 
 var menuArea MenuArea
 
 // InitMenu initializes the menu.
-func InitMenu(menuItems map[string]*Menu) {
-	menuArea.items = menuItems
+func InitMenu(data *MenuData) {
+	menuArea.data = data
 
 	AddMenu("App")
 	AddMenu("Player")
@@ -42,7 +36,7 @@ func InitMenu(menuItems map[string]*Menu) {
 
 // AddMenu adds a menu to the menubar.
 func AddMenu(menuType string) {
-	menu, ok := menuArea.items[menuType]
+	_, ok := menuArea.data.Items[menuType]
 	if !ok {
 		return
 	}
@@ -52,7 +46,7 @@ func AddMenu(menuType string) {
 		text = string('\u2261')
 	}
 
-	UI.Menu.SetText(menuFormat(text, menuType, menu.Title))
+	UI.Menu.SetText(menuFormat(text, menuType, menuType))
 }
 
 // MenuExit closes the menu.
@@ -76,11 +70,15 @@ func SetContextMenu(menuType string, item tview.Primitive) {
 			break
 		}
 
-		text = menuFormat(text, region, menuArea.items[region].Title)
+		if _, ok := menuArea.data.Items[region]; !ok {
+			continue
+		}
+
+		text = menuFormat(text, region, region)
 	}
 
-	if option, ok := menuArea.items[menuType]; ok {
-		text = menuFormat(text, "context-"+menuType, option.Title)
+	if _, ok := menuArea.data.Items[menuType]; ok {
+		text = menuFormat(text, "context-"+menuType, menuType)
 	}
 
 	menuArea.focus = item
@@ -115,7 +113,7 @@ func DrawMenu(x int, region string) {
 		region = strings.Split(region, "-")[1]
 	}
 
-	menu, ok := menuArea.items[region]
+	menuItems, ok := menuArea.data.Items[region]
 	if !ok {
 		return
 	}
@@ -130,12 +128,12 @@ func DrawMenu(x int, region string) {
 			if option, ok := ref.([]string); ok {
 				MenuKeybindings(event)
 
-				op := cmd.OperationKey(option[0], option[1])
-				if op.Key != tcell.KeyRune {
-					op.Rune = rune(op.Key)
+				op := cmd.OperationData(option[1])
+				if op.Kb.Key != tcell.KeyRune {
+					op.Kb.Rune = rune(op.Kb.Key)
 				}
 
-				ev := tcell.NewEventKey(op.Key, op.Rune, op.Mod)
+				ev := tcell.NewEventKey(op.Kb.Key, op.Kb.Rune, op.Kb.Mod)
 
 				UI.Application.GetInputCapture()(ev)
 				if option[0] == "App" || option[0] == "Player" {
@@ -153,35 +151,37 @@ func DrawMenu(x int, region string) {
 		return event
 	})
 
-	for row, option := range menu.Options {
-		if option.Visible != nil && !option.Visible() {
+	for row, item := range menuItems {
+		if visible, ok := menuArea.data.Visible[item]; ok && !visible(region) {
 			skipped++
 			continue
 		}
 
-		op := cmd.OperationKey(menu.Title, option.MenuID)
-		ev := tcell.NewEventKey(op.Key, op.Rune, op.Mod)
+		op := cmd.OperationData(item)
+
+		ev := tcell.NewEventKey(op.Kb.Key, op.Kb.Rune, op.Kb.Mod)
 
 		keyname := ev.Name()
-		if op.Key == tcell.KeyRune {
-			if op.Rune == ' ' {
+		if op.Kb.Key == tcell.KeyRune {
+			if op.Kb.Rune == ' ' {
 				keyname = "Space"
 			} else {
-				keyname = string(op.Rune)
+				keyname = string(op.Kb.Rune)
 			}
 		}
-		if op.Mod == tcell.ModAlt {
+
+		if op.Kb.Mod == tcell.ModAlt {
 			keyname = "Alt+" + keyname
 		}
 
-		opwidth := len(option.Title) + len(keyname) + 10
+		opwidth := len(op.Title) + len(keyname) + 10
 		if opwidth > width {
 			width = opwidth
 		}
 
-		modal.Table.SetCell(row-skipped, 0, tview.NewTableCell(option.Title).
+		modal.Table.SetCell(row-skipped, 0, tview.NewTableCell(op.Title).
 			SetExpansion(1).
-			SetReference([]string{menu.Title, option.MenuID}).
+			SetReference([]string{op.Title, item}).
 			SetAttributes(tcell.AttrBold),
 		)
 
@@ -192,7 +192,7 @@ func DrawMenu(x int, region string) {
 	}
 
 	modal.Width = width
-	modal.Height = (len(menu.Options) - skipped) + 2
+	modal.Height = (len(menuItems) - skipped) + 2
 	if modal.Height > 10 {
 		modal.Height = 10
 	}

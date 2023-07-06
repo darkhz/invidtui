@@ -163,19 +163,19 @@ func (p *PlaylistView) Load(id string, loadMore ...struct{}) {
 
 // Keybindings describes the keybindings for the playlist view.
 func (p *PlaylistView) Keybindings(event *tcell.EventKey) *tcell.EventKey {
-	switch cmd.KeyOperation("Playlist", event) {
+	switch cmd.KeyOperation(event) {
 	case "LoadMore":
 		go p.Load(p.currentID, struct{}{})
 
 	case "Exit":
 		CloseView()
 
-	case "AddToPlaylist":
+	case "Add":
 		if !Dashboard.IsFocused() {
 			Dashboard.ModifyHandler(true)
 		}
 
-	case "RemoveFromPlaylist":
+	case "Remove":
 		if v := PreviousView(); v != nil && v.Name() == Dashboard.Name() {
 			Dashboard.ModifyHandler(false)
 		}
