@@ -2,17 +2,13 @@ package client
 
 import (
 	"fmt"
-	"os"
 	"sync"
-
-	"github.com/darkhz/invidtui/utils"
 )
 
 // Auth stores information about instances and the user's authentication
 // tokens associated with it.
 type Auth struct {
-	filename string
-	store    map[string]string
+	store map[string]string
 
 	mutex sync.Mutex
 }
@@ -28,71 +24,24 @@ const Scopes = "GET:playlists*,GET:subscriptions*,GET:feed*,GET:notifications*,G
 
 var auth Auth
 
-// LoadAuthFile loads user credentials from the provided file.
-func LoadAuthFile(filename string) error {
-	var credentials []Credential
-
-	authfile, err := os.OpenFile(filename, os.O_RDONLY, os.ModePerm)
-	if err != nil {
-		return err
-	}
-	defer authfile.Close()
-
-	err = utils.JSON().NewDecoder(authfile).Decode(&credentials)
-	if err != nil && err.Error() != "EOF" {
-		return err
-	}
-
-	auth.filename = filename
+// SetAuthCredentials sets the authentication credentials.
+func SetAuthCredentials(credentials []Credential) {
 	auth.store = make(map[string]string)
 
-	for _, instance := range credentials {
-		auth.store[instance.Instance] = instance.Token
+	for _, credential := range credentials {
+		auth.store[credential.Instance] = credential.Token
 	}
-
-	return nil
 }
 
-// SaveAuthCredentials saves the authentication credentials.
-func SaveAuthCredentials() error {
-	var credentials []Credential
-
-	if len(auth.store) == 0 {
-		return nil
-	}
+// GetAuthCredentials returns the authentication credentials.
+func GetAuthCredentials() []Credential {
+	var creds []Credential
 
 	for instance, token := range auth.store {
-		credentials = append(
-			credentials,
-			Credential{
-				Instance: instance,
-				Token:    token,
-			},
-		)
+		creds = append(creds, Credential{instance, token})
 	}
 
-	data, err := utils.JSON().MarshalIndent(credentials, "", " ")
-	if err != nil {
-		return fmt.Errorf("Credential: Cannot decode auth data: %s", err)
-	}
-
-	file, err := os.OpenFile(auth.filename, os.O_WRONLY, os.ModePerm)
-	if err != nil {
-		return fmt.Errorf("Credential: Cannot open auth data file: %s", err)
-	}
-	defer file.Close()
-
-	_, err = file.Write(data)
-	if err != nil {
-		return fmt.Errorf("Credential: Cannot save auth data: %s", err)
-	}
-
-	err = file.Sync()
-	if err != nil {
-		return fmt.Errorf("Credential: Cannot sync auth data: %s", err)
-	}
-
-	return nil
+	return creds
 }
 
 // AddAuth adds and stores an instance and token credential.

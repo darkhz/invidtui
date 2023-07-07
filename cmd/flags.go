@@ -224,7 +224,7 @@ func parse() {
 // check validates all the command-line and configuration values.
 func check() {
 	parseKeybindings()
-
+	getSettings()
 	checkAuth()
 
 	for _, option := range options {
@@ -254,15 +254,6 @@ func checkAuth() {
 	instance = utils.GetHostname(customInstance)
 	if generateLink {
 		printer.Print(client.AuthLink(instance), 0)
-	}
-
-	authFile, err := GetPath("auth.json")
-	if err != nil {
-		printer.Error(err.Error())
-	}
-	err = client.LoadAuthFile(authFile)
-	if err != nil {
-		printer.Error(err.Error())
 	}
 
 	if token == "" {

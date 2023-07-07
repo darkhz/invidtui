@@ -1,14 +1,12 @@
 package player
 
 import (
-	"os"
 	"strings"
 
 	"github.com/darkhz/invidtui/cmd"
 	inv "github.com/darkhz/invidtui/invidious"
 	"github.com/darkhz/invidtui/ui/app"
 	"github.com/darkhz/invidtui/ui/view"
-	"github.com/darkhz/invidtui/utils"
 	"github.com/darkhz/tview"
 	"github.com/gdamore/tcell/v2"
 )
@@ -16,7 +14,7 @@ import (
 // History describes the layout of the history popup
 // and stores the entries.
 type History struct {
-	entries []inv.SearchData
+	entries []cmd.PlayHistorySettings
 
 	modal *app.Modal
 	flex  *tview.Flex
@@ -24,36 +22,24 @@ type History struct {
 	input *tview.InputField
 }
 
-// loadHistory loads the play history from the
-// playhistory.json configuration file.
+// loadHistory loads the saved play history.
 func loadHistory() {
-	player.mutex.Lock()
-	defer player.mutex.Unlock()
-
-	playhistory, err := cmd.GetPath("playhistory.json")
-	if err != nil {
-		app.ShowError(err)
-		return
-	}
-
-	phfile, err := os.Open(playhistory)
-	if err != nil {
-		app.ShowError(err)
-		return
-	}
-	defer phfile.Close()
-
-	err = utils.JSON().NewDecoder(phfile).Decode(&player.history.entries)
-	if err != nil && err.Error() != "EOF" {
-		app.ShowError(err)
-		return
-	}
+	player.history.entries = cmd.Settings.PlayHistory
 }
 
 // addToHistory adds a currently playing item to the history.
-func addToHistory(info inv.SearchData) {
+func addToHistory(data inv.SearchData) {
 	player.mutex.Lock()
 	defer player.mutex.Unlock()
+
+	info := cmd.PlayHistorySettings{
+		Type:       data.Type,
+		Title:      data.Title,
+		Author:     data.Author,
+		VideoID:    data.VideoID,
+		PlaylistID: data.PlaylistID,
+		AuthorID:   data.AuthorID,
+	}
 
 	if len(player.history.entries) != 0 && player.history.entries[0] == info {
 		return
@@ -78,51 +64,12 @@ func addToHistory(info inv.SearchData) {
 	}
 
 	player.history.entries = append(player.history.entries, prevInfo)
-}
-
-// saveHistory saves the history to the playhistory.json file.
-func saveHistory() {
-	player.mutex.Lock()
-	defer player.mutex.Unlock()
-
-	if len(player.history.entries) == 0 {
-		return
-	}
-
-	phfile, err := cmd.GetPath("playhistory.json")
-	if err != nil {
-		cmd.PrintError("Player: Unable to get history path", err)
-		return
-	}
-
-	data, err := utils.JSON().MarshalIndent(player.history.entries, "", " ")
-	if err != nil {
-		cmd.PrintError("Player: Unable to encode history data")
-		return
-	}
-
-	file, err := os.OpenFile(phfile, os.O_WRONLY, os.ModePerm)
-	if err != nil {
-		cmd.PrintError("Player: Cannot open history", err)
-		return
-	}
-	defer file.Close()
-
-	_, err = file.Write(data)
-	if err != nil {
-		cmd.PrintError("Player: Cannot save history", err)
-		return
-	}
-
-	if err := file.Sync(); err != nil {
-		cmd.PrintError("Player: Error syncing history", err)
-		return
-	}
+	cmd.Settings.PlayHistory = player.history.entries
 }
 
 // showHistory shows a popup with the history entries.
 func showHistory() {
-	var history []inv.SearchData
+	var history []cmd.PlayHistorySettings
 
 	player.mutex.Lock()
 	history = player.history.entries
@@ -218,9 +165,18 @@ func historyFilter(text string) {
 			continue
 		}
 
+		info := inv.SearchData{
+			Type:       ph.Type,
+			Title:      ph.Title,
+			Author:     ph.Author,
+			VideoID:    ph.VideoID,
+			PlaylistID: ph.PlaylistID,
+			AuthorID:   ph.AuthorID,
+		}
+
 		player.history.table.SetCell(row, 0, tview.NewTableCell("[blue::b]"+ph.Title).
 			SetExpansion(1).
-			SetReference(ph).
+			SetReference(info).
 			SetSelectedStyle(app.UI.SelectedStyle),
 		)
 

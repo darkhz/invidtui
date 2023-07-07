@@ -39,12 +39,9 @@ func SetupUI() error {
 }
 
 // StopUI stops the application.
-func StopUI(exit bool, skip ...struct{}) {
+func StopUI(skip ...struct{}) {
 	app.Stop(skip...)
-	player.Stop(exit)
-
-	view.Search.SaveHistory()
-	client.SaveAuthCredentials()
+	player.Stop()
 }
 
 // Resize handles the resizing of the app and its components.
@@ -96,7 +93,7 @@ func Keybindings(event *tcell.EventKey) *tcell.EventKey {
 		go popup.ShowInstancesList()
 
 	case "Quit":
-		StopUI(true)
+		StopUI()
 	}
 
 Event:
@@ -115,7 +112,7 @@ func detectPlayerClose() {
 	default:
 	}
 
-	StopUI(true, struct{}{})
+	StopUI(struct{}{})
 
 	cmd.PrintError("Player has exited")
 }

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/url"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -158,6 +159,29 @@ func SanitizeCookie(cookie string) string {
 	}
 
 	return string(buf)
+}
+
+// Deduplicate removes duplicate values from the slice.
+func Deduplicate(values []string) []string {
+	encountered := make(map[string]int, len(values))
+	for v := range values {
+		encountered[values[v]] = v
+	}
+
+	i := 0
+	keys := make([]int, len(encountered))
+	for _, pos := range encountered {
+		keys[i] = pos
+		i++
+	}
+	sort.Ints(keys)
+
+	dedup := make([]string, len(keys))
+	for key, pos := range keys {
+		dedup[key] = values[pos]
+	}
+
+	return dedup
 }
 
 // TrimPath cleans and returns a directory path.

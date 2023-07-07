@@ -1,10 +1,7 @@
 package view
 
 import (
-	"bufio"
 	"fmt"
-	"io"
-	"os"
 	"strconv"
 	"strings"
 
@@ -384,64 +381,13 @@ Event:
 	return e
 }
 
-// SaveHistory saves the contents of the history entries buffer to the history file.
-// Taken from https://github.com/abs-lang/abs/repl/history.entries.go (saveHistory)
-func (s *SearchView) SaveHistory() {
-	historyText := strings.Join(s.entries, "\n")
-
-	file, err := os.OpenFile(s.file, os.O_WRONLY, os.ModePerm)
-	if err != nil {
-		cmd.PrintError("Could not open search history file", err)
-	}
-	defer file.Close()
-
-	_, err = file.WriteString(historyText)
-	if err != nil {
-		cmd.PrintError("Could not save search history", err)
-		return
-	}
-
-	if err := file.Sync(); err != nil {
-		cmd.PrintError("Error syncing history file", err)
-	}
-}
-
 // setupHistory reads the history file and loads the search history.
-// Taken from https://github.com/abs-lang/abs/repl/history.go (Start)
 func (s *SearchView) setupHistory() {
-	var err error
-
-	s.file, err = cmd.GetPath("history")
-	if err != nil {
-		app.ShowError(err)
-	}
-
-	file, err := os.OpenFile(s.file, os.O_RDONLY, os.ModePerm)
-	if err != nil {
-		app.ShowError(err)
-	}
-	defer file.Close()
-
-	scanner := bufio.NewScanner(file)
-	scanner.Split(bufio.ScanLines)
-	for scanner.Scan() {
-		line := scanner.Text()
-		if line != "" {
-			s.entries = append(s.entries, line)
-		}
-	}
-	if err := scanner.Err(); err != nil && err != io.EOF {
-		app.ShowError(err)
-	}
-	if len(s.entries) <= 0 {
-		return
-	}
-
+	s.entries = cmd.Settings.SearchHistory
 	s.pos = len(s.entries)
 }
 
 // addToHistory adds text to the history entries buffer.
-// Taken from https://github.com/abs-lang/abs/repl/history.entries.go (addToHistory)
 func (s *SearchView) addToHistory(text string) {
 	if text == "" {
 		return
@@ -454,6 +400,7 @@ func (s *SearchView) addToHistory(text string) {
 	}
 
 	s.pos = len(s.entries)
+	cmd.Settings.SearchHistory = s.entries
 }
 
 // historyForward moves a step forward in the history.entries buffer, and returns a text.

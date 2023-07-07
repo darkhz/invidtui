@@ -9,4 +9,6 @@ func main() {
 	cmd.Init()
 
 	ui.SetupUI()
+
+	cmd.SaveSettings()
 }

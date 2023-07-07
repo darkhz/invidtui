@@ -93,22 +93,16 @@ func setup() {
 func Start() {
 	setup()
 
+	loadState()
+	loadHistory()
+
 	go playingStatusCheck()
 	go monitorMPVEvents()
-
-	go loadState()
-	go loadHistory()
-
 	go player.queue.Start()
 }
 
 // Stop stops the player.
-func Stop(exit bool) {
-	if exit {
-		saveState()
-		saveHistory()
-	}
-
+func Stop() {
 	sendPlayingStatus(false)
 
 	mp.Player().Stop()
@@ -495,7 +489,7 @@ func renderPlayer(cancel context.CancelFunc) {
 	}
 
 	player.mutex.Lock()
-	player.states = states
+	cmd.Settings.PlayerStates = states
 	player.mutex.Unlock()
 
 	app.UI.QueueUpdateDraw(func() {

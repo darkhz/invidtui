@@ -73,7 +73,7 @@ func (c *Config) setup() {
 }
 
 // GetPath returns the full config path for the provided file type.
-func GetPath(ftype string) (string, error) {
+func GetPath(ftype string, nocreate ...struct{}) (string, error) {
 	var cfpath string
 
 	if ftype == "socket" {
@@ -100,6 +100,11 @@ func GetPath(ftype string) (string, error) {
 	}
 
 	cfpath = filepath.Join(config.path, ftype)
+
+	if nocreate != nil {
+		_, err := os.Stat(cfpath)
+		return cfpath, err
+	}
 
 	fd, err := os.OpenFile(cfpath, os.O_CREATE, os.ModePerm)
 	if err != nil {
