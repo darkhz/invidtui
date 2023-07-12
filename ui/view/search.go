@@ -95,7 +95,7 @@ func (s *SearchView) Init() bool {
 	s.table.SetInputCapture(s.Keybindings)
 	s.table.SetBackgroundColor(tcell.ColorDefault)
 	s.table.SetFocusFunc(func() {
-		app.SetContextMenu("Search", s.table)
+		app.SetContextMenu(cmd.KeyContextSearch, s.table)
 	})
 
 	s.suggestBox = app.NewModal("suggestion", "Suggestions", nil, 0, 0)
@@ -212,7 +212,7 @@ func (s *SearchView) Query(switchMode ...struct{}) {
 	s.Init()
 
 	app.UI.Status.SetFocusFunc(func() {
-		app.SetContextMenu("Search", app.UI.Status.InputField)
+		app.SetContextMenu(cmd.KeyContextSearch, app.UI.Status.InputField)
 	})
 
 	label := "[::b]Search (" + Search.currentType + "):"
@@ -293,33 +293,33 @@ func (s *SearchView) ParseQuery() {
 
 // Keybindings describes the keybindings for the search view.
 func (s *SearchView) Keybindings(event *tcell.EventKey) *tcell.EventKey {
-	switch cmd.KeyOperation(event, "Search") {
-	case "SearchStart":
+	switch cmd.KeyOperation(event, cmd.KeyContextSearch, cmd.KeyContextComments) {
+	case cmd.KeySearchStart:
 		go s.Start("")
 		app.UI.Status.SetFocusFunc()
 
-	case "Exit":
+	case cmd.KeyClose:
 		CloseView()
 
-	case "SearchQuery":
+	case cmd.KeyQuery:
 		s.Query()
 
-	case "Playlist":
+	case cmd.KeyPlaylist:
 		Playlist.EventHandler(event.Modifiers() == tcell.ModAlt)
 
-	case "ChannelVideos":
+	case cmd.KeyChannelVideos:
 		Channel.EventHandler("video", event.Modifiers() == tcell.ModAlt)
 
-	case "ChannelPlaylists":
+	case cmd.KeyChannelPlaylists:
 		Channel.EventHandler("playlist", event.Modifiers() == tcell.ModAlt)
 
-	case "Comments":
+	case cmd.KeyComments:
 		Comments.Show()
 
-	case "Add":
+	case cmd.KeyAdd:
 		Dashboard.ModifyHandler(true)
 
-	case "Link":
+	case cmd.KeyLink:
 		popup.ShowLink()
 	}
 
@@ -328,15 +328,15 @@ func (s *SearchView) Keybindings(event *tcell.EventKey) *tcell.EventKey {
 
 // inputFunc describes the keybindings for the search input box.
 func (s *SearchView) inputFunc(e *tcell.EventKey) *tcell.EventKey {
-	switch cmd.KeyOperation(e, "Search") {
-	case "SearchStart":
+	switch cmd.KeyOperation(e, cmd.KeyContextSearch) {
+	case cmd.KeySearchStart:
 		text := app.UI.Status.GetText()
 		if text != "" {
 			go s.Start(text)
 			app.UI.Status.SetFocusFunc()
 		}
 
-	case "Exit":
+	case cmd.KeyClose:
 		if s.suggestBox.Open {
 			s.suggestBox.Exit(false)
 			goto Event
@@ -347,32 +347,32 @@ func (s *SearchView) inputFunc(e *tcell.EventKey) *tcell.EventKey {
 		app.UI.Status.SwitchToPage("messages")
 		app.SetPrimaryFocus()
 
-	case "SearchSuggestions":
+	case cmd.KeySearchSuggestions:
 		go s.Suggestions(app.UI.Status.GetText())
 
-	case "SwitchMode":
+	case cmd.KeySearchSwitchMode:
 		tab := s.Tabs()
 		tab.Selected = s.currentType
 
 		s.currentType = app.SwitchTab(false, tab)
 		s.Query(struct{}{})
 
-	case "SearchParameters":
+	case cmd.KeySearchParameters:
 		go s.Parameters()
 
-	case "SearchSuggestionReverse":
+	case cmd.KeySearchSuggestionReverse:
 		s.suggestBox.Table.InputHandler()(tcell.NewEventKey(tcell.KeyUp, ' ', tcell.ModNone), nil)
 
-	case "SearchSuggestionForward":
+	case cmd.KeySearchSuggestionForward:
 		s.suggestBox.Table.InputHandler()(tcell.NewEventKey(tcell.KeyDown, ' ', tcell.ModNone), nil)
 
-	case "SearchHistoryReverse":
-		if t := s.historyReverse(); t != "Search" {
+	case cmd.KeySearchHistoryReverse:
+		if t := s.historyReverse(); t != "" {
 			app.UI.Status.SetText(t)
 		}
 
-	case "SearchHistoryForward":
-		if t := s.historyForward(); t != "Search" {
+	case cmd.KeySearchHistoryForward:
+		if t := s.historyForward(); t != "" {
 			app.UI.Status.SetText(t)
 		}
 	}

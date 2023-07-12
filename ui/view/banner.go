@@ -64,8 +64,8 @@ func (b *BannerView) Primitive() tview.Primitive {
 
 // Keybindings describes the banner view's keybindings.
 func (b *BannerView) Keybindings(event *tcell.EventKey) *tcell.EventKey {
-	switch cmd.KeyOperation(event, "Search") {
-	case "SearchQuery":
+	switch cmd.KeyOperation(event) {
+	case cmd.KeyQuery:
 		Search.Query()
 	}
 
@@ -103,7 +103,7 @@ func (b *BannerView) setup() {
 	b.flex.SetBackgroundColor(tcell.ColorDefault)
 	b.flex.SetInputCapture(b.Keybindings)
 	bannerBox.SetFocusFunc(func() {
-		app.SetContextMenu(b.Name(), b.flex)
+		app.SetContextMenu(cmd.KeyContextStart, b.flex)
 	})
 
 	b.shown = true

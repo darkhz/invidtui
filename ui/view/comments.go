@@ -39,7 +39,7 @@ func (c *CommentsView) Init() {
 	c.view.SetSelectedFunc(c.selectorHandler)
 	c.view.SetInputCapture(c.Keybindings)
 	c.view.SetFocusFunc(func() {
-		app.SetContextMenu("Comments", c.view)
+		app.SetContextMenu(cmd.KeyContextComments, c.view)
 	})
 
 	c.root = tview.NewTreeNode("")
@@ -159,14 +159,14 @@ func (c *CommentsView) Close() {
 
 // Keybindings describes the keybindings for the comments view.
 func (c *CommentsView) Keybindings(event *tcell.EventKey) *tcell.EventKey {
-	switch cmd.KeyOperation(event, "Comments") {
-	case "CommentReplies":
+	switch cmd.KeyOperation(event, cmd.KeyContextComments) {
+	case cmd.KeyCommentReplies:
 		node := c.view.GetCurrentNode()
 		if node.GetLevel() > 2 {
 			node.GetParent().SetExpanded(!node.GetParent().IsExpanded())
 		}
 
-	case "Exit":
+	case cmd.KeyClose:
 		c.Close()
 	}
 

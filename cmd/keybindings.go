@@ -10,8 +10,10 @@ import (
 
 // KeyData stores the metadata for the key.
 type KeyData struct {
-	Title, Context string
-	Kb             Keybinding
+	Title   string
+	Context KeyContext
+	Kb      Keybinding
+	Global  bool
 }
 
 // Keybinding stores the keybinding.
@@ -21,333 +23,469 @@ type Keybinding struct {
 	Mod  tcell.ModMask
 }
 
+// Key describes the application keybinding type.
+type Key string
+
+// The different application keybinding types.
+const (
+	KeyMenu                    Key = "Menu"
+	KeyCancel                  Key = "Cancel"
+	KeySuspend                 Key = "Suspend"
+	KeyInstancesList           Key = "InstancesList"
+	KeyQuit                    Key = "Quit"
+	KeySearchStart             Key = "SearchStart"
+	KeySearchSuggestions       Key = "SearchSuggestions"
+	KeySearchSwitchMode        Key = "SearchSwitchMode"
+	KeySearchParameters        Key = "SearchParameters"
+	KeySearchHistoryReverse    Key = "SearchHistoryReverse"
+	KeySearchHistoryForward    Key = "SearchHistoryForward"
+	KeySearchSuggestionReverse Key = "SearchSuggestionReverse"
+	KeySearchSuggestionForward Key = "SearchSuggestionForward"
+	KeyDashboard               Key = "Dashboard"
+	KeyDashboardReload         Key = "DashboardReload"
+	KeyDashboardCreatePlaylist Key = "DashboardCreatePlaylist"
+	KeyDashboardEditPlaylist   Key = "DashboardEditPlaylist"
+	KeyFilebrowserSelect       Key = "FilebrowserSelect"
+	KeyFilebrowserDirForward   Key = "FilebrowserDirForward"
+	KeyFilebrowserDirBack      Key = "FilebrowserDirBack"
+	KeyFilebrowserToggleHidden Key = "FilebrowserToggleHidden"
+	KeyDownloadView            Key = "DownloadView"
+	KeyDownloadOptions         Key = "DownloadOptions"
+	KeyDownloadOptionSelect    Key = "DownloadOptionSelect"
+	KeyDownloadCancel          Key = "DownloadCancel"
+	KeyQueue                   Key = "Queue"
+	KeyQueuePlayMove           Key = "QueuePlayMove"
+	KeyQueueSave               Key = "QueueSave"
+	KeyQueueAppend             Key = "QueueAppend"
+	KeyQueueDelete             Key = "QueueDelete"
+	KeyQueueMove               Key = "QueueMove"
+	KeyPlayerOpenPlaylist      Key = "PlayerOpenPlaylist"
+	KeyPlayerHistory           Key = "PlayerHistory"
+	KeyPlayerQueueAudio        Key = "PlayerQueueAudio"
+	KeyPlayerQueueVideo        Key = "PlayerQueueVideo"
+	KeyPlayerPlayAudio         Key = "PlayerPlayAudio"
+	KeyPlayerPlayVideo         Key = "PlayerPlayVideo"
+	KeyPlayerInfo              Key = "PlayerInfo"
+	KeyPlayerSeekForward       Key = "PlayerSeekForward"
+	KeyPlayerSeekBackward      Key = "PlayerSeekBackward"
+	KeyPlayerStop              Key = "PlayerStop"
+	KeyPlayerToggleLoop        Key = "PlayerToggleLoop"
+	KeyPlayerToggleShuffle     Key = "PlayerToggleShuffle"
+	KeyPlayerToggleMute        Key = "PlayerToggleMute"
+	KeyPlayerTogglePlay        Key = "PlayerTogglePlay"
+	KeyPlayerPrev              Key = "PlayerPrev"
+	KeyPlayerNext              Key = "PlayerNext"
+	KeyPlayerVolumeIncrease    Key = "PlayerVolumeIncrease"
+	KeyPlayerVolumeDecrease    Key = "PlayerVolumeDecrease"
+	KeyPlayerInfoScrollUp      Key = "PlayerInfoScrollUp"
+	KeyPlayerInfoScrollDown    Key = "PlayerInfoScrollDown"
+	KeyComments                Key = "Comments"
+	KeyCommentReplies          Key = "CommentReplies"
+	KeySwitchTab               Key = "SwitchTab"
+	KeyPlaylist                Key = "Playlist"
+	KeyChannelVideos           Key = "ChannelVideos"
+	KeyChannelPlaylists        Key = "ChannelPlaylists"
+	KeyAudioURL                Key = "AudioURL"
+	KeyQuery                   Key = "Query"
+	KeyVideoURL                Key = "VideoURL"
+	KeyLink                    Key = "Link"
+	KeyAdd                     Key = "Add"
+	KeyRemove                  Key = "Remove"
+	KeyLoadMore                Key = "LoadMore"
+	KeyClose                   Key = "Close"
+)
+
+// KeyContext describes the context where the keybinding is
+// supposed to be applied in.
+type KeyContext string
+
+// The different context types for keybindings.
+const (
+	KeyContextApp       KeyContext = "App"
+	KeyContextPlayer    KeyContext = "Player"
+	KeyContextCommon    KeyContext = "Common"
+	KeyContextSearch    KeyContext = "Search"
+	KeyContextDashboard KeyContext = "Dashboard"
+	KeyContextFiles     KeyContext = "Files"
+	KeyContextDownloads KeyContext = "Downloads"
+	KeyContextQueue     KeyContext = "Queue"
+	KeyContextComments  KeyContext = "Comments"
+	KeyContextStart     KeyContext = "Start"
+	KeyContextPlaylist  KeyContext = "Playlist"
+	KeyContextChannel   KeyContext = "Channel"
+	KeyContextHistory   KeyContext = "History"
+)
+
 var (
-	// OperationKeys matches the operation name (or the menu ID)
-	// with the keybinding.
-	OperationKeys = map[string]*KeyData{
-		"Menu": {
+	// OperationKeys matches the operation name (or the menu ID) with the keybinding.
+	OperationKeys = map[Key]*KeyData{
+		KeyMenu: {
 			Title:   "Menu",
-			Context: "App",
+			Context: KeyContextApp,
 			Kb:      Keybinding{tcell.KeyRune, 'm', tcell.ModAlt},
+			Global:  true,
 		},
-		"Suspend": {
+		KeySuspend: {
 			Title:   "Suspend",
-			Context: "App",
+			Context: KeyContextApp,
 			Kb:      Keybinding{tcell.KeyCtrlZ, ' ', tcell.ModCtrl},
+			Global:  true,
 		},
-		"Cancel": {
+		KeyCancel: {
 			Title:   "Cancel Loading",
-			Context: "App",
+			Context: KeyContextApp,
 			Kb:      Keybinding{tcell.KeyCtrlX, ' ', tcell.ModCtrl},
+			Global:  true,
 		},
-		"InstancesList": {
+		KeyInstancesList: {
 			Title:   "List Instances",
-			Context: "App",
+			Context: KeyContextApp,
 			Kb:      Keybinding{tcell.KeyRune, 'o', tcell.ModNone},
+			Global:  true,
 		},
-		"Quit": {
+		KeyQuit: {
 			Title:   "Quit",
-			Context: "App",
+			Context: KeyContextApp,
 			Kb:      Keybinding{tcell.KeyRune, 'Q', tcell.ModNone},
+			Global:  true,
 		},
-		"SearchQuery": {
-			Title:   "Query",
-			Context: "Search",
-			Kb:      Keybinding{tcell.KeyRune, '/', tcell.ModNone},
+		KeyClose: {
+			Title:   "Close page",
+			Context: KeyContextApp,
+			Kb:      Keybinding{tcell.KeyEscape, ' ', tcell.ModNone},
+			Global:  true,
 		},
-		"SearchStart": {
+		KeySearchStart: {
 			Title:   "Start Search",
-			Context: "Search",
+			Context: KeyContextSearch,
 			Kb:      Keybinding{tcell.KeyEnter, ' ', tcell.ModNone},
 		},
-		"SearchSuggestions": {
+		KeySearchSuggestions: {
 			Title:   "Get Suggestions",
-			Context: "Search",
+			Context: KeyContextSearch,
 			Kb:      Keybinding{tcell.KeyTab, ' ', tcell.ModNone},
 		},
-		"SearchSwitchMode": {
+		KeySearchSwitchMode: {
 			Title:   "Switch Search Mode",
-			Context: "Search",
+			Context: KeyContextSearch,
 			Kb:      Keybinding{tcell.KeyCtrlE, ' ', tcell.ModCtrl},
 		},
-		"SearchParameters": {
+		KeySearchParameters: {
 			Title:   "Set Search Parameters",
-			Context: "Search",
+			Context: KeyContextSearch,
 			Kb:      Keybinding{tcell.KeyRune, 'e', tcell.ModAlt},
 		},
-		"SearchHistoryReverse": {
-			Context: "Search",
+		KeySearchHistoryReverse: {
+			Context: KeyContextSearch,
 			Kb:      Keybinding{tcell.KeyUp, ' ', tcell.ModNone},
 		},
-		"SearchHistoryForward": {
-			Context: "Search",
+		KeySearchHistoryForward: {
+			Context: KeyContextSearch,
 			Kb:      Keybinding{tcell.KeyDown, ' ', tcell.ModNone},
 		},
-		"SearchSuggestionReverse": {
-			Context: "Search",
+		KeySearchSuggestionReverse: {
+			Context: KeyContextSearch,
 			Kb:      Keybinding{tcell.KeyUp, ' ', tcell.ModCtrl},
 		},
-		"SearchSuggestionForward": {
-			Context: "Search",
+		KeySearchSuggestionForward: {
+			Context: KeyContextSearch,
 			Kb:      Keybinding{tcell.KeyDown, ' ', tcell.ModCtrl},
 		},
-		"Dashboard": {
+		KeyDashboard: {
 			Title:   "Dashboard",
-			Context: "Dashboard",
+			Context: KeyContextDashboard,
 			Kb:      Keybinding{tcell.KeyCtrlD, ' ', tcell.ModCtrl},
 		},
-		"DashboardReload": {
+		KeyDashboardReload: {
 			Title:   "Reload Dashboard",
-			Context: "Dashboard",
+			Context: KeyContextDashboard,
 			Kb:      Keybinding{tcell.KeyCtrlT, ' ', tcell.ModCtrl},
 		},
-		"DashboardCreatePlaylist": {
+		KeyDashboardCreatePlaylist: {
 			Title:   "Create Playlist",
-			Context: "Dashboard",
+			Context: KeyContextDashboard,
 			Kb:      Keybinding{tcell.KeyRune, 'c', tcell.ModNone},
 		},
-		"DashboardEditPlaylist": {
+		KeyDashboardEditPlaylist: {
 			Title:   "Edit playlist",
-			Context: "Dashboard",
+			Context: KeyContextDashboard,
 			Kb:      Keybinding{tcell.KeyRune, 'e', tcell.ModNone},
 		},
-		"FilebrowserDirForward": {
-			Title:   "Select dir",
-			Context: "Files",
+		KeyFilebrowserSelect: {
+			Title:   "Select entry",
+			Context: KeyContextFiles,
+			Kb:      Keybinding{tcell.KeyEnter, ' ', tcell.ModNone},
+		},
+		KeyFilebrowserDirForward: {
+			Title:   "Go forward",
+			Context: KeyContextFiles,
 			Kb:      Keybinding{tcell.KeyRight, ' ', tcell.ModNone},
 		},
-		"FilebrowserDirBack": {
+		KeyFilebrowserDirBack: {
 			Title:   "Go back",
-			Context: "Files",
+			Context: KeyContextFiles,
 			Kb:      Keybinding{tcell.KeyLeft, ' ', tcell.ModNone},
 		},
-		"FilebrowserToggleHidden": {
+		KeyFilebrowserToggleHidden: {
 			Title:   "Toggle hidden",
-			Context: "Files",
+			Context: KeyContextFiles,
 			Kb:      Keybinding{tcell.KeyCtrlG, ' ', tcell.ModCtrl},
 		},
-		"DownloadView": {
+		KeyDownloadView: {
 			Title:   "Show Downloads",
-			Context: "Downloads",
+			Context: KeyContextDownloads,
 			Kb:      Keybinding{tcell.KeyRune, 'Y', tcell.ModNone},
 		},
-		"DownloadOptions": {
+		KeyDownloadOptions: {
 			Title:   "Download Video",
-			Context: "Downloads",
+			Context: KeyContextDownloads,
 			Kb:      Keybinding{tcell.KeyRune, 'y', tcell.ModNone},
 		},
-		"DownloadOptionSelect": {
+		KeyDownloadOptionSelect: {
 			Title:   "Select Option",
-			Context: "Downloads",
+			Context: KeyContextDownloads,
 			Kb:      Keybinding{tcell.KeyEnter, ' ', tcell.ModNone},
 		},
-		"DownloadCancel": {
+		KeyDownloadCancel: {
 			Title:   "Cancel Download",
-			Context: "Downloads",
+			Context: KeyContextDownloads,
 			Kb:      Keybinding{tcell.KeyRune, 'x', tcell.ModNone},
 		},
-		"Queue": {
+		KeyQueue: {
 			Title:   "Show Queue",
-			Context: "Queue",
+			Context: KeyContextQueue,
 			Kb:      Keybinding{tcell.KeyRune, 'q', tcell.ModNone},
 		},
-		"QueuePlayMove": {
+		KeyQueuePlayMove: {
 			Title:   "Play/Replace",
-			Context: "Queue",
+			Context: KeyContextQueue,
 			Kb:      Keybinding{tcell.KeyEnter, ' ', tcell.ModNone},
 		},
-		"QueueSave": {
+		KeyQueueSave: {
 			Title:   "Save Queue",
-			Context: "Queue",
+			Context: KeyContextQueue,
 			Kb:      Keybinding{tcell.KeyCtrlS, ' ', tcell.ModCtrl},
 		},
-		"QueueAppend": {
+		KeyQueueAppend: {
 			Title:   "Append To Queue",
-			Context: "Queue",
+			Context: KeyContextQueue,
 			Kb:      Keybinding{tcell.KeyCtrlA, ' ', tcell.ModCtrl},
 		},
-		"QueueDelete": {
+		KeyQueueDelete: {
 			Title:   "Delete",
-			Context: "Queue",
+			Context: KeyContextQueue,
 			Kb:      Keybinding{tcell.KeyRune, 'd', tcell.ModNone},
 		},
-		"QueueMove": {
+		KeyQueueMove: {
 			Title:   "Move",
-			Context: "Queue",
+			Context: KeyContextQueue,
 			Kb:      Keybinding{tcell.KeyRune, 'M', tcell.ModNone},
 		},
-		"PlayerOpenPlaylist": {
+		KeyPlayerOpenPlaylist: {
 			Title:   "Open Playlist",
-			Context: "Player",
+			Context: KeyContextPlayer,
 			Kb:      Keybinding{tcell.KeyCtrlO, ' ', tcell.ModCtrl},
+			Global:  true,
 		},
-		"PlayerHistory": {
+		KeyPlayerHistory: {
 			Title:   "Show History",
-			Context: "Player",
+			Context: KeyContextPlayer,
 			Kb:      Keybinding{tcell.KeyRune, 'h', tcell.ModAlt},
+			Global:  true,
 		},
-		"PlayerQueueAudio": {
+		KeyPlayerQueueAudio: {
 			Title:   "Queue Audio",
-			Context: "Player",
+			Context: KeyContextPlayer,
 			Kb:      Keybinding{tcell.KeyRune, 'a', tcell.ModNone},
+			Global:  true,
 		},
-		"PlayerQueueVideo": {
+		KeyPlayerQueueVideo: {
 			Title:   "Queue Video",
-			Context: "Player",
+			Context: KeyContextPlayer,
 			Kb:      Keybinding{tcell.KeyRune, 'v', tcell.ModNone},
+			Global:  true,
 		},
-		"PlayerPlayAudio": {
+		KeyPlayerPlayAudio: {
 			Title:   "Play Audio",
-			Context: "Player",
+			Context: KeyContextPlayer,
 			Kb:      Keybinding{tcell.KeyRune, 'A', tcell.ModNone},
+			Global:  true,
 		},
-		"PlayerPlayVideo": {
+		KeyPlayerPlayVideo: {
 			Title:   "Play Video",
-			Context: "Player",
+			Context: KeyContextPlayer,
 			Kb:      Keybinding{tcell.KeyRune, 'V', tcell.ModNone},
+			Global:  true,
 		},
-		"PlayerInfo": {
+		KeyPlayerInfo: {
 			Title:   "Track Information",
-			Context: "Player",
+			Context: KeyContextPlayer,
 			Kb:      Keybinding{tcell.KeyRune, ' ', tcell.ModAlt},
+			Global:  true,
 		},
-		"PlayerSeekForward": {
-			Context: "Player",
-			Kb:      Keybinding{tcell.KeyRight, ' ', tcell.ModNone},
+		KeyPlayerSeekForward: {
+			Context: KeyContextPlayer,
+			Kb:      Keybinding{tcell.KeyRight, ' ', tcell.ModCtrl},
+			Global:  true,
 		},
-		"PlayerSeekBackward": {
-			Context: "Player",
-			Kb:      Keybinding{tcell.KeyLeft, ' ', tcell.ModNone},
+		KeyPlayerSeekBackward: {
+			Context: KeyContextPlayer,
+			Kb:      Keybinding{tcell.KeyLeft, ' ', tcell.ModCtrl},
+			Global:  true,
 		},
-		"PlayerStop": {
-			Context: "Player",
+		KeyPlayerStop: {
+			Context: KeyContextPlayer,
 			Kb:      Keybinding{tcell.KeyRune, 'S', tcell.ModNone},
+			Global:  true,
 		},
-		"PlayerToggleLoop": {
-			Context: "Player",
+		KeyPlayerToggleLoop: {
+			Context: KeyContextPlayer,
 			Kb:      Keybinding{tcell.KeyRune, 'l', tcell.ModNone},
+			Global:  true,
 		},
-		"PlayerToggleShuffle": {
-			Context: "Player",
+		KeyPlayerToggleShuffle: {
+			Context: KeyContextPlayer,
 			Kb:      Keybinding{tcell.KeyRune, 's', tcell.ModNone},
+			Global:  true,
 		},
-		"PlayerToggleMute": {
-			Context: "Player",
+		KeyPlayerToggleMute: {
+			Context: KeyContextPlayer,
 			Kb:      Keybinding{tcell.KeyRune, 'm', tcell.ModNone},
+			Global:  true,
 		},
-		"PlayerTogglePlay": {
-			Context: "Player",
+		KeyPlayerTogglePlay: {
+			Context: KeyContextPlayer,
 			Kb:      Keybinding{tcell.KeyRune, ' ', tcell.ModNone},
+			Global:  true,
 		},
-		"PlayerPrev": {
-			Context: "Player",
+		KeyPlayerPrev: {
+			Context: KeyContextPlayer,
 			Kb:      Keybinding{tcell.KeyRune, '<', tcell.ModNone},
+			Global:  true,
 		},
-		"PlayerNext": {
-			Context: "Player",
+		KeyPlayerNext: {
+			Context: KeyContextPlayer,
 			Kb:      Keybinding{tcell.KeyRune, '>', tcell.ModNone},
+			Global:  true,
 		},
-		"PlayerVolumeIncrease": {
-			Context: "Player",
+		KeyPlayerVolumeIncrease: {
+			Context: KeyContextPlayer,
 			Kb:      Keybinding{tcell.KeyRune, '=', tcell.ModNone},
+			Global:  true,
 		},
-		"PlayerVolumeDecrease": {
-			Context: "Player",
+		KeyPlayerVolumeDecrease: {
+			Context: KeyContextPlayer,
 			Kb:      Keybinding{tcell.KeyRune, '-', tcell.ModNone},
+			Global:  true,
 		},
-		"PlayerInfoScrollUp": {
-			Context: "Player",
+		KeyPlayerInfoScrollUp: {
+			Context: KeyContextPlayer,
 			Kb:      Keybinding{tcell.KeyUp, ' ', tcell.ModCtrl | tcell.ModAlt},
+			Global:  true,
 		},
-		"PlayerInfoScrollDown": {
-			Context: "Player",
+		KeyPlayerInfoScrollDown: {
+			Context: KeyContextPlayer,
 			Kb:      Keybinding{tcell.KeyDown, ' ', tcell.ModCtrl | tcell.ModAlt},
+			Global:  true,
 		},
-		"Comments": {
-			Title:   "Show Comments",
-			Context: "Comments",
-			Kb:      Keybinding{tcell.KeyRune, 'C', tcell.ModNone},
-		},
-		"CommentReplies": {
-			Title:   "Expand replies",
-			Context: "Comments",
-			Kb:      Keybinding{tcell.KeyRune, ' ', tcell.ModNone},
-		},
-		"Switch": {
-			Title:   "Switch page",
-			Context: "Common",
-			Kb:      Keybinding{tcell.KeyTab, ' ', tcell.ModNone},
-		},
-		"Playlist": {
-			Title:   "Show Playlist",
-			Context: "Common",
-			Kb:      Keybinding{tcell.KeyRune, 'i', tcell.ModNone},
-		},
-		"ChannelVideos": {
-			Title:   "Show Channel videos",
-			Context: "Common",
-			Kb:      Keybinding{tcell.KeyRune, 'u', tcell.ModNone},
-		},
-		"ChannelPlaylists": {
-			Title:   "Show Channel playlists",
-			Context: "Common",
-			Kb:      Keybinding{tcell.KeyRune, 'U', tcell.ModNone},
-		},
-		"AudioURL": {
+		KeyAudioURL: {
 			Title:   "Play audio from URL",
-			Context: "Common",
+			Context: KeyContextPlayer,
 			Kb:      Keybinding{tcell.KeyRune, 'b', tcell.ModNone},
 		},
-		"VideoURL": {
+		KeyVideoURL: {
 			Title:   "Play video from URL",
-			Context: "Common",
+			Context: KeyContextPlayer,
 			Kb:      Keybinding{tcell.KeyRune, 'B', tcell.ModNone},
 		},
-		"Link": {
-			Title:   "Show Link",
-			Context: "Common",
-			Kb:      Keybinding{tcell.KeyRune, ';', tcell.ModNone},
+		KeyComments: {
+			Title:   "Show Comments",
+			Context: KeyContextComments,
+			Kb:      Keybinding{tcell.KeyRune, 'C', tcell.ModNone},
 		},
-		"Add": {
-			Title:   "Add",
-			Context: "Common",
-			Kb:      Keybinding{tcell.KeyRune, '+', tcell.ModNone},
-		},
-		"Remove": {
-			Title:   "Remove",
-			Context: "Common",
-			Kb:      Keybinding{tcell.KeyRune, '_', tcell.ModNone},
-		},
-		"LoadMore": {
-			Title:   "Load more",
-			Context: "Common",
+		KeyCommentReplies: {
+			Title:   "Expand replies",
+			Context: KeyContextComments,
 			Kb:      Keybinding{tcell.KeyEnter, ' ', tcell.ModNone},
 		},
-		"Exit": {
-			Title:   "Exit",
-			Context: "Common",
-			Kb:      Keybinding{tcell.KeyEscape, ' ', tcell.ModNone},
+		KeySwitchTab: {
+			Title:   "Switch tab",
+			Context: KeyContextCommon,
+			Kb:      Keybinding{tcell.KeyTab, ' ', tcell.ModNone},
+		},
+		KeyPlaylist: {
+			Title:   "Show Playlist",
+			Context: KeyContextCommon,
+			Kb:      Keybinding{tcell.KeyRune, 'i', tcell.ModNone},
+		},
+		KeyChannelVideos: {
+			Title:   "Show Channel videos",
+			Context: KeyContextCommon,
+			Kb:      Keybinding{tcell.KeyRune, 'u', tcell.ModNone},
+		},
+		KeyChannelPlaylists: {
+			Title:   "Show Channel playlists",
+			Context: KeyContextCommon,
+			Kb:      Keybinding{tcell.KeyRune, 'U', tcell.ModNone},
+		},
+		KeyQuery: {
+			Title:   "Query",
+			Context: KeyContextCommon,
+			Kb:      Keybinding{tcell.KeyRune, '/', tcell.ModNone},
+		},
+		KeyLink: {
+			Title:   "Show Link",
+			Context: KeyContextCommon,
+			Kb:      Keybinding{tcell.KeyRune, ';', tcell.ModNone},
+		},
+		KeyAdd: {
+			Title:   "Add",
+			Context: KeyContextCommon,
+			Kb:      Keybinding{tcell.KeyRune, '+', tcell.ModNone},
+		},
+		KeyRemove: {
+			Title:   "Remove",
+			Context: KeyContextCommon,
+			Kb:      Keybinding{tcell.KeyRune, '_', tcell.ModNone},
+		},
+		KeyLoadMore: {
+			Title:   "Load more",
+			Context: KeyContextCommon,
+			Kb:      Keybinding{tcell.KeyEnter, ' ', tcell.ModNone},
 		},
 	}
 
-	// Keys match the keybinding to the operation name.
-	Keys map[string]map[Keybinding]string
+	// Keys match the keybinding to the key type.
+	Keys map[KeyContext]map[Keybinding]Key
+
+	translateKeys = map[string]string{
+		"Pgup":      "PgUp",
+		"Pgdn":      "PgDn",
+		"Pageup":    "PgUp",
+		"Pagedown":  "PgDn",
+		"Upright":   "UpRight",
+		"Downright": "DownRight",
+		"Upleft":    "UpLeft",
+		"Downleft":  "DownLeft",
+		"Prtsc":     "Print",
+		"Backspace": "Backspace2",
+	}
 )
 
 // OperationData returns the key data associated with
 // the provided keyID and operation name.
-func OperationData(operation string) *KeyData {
+func OperationData(operation Key) *KeyData {
 	return OperationKeys[operation]
 }
 
 // KeyOperation returns the operation name for the provided keyID
 // and the keyboard event.
-func KeyOperation(event *tcell.EventKey, contexts ...string) string {
+func KeyOperation(event *tcell.EventKey, keyContexts ...KeyContext) Key {
 	if Keys == nil {
-		Keys = make(map[string]map[Keybinding]string)
+		Keys = make(map[KeyContext]map[Keybinding]Key)
 		for keyName, key := range OperationKeys {
 			if Keys[key.Context] == nil {
-				Keys[key.Context] = make(map[Keybinding]string)
+				Keys[key.Context] = make(map[Keybinding]Key)
 			}
 
 			Keys[key.Context][key.Kb] = keyName
@@ -361,17 +499,40 @@ func KeyOperation(event *tcell.EventKey, contexts ...string) string {
 
 	kb := Keybinding{event.Key(), ch, event.Modifiers()}
 
-	for _, context := range contexts {
-		if operation, ok := Keys[context][kb]; ok {
-			return operation
+	for _, contexts := range [][]KeyContext{
+		keyContexts,
+		{
+			KeyContextApp,
+			KeyContextCommon,
+			KeyContextPlayer,
+		},
+	} {
+		for _, context := range contexts {
+			if operation, ok := Keys[context][kb]; ok {
+				return operation
+			}
 		}
 	}
 
-	if common, ok := Keys["Common"][kb]; ok {
-		return common
+	return ""
+}
+
+// KeyName formats and returns the key's name.
+func KeyName(kb Keybinding) string {
+	if kb.Key == tcell.KeyRune {
+		keyname := string(kb.Rune)
+		if kb.Rune == ' ' {
+			keyname = "Space"
+		}
+
+		if kb.Mod&tcell.ModAlt != 0 {
+			keyname = "Alt+" + keyname
+		}
+
+		return keyname
 	}
 
-	return ""
+	return tcell.NewEventKey(kb.Key, kb.Rune, kb.Mod).Name()
 }
 
 // parseKeybindings parses the keybindings from the configuration.
@@ -393,6 +554,34 @@ func parseKeybindings() {
 	for keyType, key := range kbMap {
 		checkBindings(keyType, key, keyNames)
 	}
+
+	keyErrors := make(map[Keybinding]string)
+
+	for keyType, keydata := range OperationKeys {
+		for existing, data := range OperationKeys {
+			if data.Kb == keydata.Kb && data.Title != keydata.Title {
+				if data.Context == keydata.Context || data.Global || keydata.Global {
+					goto KeyError
+				}
+
+				continue
+
+			KeyError:
+				if _, ok := keyErrors[keydata.Kb]; !ok {
+					keyErrors[keydata.Kb] = fmt.Sprintf("- %s will override %s (%s)", keyType, existing, KeyName(keydata.Kb))
+				}
+			}
+		}
+	}
+
+	if len(keyErrors) > 0 {
+		err := "Config: The following keybindings will conflict:\n"
+		for _, ke := range keyErrors {
+			err += ke + "\n"
+		}
+
+		printer.Error(strings.TrimRight(err, "\n"))
+	}
 }
 
 // checkBindings validates the provided keybinding.
@@ -402,7 +591,7 @@ func checkBindings(keyType, key string, keyNames map[string]tcell.Key) {
 	var runes []rune
 	var keys []tcell.Key
 
-	if _, ok := OperationKeys[keyType]; !ok {
+	if _, ok := OperationKeys[Key(keyType)]; !ok {
 		printer.Error(fmt.Sprintf("Config: Invalid key type %s", keyType))
 	}
 
@@ -424,6 +613,10 @@ func checkBindings(keyType, key string, keyNames map[string]tcell.Key) {
 			runes = append(runes, keybinding.Rune)
 
 			continue
+		}
+
+		if translated, ok := translateKeys[token]; ok {
+			token = translated
 		}
 
 		switch token {
@@ -480,7 +673,7 @@ func checkBindings(keyType, key string, keyNames map[string]tcell.Key) {
 			if keybinding.Rune == ' ' {
 				modKey = "Space"
 			} else {
-				modKey = string(keybinding.Rune)
+				modKey = string(unicode.ToUpper(keybinding.Rune))
 			}
 		}
 
@@ -488,6 +681,7 @@ func checkBindings(keyType, key string, keyNames map[string]tcell.Key) {
 			modKey = "Ctrl-" + modKey
 			if key, ok := keyNames[modKey]; ok {
 				keybinding.Key = key
+				keybinding.Rune = ' '
 				keys = append(keys, keybinding.Key)
 			}
 		}
@@ -499,31 +693,5 @@ func checkBindings(keyType, key string, keyNames map[string]tcell.Key) {
 		)
 	}
 
-	keydata := OperationKeys[keyType]
-
-	for existing, data := range OperationKeys {
-		if data.Kb == keybinding && data.Title != keydata.Title {
-			if data.Context == keydata.Context {
-				goto KeyError
-			}
-
-			for _, context := range []string{
-				"App",
-				"Player",
-			} {
-				if data.Context == context || keydata.Context == context {
-					goto KeyError
-				}
-			}
-
-			continue
-
-		KeyError:
-			printer.Error(
-				fmt.Sprintf("Config: Keybinding for %s will override %s (%s)", keyType, existing, key),
-			)
-		}
-	}
-
-	OperationKeys[keyType].Kb = keybinding
+	OperationKeys[Key(keyType)].Kb = keybinding
 }

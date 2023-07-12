@@ -256,31 +256,31 @@ func IsHistoryInputFocused() bool {
 func Keybindings(event *tcell.EventKey) *tcell.EventKey {
 	playerKeybindings(event)
 
-	switch cmd.KeyOperation(event, "Player", "Queue") {
-	case "PlayerOpenPlaylist":
+	switch cmd.KeyOperation(event, cmd.KeyContextQueue) {
+	case cmd.KeyPlayerOpenPlaylist:
 		app.UI.FileBrowser.Show("Open playlist:", openPlaylist)
 
-	case "PlayerHistory":
+	case cmd.KeyPlayerHistory:
 		showHistory()
 
-	case "PlayerInfo":
+	case cmd.KeyPlayerInfo:
 		ToggleInfo()
 
-	case "PlayerInfoScrollDown":
+	case cmd.KeyPlayerInfoScrollDown:
 		player.infoDesc.InputHandler()(tcell.NewEventKey(tcell.KeyDown, ' ', tcell.ModNone), nil)
 		return nil
 
-	case "PlayerInfoScrollUp":
+	case cmd.KeyPlayerInfoScrollUp:
 		player.infoDesc.InputHandler()(tcell.NewEventKey(tcell.KeyUp, ' ', tcell.ModNone), nil)
 		return nil
 
-	case "PlayerQueueAudio", "PlayerQueueVideo", "PlayerPlayAudio", "PlayerPlayVideo":
+	case cmd.KeyPlayerQueueAudio, cmd.KeyPlayerQueueVideo, cmd.KeyPlayerPlayAudio, cmd.KeyPlayerPlayVideo:
 		playSelected(event.Rune())
 
-	case "Queue":
+	case cmd.KeyQueue:
 		player.queue.Show()
 
-	case "AudioURL", "VideoURL":
+	case cmd.KeyAudioURL, cmd.KeyVideoURL:
 		playInputURL(event.Rune() == 'b')
 		return nil
 	}
@@ -293,38 +293,38 @@ func Keybindings(event *tcell.EventKey) *tcell.EventKey {
 func playerKeybindings(event *tcell.EventKey) {
 	var nokey bool
 
-	switch cmd.KeyOperation(event, "Player") {
-	case "PlayerStop":
+	switch cmd.KeyOperation(event, cmd.KeyContextPlayer) {
+	case cmd.KeyPlayerStop:
 		sendPlayingStatus(false)
 
-	case "PlayerSeekForward":
+	case cmd.KeyPlayerSeekForward:
 		mp.Player().SeekForward()
 
-	case "PlayerSeekBackward":
+	case cmd.KeyPlayerSeekBackward:
 		mp.Player().SeekBackward()
 
-	case "PlayerTogglePlay":
+	case cmd.KeyPlayerTogglePlay:
 		mp.Player().TogglePaused()
 
-	case "PlayerToggleLoop":
+	case cmd.KeyPlayerToggleLoop:
 		mp.Player().ToggleLoopMode()
 
-	case "PlayerToggleShuffle":
+	case cmd.KeyPlayerToggleShuffle:
 		mp.Player().ToggleShuffled()
 
-	case "PlayerToggleMute":
+	case cmd.KeyPlayerToggleMute:
 		mp.Player().ToggleMuted()
 
-	case "PlayerVolumeIncrease":
+	case cmd.KeyPlayerVolumeIncrease:
 		mp.Player().VolumeIncrease()
 
-	case "PlayerVolumeDecrease":
+	case cmd.KeyPlayerVolumeDecrease:
 		mp.Player().VolumeDecrease()
 
-	case "PlayerPrev":
+	case cmd.KeyPlayerPrev:
 		mp.Player().Prev()
 
-	case "PlayerNext":
+	case cmd.KeyPlayerNext:
 		mp.Player().Next()
 
 	default:

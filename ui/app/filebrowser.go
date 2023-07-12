@@ -138,15 +138,15 @@ func (f *FileBrowser) Query(
 // Keybindings define the keybindings for the file browser.
 func (f *FileBrowser) Keybindings(event *tcell.EventKey) *tcell.EventKey {
 	switch cmd.KeyOperation(event, "Files") {
-	case "FilebrowserDirForward":
+	case cmd.KeyFilebrowserDirForward:
 		sel, _ := f.table.GetSelection()
 		cell := f.table.GetCell(sel, 0)
 		go f.cd(filepath.Clean(cell.Text), true, false)
 
-	case "FilebrowserDirBack":
+	case cmd.KeyFilebrowserDirBack:
 		go f.cd("", false, true)
 
-	case "FilebrowserToggleHidden":
+	case cmd.KeyFilebrowserToggleHidden:
 		f.hiddenStatus(struct{}{})
 		go f.cd("", false, false)
 	}
@@ -156,30 +156,30 @@ func (f *FileBrowser) Keybindings(event *tcell.EventKey) *tcell.EventKey {
 
 // inputFunc defines the keybindings for the file browser's inputbox.
 func (f *FileBrowser) inputFunc(e *tcell.EventKey) *tcell.EventKey {
-	switch e.Key() {
-	case tcell.KeyUp, tcell.KeyDown:
-		fallthrough
+	var toggle bool
 
-	case tcell.KeyRight, tcell.KeyLeft:
-		fallthrough
+	switch cmd.KeyOperation(e, "Files") {
+	case cmd.KeyFilebrowserToggleHidden:
+		toggle = true
 
-	case tcell.KeyPgUp, tcell.KeyPgDn:
-		fallthrough
-
-	case tcell.KeyCtrlG:
-		f.table.InputHandler()(tcell.NewEventKey(e.Key(), ' ', e.Modifiers()), nil)
-		return nil
-
-	case tcell.KeyEnter:
+	case cmd.KeyFilebrowserSelect:
 		text := f.input.GetText()
 		if text == "" {
-			return e
+			goto Event
 		}
 
 		go f.dofunc(filepath.Join(f.currentPath, text))
 
-	case tcell.KeyEscape:
+	case cmd.KeyClose:
 		f.modal.Exit(false)
+		goto Event
+	}
+
+	f.table.InputHandler()(tcell.NewEventKey(e.Key(), ' ', e.Modifiers()), nil)
+
+Event:
+	if toggle {
+		e = nil
 	}
 
 	return e

@@ -93,7 +93,7 @@ func showHistory() {
 	player.history.table.SetBackgroundColor(tcell.ColorDefault)
 	player.history.table.SetInputCapture(historyTableKeybindings)
 	player.history.table.SetFocusFunc(func() {
-		app.SetContextMenu("History", player.history.table)
+		app.SetContextMenu(cmd.KeyContextHistory, player.history.table)
 	})
 
 	player.history.input = tview.NewInputField()
@@ -126,21 +126,21 @@ Render:
 
 // historyTableKeybindings defines the keybindings for the history popup.
 func historyTableKeybindings(event *tcell.EventKey) *tcell.EventKey {
-	switch cmd.KeyOperation(event, "Search") {
-	case "SearchQuery":
+	switch cmd.KeyOperation(event) {
+	case cmd.KeyQuery:
 		app.UI.SetFocus(player.history.input)
 
-	case "ChannelVideos":
+	case cmd.KeyChannelVideos:
 		view.Channel.EventHandler("video", event.Modifiers() == tcell.ModAlt)
 
-	case "ChannelPlaylists":
+	case cmd.KeyChannelPlaylists:
 		view.Channel.EventHandler("playlist", event.Modifiers() == tcell.ModAlt)
 
-	case "Exit":
+	case cmd.KeyClose:
 		player.history.modal.Exit(false)
 	}
 
-	for _, k := range []string{"ChannelVideos", "ChannelPlaylists"} {
+	for _, k := range []cmd.Key{cmd.KeyChannelVideos, cmd.KeyChannelPlaylists} {
 		if cmd.KeyOperation(event) == k {
 			player.history.modal.Exit(false)
 			app.UI.Status.SwitchToPage("messages")

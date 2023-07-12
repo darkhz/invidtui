@@ -55,7 +55,7 @@ func (q *Queue) setup() {
 	q.table.SetBackgroundColor(tcell.ColorDefault)
 	q.table.SetSelectionChangedFunc(q.selectorHandler)
 	q.table.SetFocusFunc(func() {
-		app.SetContextMenu("Queue", q.table)
+		app.SetContextMenu(cmd.KeyContextQueue, q.table)
 	})
 
 	q.modal = app.NewModal("queue", "Queue", q.table, 40, 0)
@@ -101,12 +101,12 @@ func (q *Queue) Hide() {
 
 // Keybindings define the keybindings for the queue.
 func (q *Queue) Keybindings(event *tcell.EventKey) *tcell.EventKey {
-	operation := cmd.KeyOperation(event, "Queue")
+	operation := cmd.KeyOperation(event, cmd.KeyContextQueue)
 
-	for _, op := range []string{
-		"QueueExit",
-		"QueueSave",
-		"QueueAppend",
+	for _, op := range []cmd.Key{
+		cmd.KeyClose,
+		cmd.KeyQueueSave,
+		cmd.KeyQueueAppend,
 	} {
 		if operation == op {
 			q.Hide()
@@ -115,28 +115,28 @@ func (q *Queue) Keybindings(event *tcell.EventKey) *tcell.EventKey {
 	}
 
 	switch operation {
-	case "QueuePlayMove":
+	case cmd.KeyQueuePlayMove:
 		q.play()
 
-	case "QueueSave":
+	case cmd.KeyQueueSave:
 		app.UI.FileBrowser.Show("Save as:", q.saveAs)
 
-	case "QueueAppend":
+	case cmd.KeyQueueAppend:
 		app.UI.FileBrowser.Show("Append from:", q.appendFrom)
 
-	case "QueueDelete":
+	case cmd.KeyQueueDelete:
 		q.remove()
 
-	case "QueueMove":
+	case cmd.KeyQueueMove:
 		q.move()
 
-	case "PlayerStop", "Exit":
+	case cmd.KeyPlayerStop, cmd.KeyClose:
 		q.Hide()
 	}
 
-	for _, o := range []string{
-		"QueueMove",
-		"QueueDelete",
+	for _, o := range []cmd.Key{
+		cmd.KeyQueueMove,
+		cmd.KeyQueueDelete,
 	} {
 		if operation == o {
 			app.ResizeModal()

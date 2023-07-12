@@ -45,7 +45,7 @@ func (p *PlaylistView) Init() bool {
 	p.table.SetInputCapture(p.Keybindings)
 	p.table.SetBackgroundColor(tcell.ColorDefault)
 	p.table.SetFocusFunc(func() {
-		app.SetContextMenu("Playlist", p.table)
+		app.SetContextMenu(cmd.KeyContextPlaylist, p.table)
 	})
 
 	p.infoView.Init(p.table)
@@ -163,27 +163,27 @@ func (p *PlaylistView) Load(id string, loadMore ...struct{}) {
 
 // Keybindings describes the keybindings for the playlist view.
 func (p *PlaylistView) Keybindings(event *tcell.EventKey) *tcell.EventKey {
-	switch cmd.KeyOperation(event) {
-	case "LoadMore":
+	switch cmd.KeyOperation(event, cmd.KeyContextComments) {
+	case cmd.KeyLoadMore:
 		go p.Load(p.currentID, struct{}{})
 
-	case "Exit":
+	case cmd.KeyClose:
 		CloseView()
 
-	case "Add":
+	case cmd.KeyAdd:
 		if !Dashboard.IsFocused() {
 			Dashboard.ModifyHandler(true)
 		}
 
-	case "Remove":
+	case cmd.KeyRemove:
 		if v := PreviousView(); v != nil && v.Name() == Dashboard.Name() {
 			Dashboard.ModifyHandler(false)
 		}
 
-	case "Link":
+	case cmd.KeyLink:
 		popup.ShowLink()
 
-	case "Comments":
+	case cmd.KeyComments:
 		Comments.Show()
 	}
 

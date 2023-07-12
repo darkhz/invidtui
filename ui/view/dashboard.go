@@ -92,7 +92,7 @@ func (d *DashboardView) Init() bool {
 			table.SetBackgroundColor(tcell.ColorDefault)
 			table.SetInputCapture(kbMap[info.Title])
 			table.SetFocusFunc(func() {
-				app.SetContextMenu("Dashboard", table)
+				app.SetContextMenu(cmd.KeyContextDashboard, table)
 			})
 
 			d.tableMap[info.Title] = &DashboardTable{
@@ -332,8 +332,8 @@ func (d *DashboardView) PlaylistForm(edit bool) {
 
 // Keybindings defines the keybindings for the dashboard view.
 func (d *DashboardView) Keybindings(event *tcell.EventKey) *tcell.EventKey {
-	switch cmd.KeyOperation(event, "Dashboard") {
-	case "Switch":
+	switch cmd.KeyOperation(event, cmd.KeyContextDashboard) {
+	case cmd.KeySwitchTab:
 		tab := d.Tabs()
 		tab.Selected = d.CurrentPage()
 		d.CurrentPage(app.SwitchTab(false, tab))
@@ -342,11 +342,11 @@ func (d *DashboardView) Keybindings(event *tcell.EventKey) *tcell.EventKey {
 		app.ShowInfo("", false)
 		d.Load(d.CurrentPage())
 
-	case "Exit":
+	case cmd.KeyClose:
 		client.Cancel()
 		CloseView()
 
-	case "DashboardReload":
+	case cmd.KeyDashboardReload:
 		d.Load(d.CurrentPage(), struct{}{})
 	}
 
@@ -357,17 +357,17 @@ func (d *DashboardView) Keybindings(event *tcell.EventKey) *tcell.EventKey {
 func (d *DashboardView) feedKeybindings(event *tcell.EventKey) *tcell.EventKey {
 	d.Keybindings(event)
 
-	switch cmd.KeyOperation(event) {
-	case "LoadMore":
+	switch cmd.KeyOperation(event, cmd.KeyContextComments) {
+	case cmd.KeyLoadMore:
 		d.loadFeed(false, struct{}{})
 
-	case "Add":
+	case cmd.KeyAdd:
 		d.ModifyHandler(true)
 
-	case "Link":
+	case cmd.KeyLink:
 		popup.ShowLink()
 
-	case "Comments":
+	case cmd.KeyComments:
 		Comments.Show()
 	}
 
@@ -378,17 +378,17 @@ func (d *DashboardView) feedKeybindings(event *tcell.EventKey) *tcell.EventKey {
 func (d *DashboardView) plKeybindings(event *tcell.EventKey) *tcell.EventKey {
 	d.Keybindings(event)
 
-	switch cmd.KeyOperation(event, "Dashboard") {
-	case "Playlist":
+	switch cmd.KeyOperation(event, cmd.KeyContextDashboard) {
+	case cmd.KeyPlaylist:
 		Playlist.EventHandler(event.Modifiers() == tcell.ModAlt)
 
-	case "DashboardCreatePlaylist", "DashboardEditPlaylist":
+	case cmd.KeyDashboardCreatePlaylist, cmd.KeyDashboardEditPlaylist:
 		d.PlaylistForm(event.Rune() == 'e')
 
-	case "Remove":
+	case cmd.KeyRemove:
 		d.ModifyHandler(false)
 
-	case "Link":
+	case cmd.KeyLink:
 		popup.ShowLink()
 	}
 
@@ -399,17 +399,17 @@ func (d *DashboardView) plKeybindings(event *tcell.EventKey) *tcell.EventKey {
 func (d *DashboardView) subKeybindings(event *tcell.EventKey) *tcell.EventKey {
 	d.Keybindings(event)
 
-	switch cmd.KeyOperation(event) {
-	case "ChannelVideos":
+	switch cmd.KeyOperation(event, cmd.KeyContextComments) {
+	case cmd.KeyChannelVideos:
 		Channel.EventHandler("video", event.Modifiers() == tcell.ModAlt)
 
-	case "ChannelPlaylists":
+	case cmd.KeyChannelPlaylists:
 		Channel.EventHandler("playlist", event.Modifiers() == tcell.ModAlt)
 
-	case "Remove":
+	case cmd.KeyRemove:
 		d.ModifyHandler(false)
 
-	case "Comments":
+	case cmd.KeyComments:
 		Comments.Show()
 	}
 

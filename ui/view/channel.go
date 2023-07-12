@@ -81,7 +81,7 @@ func (c *ChannelView) Init() bool {
 				c.selectorHandler(table, row, col)
 			})
 			table.SetFocusFunc(func() {
-				app.SetContextMenu("Channel", c.views)
+				app.SetContextMenu(cmd.KeyContextChannel, c.views)
 			})
 
 			c.tableMap[info.Title] = &ChannelTable{
@@ -508,8 +508,8 @@ func (c *ChannelView) Query() {
 
 // Keybindings describes the keybindings for the channel view.
 func (c *ChannelView) Keybindings(event *tcell.EventKey) *tcell.EventKey {
-	switch cmd.KeyOperation(event, "Search") {
-	case "Switch":
+	switch cmd.KeyOperation(event) {
+	case cmd.KeySwitchTab:
 		tab := c.Tabs()
 		tab.Selected = c.currentType
 		c.currentType = app.SwitchTab(false, tab)
@@ -517,26 +517,26 @@ func (c *ChannelView) Keybindings(event *tcell.EventKey) *tcell.EventKey {
 		c.View(c.currentType)
 		go c.Load(c.currentType)
 
-	case "LoadMore":
+	case cmd.KeyLoadMore:
 		go c.Load(c.currentType, struct{}{})
 
-	case "Exit":
+	case cmd.KeyClose:
 		CloseView()
 
-	case "SearchQuery":
+	case cmd.KeyQuery:
 		c.currentType = "search"
 		go c.Load(c.currentType)
 
-	case "Playlist":
+	case cmd.KeyPlaylist:
 		go Playlist.EventHandler(event.Modifiers() == tcell.ModAlt)
 
-	case "Add":
+	case cmd.KeyAdd:
 		Dashboard.ModifyHandler(true)
 
-	case "Comments":
+	case cmd.KeyComments:
 		Comments.Show()
 
-	case "Link":
+	case cmd.KeyLink:
 		popup.ShowLink()
 	}
 

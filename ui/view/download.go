@@ -59,7 +59,7 @@ func (d *DownloadsView) Init() bool {
 	d.options.SetBackgroundColor(tcell.ColorDefault)
 	d.options.SetInputCapture(d.OptionKeybindings)
 	d.options.SetFocusFunc(func() {
-		app.SetContextMenu("Downloads", d.options)
+		app.SetContextMenu(cmd.KeyContextDownloads, d.options)
 	})
 
 	d.view = tview.NewTable()
@@ -71,7 +71,7 @@ func (d *DownloadsView) Init() bool {
 	d.view.SetBackgroundColor(tcell.ColorDefault)
 	d.view.SetInputCapture(d.Keybindings)
 	d.view.SetFocusFunc(func() {
-		app.SetContextMenu("Downloads", d.view)
+		app.SetContextMenu(cmd.KeyContextDownloads, d.view)
 	})
 
 	d.modal = app.NewModal("downloads", "Select Download Option", d.options, 40, 60)
@@ -178,8 +178,8 @@ func (d *DownloadsView) Start(id, itag, filename string) {
 
 // OptionKeybindings describes the keybindings for the download options popup.
 func (d *DownloadsView) OptionKeybindings(event *tcell.EventKey) *tcell.EventKey {
-	switch cmd.KeyOperation(event, "Downloads") {
-	case "DownloadOptionSelect":
+	switch cmd.KeyOperation(event, cmd.KeyContextDownloads) {
+	case cmd.KeyDownloadOptionSelect:
 		row, _ := d.options.GetSelection()
 		cell := d.options.GetCell(row, 0)
 
@@ -190,7 +190,7 @@ func (d *DownloadsView) OptionKeybindings(event *tcell.EventKey) *tcell.EventKey
 
 		fallthrough
 
-	case "Exit":
+	case cmd.KeyClose:
 		d.modal.Exit(false)
 	}
 
@@ -199,8 +199,8 @@ func (d *DownloadsView) OptionKeybindings(event *tcell.EventKey) *tcell.EventKey
 
 // Keybindings describes the keybindings for the downloads view.
 func (d *DownloadsView) Keybindings(event *tcell.EventKey) *tcell.EventKey {
-	switch cmd.KeyOperation(event, "Downloads") {
-	case "DownloadCancel":
+	switch cmd.KeyOperation(event, cmd.KeyContextDownloads) {
+	case cmd.KeyDownloadCancel:
 		row, _ := Downloads.view.GetSelection()
 
 		cell := Downloads.view.GetCell(row, 0)
@@ -208,7 +208,7 @@ func (d *DownloadsView) Keybindings(event *tcell.EventKey) *tcell.EventKey {
 			progress.cancelFunc()
 		}
 
-	case "Exit":
+	case cmd.KeyClose:
 		CloseView()
 	}
 

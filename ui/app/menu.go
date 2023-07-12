@@ -11,13 +11,13 @@ import (
 
 // MenuData stores the menu items and handlers.
 type MenuData struct {
-	Visible map[string]func(menuType string) bool
-	Items   map[string][]string
+	Visible map[cmd.Key]func(menuType string) bool
+	Items   map[cmd.KeyContext][]cmd.Key
 }
 
 // MenuArea stores the menu modal and the current context menu.
 type MenuArea struct {
-	context string
+	context cmd.KeyContext
 
 	modal *Modal
 	data  *MenuData
@@ -35,7 +35,7 @@ func InitMenu(data *MenuData) {
 }
 
 // AddMenu adds a menu to the menubar.
-func AddMenu(menuType string) {
+func AddMenu(menuType cmd.KeyContext) {
 	_, ok := menuArea.data.Items[menuType]
 	if !ok {
 		return
@@ -46,7 +46,7 @@ func AddMenu(menuType string) {
 		text = string('\u2261')
 	}
 
-	UI.Menu.SetText(menuFormat(text, menuType, menuType))
+	UI.Menu.SetText(menuFormat(text, string(menuType), string(menuType)))
 }
 
 // MenuExit closes the menu.
@@ -56,7 +56,7 @@ func MenuExit() {
 }
 
 // SetContextMenu sets the context menu.
-func SetContextMenu(menuType string, item tview.Primitive) {
+func SetContextMenu(menuType cmd.KeyContext, item tview.Primitive) {
 	if menuArea.context == menuType && menuArea.focus == item {
 		return
 	}
@@ -70,15 +70,15 @@ func SetContextMenu(menuType string, item tview.Primitive) {
 			break
 		}
 
-		if _, ok := menuArea.data.Items[region]; !ok {
+		if _, ok := menuArea.data.Items[cmd.KeyContext(region)]; !ok {
 			continue
 		}
 
 		text = menuFormat(text, region, region)
 	}
 
-	if _, ok := menuArea.data.Items[menuType]; ok {
-		text = menuFormat(text, "context-"+menuType, menuType)
+	if _, ok := menuArea.data.Items[cmd.KeyContext(menuType)]; ok {
+		text = menuFormat(text, "context-"+string(menuType), string(menuType))
 	}
 
 	menuArea.focus = item
@@ -113,7 +113,7 @@ func DrawMenu(x int, region string) {
 		region = strings.Split(region, "-")[1]
 	}
 
-	menuItems, ok := menuArea.data.Items[region]
+	menuItems, ok := menuArea.data.Items[cmd.KeyContext(region)]
 	if !ok {
 		return
 	}
@@ -125,10 +125,9 @@ func DrawMenu(x int, region string) {
 			row, _ := modal.Table.GetSelection()
 			ref := modal.Table.GetCell(row, 0).GetReference()
 
-			if option, ok := ref.([]string); ok {
+			if op, ok := ref.(*cmd.KeyData); ok {
 				MenuKeybindings(event)
 
-				op := cmd.OperationData(option[1])
 				if op.Kb.Key != tcell.KeyRune {
 					op.Kb.Rune = rune(op.Kb.Key)
 				}
@@ -136,7 +135,7 @@ func DrawMenu(x int, region string) {
 				ev := tcell.NewEventKey(op.Kb.Key, op.Kb.Rune, op.Kb.Mod)
 
 				UI.Application.GetInputCapture()(ev)
-				if option[0] == "App" || option[0] == "Player" {
+				if op.Global {
 					break
 				}
 				if menuArea.focus != nil {
@@ -158,21 +157,7 @@ func DrawMenu(x int, region string) {
 		}
 
 		op := cmd.OperationData(item)
-
-		ev := tcell.NewEventKey(op.Kb.Key, op.Kb.Rune, op.Kb.Mod)
-
-		keyname := ev.Name()
-		if op.Kb.Key == tcell.KeyRune {
-			if op.Kb.Rune == ' ' {
-				keyname = "Space"
-			} else {
-				keyname = string(op.Kb.Rune)
-			}
-		}
-
-		if op.Kb.Mod == tcell.ModAlt {
-			keyname = "Alt+" + keyname
-		}
+		keyname := cmd.KeyName(op.Kb)
 
 		opwidth := len(op.Title) + len(keyname) + 10
 		if opwidth > width {
@@ -181,7 +166,7 @@ func DrawMenu(x int, region string) {
 
 		modal.Table.SetCell(row-skipped, 0, tview.NewTableCell(op.Title).
 			SetExpansion(1).
-			SetReference([]string{op.Title, item}).
+			SetReference(op).
 			SetAttributes(tcell.AttrBold),
 		)
 
