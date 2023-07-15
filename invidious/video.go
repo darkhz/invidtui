@@ -19,20 +19,20 @@ const videoFields = "?fields=title,videoId,author,hlsUrl,publishedText,lengthSec
 
 // VideoData stores information about a video.
 type VideoData struct {
-	Title           string          `json:"title"`
-	Author          string          `json:"author"`
-	VideoID         string          `json:"videoId"`
-	HlsURL          string          `json:"hlsUrl"`
-	LengthSeconds   int64           `json:"lengthSeconds"`
-	LiveNow         bool            `json:"liveNow"`
-	ViewCount       int             `json:"viewCount"`
-	LikeCount       int             `json:"likeCount"`
-	PublishedText   string          `json:"publishedText"`
-	SubCountText    string          `json:"subCountText"`
-	Description     string          `json:"description"`
-	Thumbnails      VideoThumbnails `json:"videoThumbnails"`
-	FormatStreams   []VideoFormat   `json:"formatStreams"`
-	AdaptiveFormats []VideoFormat   `json:"adaptiveFormats"`
+	Title           string            `json:"title"`
+	Author          string            `json:"author"`
+	VideoID         string            `json:"videoId"`
+	HlsURL          string            `json:"hlsUrl"`
+	LengthSeconds   int64             `json:"lengthSeconds"`
+	LiveNow         bool              `json:"liveNow"`
+	ViewCount       int               `json:"viewCount"`
+	LikeCount       int               `json:"likeCount"`
+	PublishedText   string            `json:"publishedText"`
+	SubCountText    string            `json:"subCountText"`
+	Description     string            `json:"description"`
+	Thumbnails      []VideoThumbnails `json:"videoThumbnails"`
+	FormatStreams   []VideoFormat     `json:"formatStreams"`
+	AdaptiveFormats []VideoFormat     `json:"adaptiveFormats"`
 }
 
 // VideoFormat stores information about the video's format.
@@ -59,10 +59,14 @@ type VideoThumbnails struct {
 }
 
 // Video retrieves a video.
-func Video(id string) (VideoData, error) {
+func Video(id string, ctx ...context.Context) (VideoData, error) {
 	var data VideoData
 
-	res, err := client.Fetch(client.Ctx(), "videos/"+id+videoFields)
+	if ctx == nil {
+		ctx = append(ctx, client.Ctx())
+	}
+
+	res, err := client.Fetch(ctx[0], "videos/"+id+videoFields)
 	if err != nil {
 		return VideoData{}, err
 	}
@@ -77,8 +81,8 @@ func Video(id string) (VideoData, error) {
 }
 
 // VideoThumbnail returns data to parse a video thumbnail.
-func VideoThumbnail(id, image string) (*http.Response, error) {
-	res, err := client.Get(context.Background(), fmt.Sprintf("/vi/%s/%s.jpg", id, image))
+func VideoThumbnail(ctx context.Context, id, image string) (*http.Response, error) {
+	res, err := client.Get(ctx, fmt.Sprintf("/vi/%s/%s.jpg", id, image))
 	if err != nil {
 		return nil, err
 	}
@@ -88,13 +92,13 @@ func VideoThumbnail(id, image string) (*http.Response, error) {
 
 // VideoLoadParams returns the appropriate parameters to load the video
 // into the media player.
-func VideoLoadParams(id string, audio bool) (VideoData, []string, error) {
+func VideoLoadParams(id string, audio bool, ctx ...context.Context) (VideoData, []string, error) {
 	var err error
 	var urls []string
 	var mediatype, durationtext string
 	var mediaURL, audioURL, videoURL string
 
-	video, err := Video(id)
+	video, err := Video(id, ctx...)
 	if err != nil {
 		return VideoData{}, nil, err
 	}

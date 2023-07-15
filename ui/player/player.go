@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"image/jpeg"
-	"net/url"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -40,8 +39,9 @@ type Player struct {
 	flex, region *tview.Flex
 	title, desc  *tview.TextView
 
-	lock  *semaphore.Weighted
-	mutex sync.Mutex
+	lock   *semaphore.Weighted
+	cancel context.CancelFunc
+	mutex  sync.Mutex
 }
 
 var player Player
@@ -430,20 +430,22 @@ func loadSelected(info inv.SearchData, audio, current bool) {
 }
 
 // loadVideo loads a video into the media player.
-func loadVideo(id string, audio bool) (string, error) {
-	video, urls, err := inv.VideoLoadParams(id, audio)
+func loadVideo(id string, audio bool, ctx ...context.Context) (string, error) {
+	video, urls, err := inv.VideoLoadParams(id, audio, ctx...)
 	if err != nil {
 		return "", err
 	}
 
 	player.queue.currentVideo(id, &video)
 
-	mp.Player().LoadFile(
-		video.Title,
-		video.LengthSeconds,
-		audio && video.LiveNow,
-		urls...,
-	)
+	if ctx == nil {
+		mp.Player().LoadFile(
+			video.Title,
+			video.LengthSeconds,
+			audio && video.LiveNow,
+			urls...,
+		)
+	}
 
 	return video.Title, nil
 }
@@ -499,16 +501,38 @@ func renderPlayer(cancel context.CancelFunc) {
 }
 
 // renderInfo renders the track information.
-func renderInfo(data url.Values) {
-	id := data.Get("id")
-	if id == "" || id != "" && id == player.currentID {
+func renderInfo(id, title string, force ...struct{}) {
+	if force == nil && (id == "" || (id != "" && id == player.currentID)) {
 		return
 	}
 
+	ctx, cancel := context.WithCancel(context.Background())
+	if player.cancel != nil {
+		player.cancel()
+	}
+
 	player.currentID = id
+	player.cancel = cancel
+	player.image.SetImage(nil)
+	player.infoDesc.SetText("[::b]Loading information...")
 
 	video := player.queue.currentVideo(id)
 	if video == nil {
+		go func(ctx context.Context, id, title string) {
+			_, err := loadVideo(id, true, ctx)
+			app.UI.QueueUpdateDraw(func() {
+				if err != nil {
+					if ctx.Err() != context.Canceled {
+						player.infoDesc.SetText("[::b]No information for\n" + title)
+					}
+
+					return
+				}
+
+				renderInfo(id, title, struct{}{})
+			})
+		}(ctx, id, title)
+
 		return
 	}
 
@@ -534,14 +558,17 @@ func renderInfo(data url.Values) {
 	player.infoDesc.SetText(text)
 	player.infoDesc.ScrollToBeginning()
 
-	go renderInfoImage(id)
+	go renderInfoImage(ctx, id)
 }
 
 // renderInfoImage renders the image for the track information display.
-func renderInfoImage(id string) {
-	thumbdata, err := inv.VideoThumbnail(id, "default")
+func renderInfoImage(ctx context.Context, id string) {
+	thumbdata, err := inv.VideoThumbnail(ctx, id, "default")
 	if err != nil {
-		app.ShowError(fmt.Errorf("Player: Unable to download thumbnail"))
+		if ctx.Err() != context.Canceled {
+			app.ShowError(fmt.Errorf("Player: Unable to download thumbnail"))
+		}
+
 		return
 	}
 
@@ -710,7 +737,7 @@ func updateProgressAndInfo(width int) (string, string, []string, error) {
 
 	data := utils.GetDataFromURL(title)
 	if data != nil {
-		renderInfo(data)
+		renderInfo(data.Get("id"), data.Get("title"))
 
 		if t := data.Get("title"); t != "" {
 			title = t
