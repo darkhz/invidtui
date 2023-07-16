@@ -18,7 +18,7 @@ import (
 
 // FileBrowser describes the layout of a file browser.
 type FileBrowser struct {
-	init, hidden                 bool
+	init, hidden, dironly        bool
 	prevDir, currentPath, prompt string
 
 	dofunc func(text string)
@@ -31,6 +31,12 @@ type FileBrowser struct {
 
 	lock  *semaphore.Weighted
 	mutex sync.Mutex
+}
+
+// FileBrowserOptions describes the file browser options.
+type FileBrowserOptions struct {
+	ShowDirOnly bool
+	SetDir      string
 }
 
 // setup sets up the file browser.
@@ -76,12 +82,21 @@ func (f *FileBrowser) setup() {
 }
 
 // Show displays the file browser.
-func (f *FileBrowser) Show(prompt string, dofunc func(text string)) {
+func (f *FileBrowser) Show(prompt string, dofunc func(text string), options ...FileBrowserOptions) {
 	f.setup()
 
 	f.dofunc = dofunc
+	f.dironly = false
+
 	f.prompt = "[::b]" + prompt + " "
 	f.input.SetLabel(f.prompt)
+
+	if options != nil {
+		f.dironly = options[0].ShowDirOnly
+		if dir := options[0].SetDir; dir != "" {
+			f.currentPath = dir
+		}
+	}
 
 	f.modal.Show(false)
 	go f.cd("", false, false)
@@ -191,7 +206,7 @@ func (f *FileBrowser) selectorHandler(row, col int) {
 	sel, _ := f.table.GetSelection()
 	cell := f.table.GetCell(sel, 0)
 
-	if strings.Contains(cell.Text, string(os.PathSeparator)) {
+	if !f.dironly && strings.Contains(cell.Text, string(os.PathSeparator)) {
 		f.input.SetText("")
 		return
 	}
@@ -278,6 +293,10 @@ func (f *FileBrowser) list(testPath string) ([]fs.DirEntry, bool) {
 
 	for _, entry := range list {
 		if f.hiddenStatus() && strings.HasPrefix(entry.Name(), ".") {
+			continue
+		}
+
+		if f.dironly && !entry.IsDir() {
 			continue
 		}
 

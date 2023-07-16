@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -106,8 +107,16 @@ func (d *DownloadsView) View() {
 }
 
 // ShowOptions shows a list of download options for the selected video.
-func (d *DownloadsView) ShowOptions() {
-	info, err := app.FocusedTableReference()
+func (d *DownloadsView) ShowOptions(data ...inv.SearchData) {
+	var err error
+	var info inv.SearchData
+
+	if data != nil {
+		info = data[0]
+		goto Options
+	}
+
+	info, err = app.FocusedTableReference()
 	if err != nil {
 		app.ShowError(err)
 		return
@@ -117,13 +126,41 @@ func (d *DownloadsView) ShowOptions() {
 	}
 
 	if cmd.GetOptionValue("download-dir") == "" {
-		app.ShowError(fmt.Errorf("View: Downloads: No download folder specified"))
+		d.SetDir(info)
 		return
 	}
 
+Options:
 	d.Init()
 
 	go d.LoadOptions(info.VideoID, info.Title)
+}
+
+// SetDir sets the download directory.
+func (d *DownloadsView) SetDir(info ...inv.SearchData) {
+	app.UI.FileBrowser.Show("Download file to:", func(name string) {
+		if stat, err := os.Stat(name); err != nil || !stat.IsDir() {
+			if err == nil {
+				err = fmt.Errorf("View: Downloads: Selected item is not a directory")
+			}
+
+			app.ShowError(err)
+			return
+		}
+
+		cmd.SetOptionValue("download-dir", name)
+
+		app.UI.QueueUpdateDraw(func() {
+			app.UI.FileBrowser.Hide()
+
+			if info != nil {
+				d.ShowOptions(info[0])
+			}
+		})
+	}, app.FileBrowserOptions{
+		ShowDirOnly: true,
+		SetDir:      cmd.GetOptionValue("download-dir"),
+	})
 }
 
 // LoadOptions loads the download options for the selected video.
@@ -179,6 +216,9 @@ func (d *DownloadsView) Start(id, itag, filename string) {
 // OptionKeybindings describes the keybindings for the download options popup.
 func (d *DownloadsView) OptionKeybindings(event *tcell.EventKey) *tcell.EventKey {
 	switch cmd.KeyOperation(event, cmd.KeyContextDownloads) {
+	case cmd.KeyDownloadChangeDir:
+		d.SetDir()
+
 	case cmd.KeyDownloadOptionSelect:
 		row, _ := d.options.GetSelection()
 		cell := d.options.GetCell(row, 0)

@@ -41,6 +41,7 @@ var Items = &app.MenuData{
 		},
 		cmd.KeyContextDownloads: {
 			cmd.KeyDownloadOptionSelect,
+			cmd.KeyDownloadChangeDir,
 			cmd.KeyDownloadCancel,
 			cmd.KeyClose,
 		},
@@ -113,6 +114,7 @@ var Items = &app.MenuData{
 		},
 	},
 	Visible: map[cmd.Key]func(menuType string) bool{
+		cmd.KeyDownloadChangeDir:       downloadView,
 		cmd.KeyDownloadView:            downloadView,
 		cmd.KeyDownloadOptions:         downloadOptions,
 		cmd.KeyComments:                isVideo,
