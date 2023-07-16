@@ -475,16 +475,11 @@ func loadPlaylist(plid string, audio bool) (string, error) {
 
 // renderPlayer renders the media player within the app.
 func renderPlayer(cancel context.CancelFunc) {
-	var err error
-	var width int
-	var states []string
-	var title, progress string
-
 	app.UI.RLock()
-	_, _, width, _ = player.desc.GetRect()
+	_, _, width, _ := player.desc.GetRect()
 	app.UI.RUnlock()
 
-	title, progress, states, err = updateProgressAndInfo(width)
+	id, title, progress, states, err := updateProgressAndInfo(width)
 	if err != nil {
 		cancel()
 		return
@@ -495,6 +490,7 @@ func renderPlayer(cancel context.CancelFunc) {
 	player.mutex.Unlock()
 
 	app.UI.QueueUpdateDraw(func() {
+		renderInfo(id, title)
 		player.desc.SetText(progress)
 		player.title.SetText("[::b]" + tview.Escape(title))
 	})
@@ -692,14 +688,14 @@ func checkLiveURL(uri string, audio bool) bool {
 // of the currently playing track, and updates the track information.
 //
 //gocyclo:ignore
-func updateProgressAndInfo(width int) (string, string, []string, error) {
+func updateProgressAndInfo(width int) (string, string, string, []string, error) {
 	var lhs, rhs string
 	var states []string
 	var state, mtype, totaltime, vol string
 
 	ppos := mp.Player().QueuePosition()
 	if ppos == -1 {
-		return "", "", nil, fmt.Errorf("Player: Empty playlist")
+		return "", "", "", nil, fmt.Errorf("Player: Empty playlist")
 	}
 
 	title := mp.Player().Title(ppos)
@@ -737,8 +733,6 @@ func updateProgressAndInfo(width int) (string, string, []string, error) {
 
 	data := utils.GetDataFromURL(title)
 	if data != nil {
-		renderInfo(data.Get("id"), data.Get("title"))
-
 		if t := data.Get("title"); t != "" {
 			title = t
 		}
@@ -807,7 +801,7 @@ func updateProgressAndInfo(width int) (string, string, []string, error) {
 	lhs = loop + lhs + " " + state + " "
 	progress := currtime + " |" + strings.Repeat("█", length) + strings.Repeat(" ", endlength) + "| " + totaltime
 
-	return title, (lhs + progress + rhs), states, nil
+	return data.Get("id"), title, (lhs + progress + rhs), states, nil
 }
 
 // sendPlayingStatus sends status events to the player.
