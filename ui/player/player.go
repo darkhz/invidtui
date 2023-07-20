@@ -25,7 +25,7 @@ import (
 type Player struct {
 	queue Queue
 
-	currentID             string
+	currentID, thumbURI   string
 	init, playing, toggle bool
 	width                 int
 	states                []string
@@ -35,13 +35,14 @@ type Player struct {
 	events  chan struct{}
 
 	image        *tview.Image
-	infoDesc     *tview.TextView
 	flex, region *tview.Flex
+	info         *tview.TextView
+	quality      *tview.DropDown
 	title, desc  *tview.TextView
 
-	lock   *semaphore.Weighted
-	cancel context.CancelFunc
-	mutex  sync.Mutex
+	lock, render          *semaphore.Weighted
+	infoCancel, imgCancel context.CancelFunc
+	mutex                 sync.Mutex
 }
 
 var player Player
@@ -69,10 +70,20 @@ func setup() {
 	player.image.SetBackgroundColor(tcell.ColorDefault)
 	player.image.SetDithering(tview.DitheringFloydSteinberg)
 
-	player.infoDesc = tview.NewTextView()
-	player.infoDesc.SetDynamicColors(true)
-	player.infoDesc.SetTextAlign(tview.AlignCenter)
-	player.infoDesc.SetBackgroundColor(tcell.ColorDefault)
+	player.info = tview.NewTextView()
+	player.info.SetDynamicColors(true)
+	player.info.SetTextAlign(tview.AlignCenter)
+	player.info.SetBackgroundColor(tcell.ColorDefault)
+
+	player.quality = tview.NewDropDown()
+	player.quality.SetLabel("[green::b]Quality: ")
+	player.quality.SetBackgroundColor(tcell.ColorDefault)
+	player.quality.SetFieldTextColor(tcell.ColorOrangeRed)
+	player.quality.SetFieldBackgroundColor(tcell.ColorDefault)
+	player.quality.List().
+		SetMainTextColor(tcell.ColorWhite).
+		SetBackgroundColor(tcell.ColorDefault).
+		SetBorder(true)
 
 	player.flex = tview.NewFlex().
 		SetDirection(tview.FlexRow).
@@ -83,10 +94,11 @@ func setup() {
 	player.region = tview.NewFlex().
 		SetDirection(tview.FlexRow).
 		AddItem(player.image, 0, 1, false).
-		AddItem(player.infoDesc, 0, 1, false)
+		AddItem(player.info, 0, 1, false)
 	player.region.SetBackgroundColor(tcell.ColorDefault)
 
 	player.lock = semaphore.NewWeighted(10)
+	player.render = semaphore.NewWeighted(1)
 }
 
 // Start starts the player and loads its history and states.
@@ -128,9 +140,16 @@ func Show() {
 func ToggleInfo(hide ...struct{}) {
 	if hide != nil || player.toggle {
 		player.toggle = false
+		player.currentID = ""
+
+		infoContext(true, struct{}{})
 
 		app.UI.Region.Clear().
 			AddItem(app.UI.Pages, 0, 1, true)
+
+		if player.region.GetItemCount() > 2 {
+			player.region.RemoveItemIndex(1)
+		}
 
 		return
 	}
@@ -232,6 +251,16 @@ func Play(audio, current bool, mediaInfo ...inv.SearchData) {
 	go loadSelected(info, audio, current)
 }
 
+// IsInfoShown returns whether the player information is shown.
+func IsInfoShown() bool {
+	return player.region != nil && player.toggle
+}
+
+// IsPlayerShown returns whether the player is shown.
+func IsPlayerShown() bool {
+	return playingStatus()
+}
+
 // IsQueueFocused returns whether the queue is focused.
 func IsQueueFocused() bool {
 	return player.queue.table != nil && player.queue.table.HasFocus()
@@ -240,11 +269,6 @@ func IsQueueFocused() bool {
 // IsQueueEmpty returns whether the queue is empty.
 func IsQueueEmpty() bool {
 	return player.queue.table == nil || len(player.queue.data) == 0
-}
-
-// IsInfoShown returns whether the player information is shown.
-func IsInfoShown() bool {
-	return player.region != nil && playingStatus()
 }
 
 // IsHistoryInputFocused returns whether the history search bar is focused.
@@ -267,12 +291,15 @@ func Keybindings(event *tcell.EventKey) *tcell.EventKey {
 		ToggleInfo()
 
 	case cmd.KeyPlayerInfoScrollDown:
-		player.infoDesc.InputHandler()(tcell.NewEventKey(tcell.KeyDown, ' ', tcell.ModNone), nil)
+		player.info.InputHandler()(tcell.NewEventKey(tcell.KeyDown, ' ', tcell.ModNone), nil)
 		return nil
 
 	case cmd.KeyPlayerInfoScrollUp:
-		player.infoDesc.InputHandler()(tcell.NewEventKey(tcell.KeyUp, ' ', tcell.ModNone), nil)
+		player.info.InputHandler()(tcell.NewEventKey(tcell.KeyUp, ' ', tcell.ModNone), nil)
 		return nil
+
+	case cmd.KeyPlayerInfoChangeQuality:
+		changeImageQuality()
 
 	case cmd.KeyPlayerQueueAudio, cmd.KeyPlayerQueueVideo, cmd.KeyPlayerPlayAudio, cmd.KeyPlayerPlayVideo:
 		playSelected(event.Rune())
@@ -496,30 +523,145 @@ func renderPlayer(cancel context.CancelFunc) {
 	})
 }
 
+// changeImageQuality sets or displays options to change the quality of the image
+// in the player information area.
+//
+//gocyclo:ignore
+func changeImageQuality(set ...struct{}) {
+	var prev string
+	var options []string
+
+	video := player.queue.currentVideo(player.currentID)
+	if video == nil {
+		return
+	}
+
+	start, pos := -1, -1
+	for i, thumb := range video.Thumbnails {
+		if thumb.Quality == "start" {
+			start = i
+			break
+		}
+
+		if thumb.URL == player.thumbURI {
+			pos = i
+		}
+
+		if set == nil {
+			text := fmt.Sprintf("%dx%d", thumb.Width, thumb.Height)
+			if prev == text {
+				continue
+			}
+
+			prev = text
+			options = append(options, text)
+		}
+	}
+	if start >= 0 && (pos < 0 || player.thumbURI == "") {
+		pos = len(options) - 1
+		player.thumbURI = video.Thumbnails[start-1].URL
+	}
+	if set != nil || !player.toggle || player.quality.HasFocus() {
+		return
+	}
+
+	thumb := video.Thumbnails[pos]
+	for i, option := range options {
+		if option == fmt.Sprintf("%dx%d", thumb.Width, thumb.Height) {
+			pos = i
+			break
+		}
+	}
+
+	player.region.Clear().
+		AddItem(player.image, 0, 1, false).
+		AddItem(player.quality, 1, 0, false).
+		AddItem(player.info, 0, 1, false)
+
+	player.quality.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		switch event.Key() {
+		case tcell.KeyEscape:
+			app.SetPrimaryFocus()
+			player.region.RemoveItem(player.quality)
+		}
+
+		return event
+	})
+	player.quality.SetDrawFunc(func(screen tcell.Screen, x, y, width, height int) (int, int, int, int) {
+		_, _, w, _ := player.quality.List().GetRect()
+
+		dx := ((width / 2) - w) + 2
+		if dx < 0 {
+			dx = 0
+		}
+
+		return dx, y, width, height
+	})
+
+	player.quality.SetOptions(options, func(text string, index int) {
+		if index < 0 {
+			return
+		}
+
+		for i, thumb := range video.Thumbnails {
+			if text == fmt.Sprintf("%dx%d", thumb.Width, thumb.Height) {
+				index = i
+				break
+			}
+		}
+
+		if uri := video.Thumbnails[index].URL; uri != player.thumbURI {
+			player.thumbURI = uri
+			go renderInfoImage(infoContext(true), player.currentID, filepath.Base(uri), struct{}{})
+		}
+	})
+	player.quality.SetCurrentOption(pos)
+	player.quality.InputHandler()(
+		tcell.NewEventKey(tcell.KeyEnter, ' ', tcell.ModNone),
+		func(p tview.Primitive) {
+			app.UI.SetFocus(p)
+		},
+	)
+
+	app.UI.SetFocus(player.quality)
+
+	go app.UI.Draw()
+}
+
 // renderInfo renders the track information.
 func renderInfo(id, title string, force ...struct{}) {
+	if !player.render.TryAcquire(1) {
+		return
+	}
+	defer player.render.Release(1)
+
 	if force == nil && (id == "" || (id != "" && id == player.currentID)) {
 		return
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
-	if player.cancel != nil {
-		player.cancel()
+	player.currentID = id
+	player.image.SetImage(nil)
+	if player.region.GetItemCount() > 2 {
+		player.region.RemoveItemIndex(1)
 	}
 
-	player.currentID = id
-	player.cancel = cancel
-	player.image.SetImage(nil)
-	player.infoDesc.SetText("[::b]Loading information...")
+	player.info.SetText("[::b]Loading information...")
 
 	video := player.queue.currentVideo(id)
 	if video == nil {
 		go func(ctx context.Context, id, title string) {
-			_, err := loadVideo(id, true, ctx)
+			err := player.render.Acquire(ctx, 1)
+			if err != nil {
+				return
+			}
+
+			_, err = loadVideo(id, true, ctx)
+			player.render.Release(1)
+
 			app.UI.QueueUpdateDraw(func() {
 				if err != nil {
 					if ctx.Err() != context.Canceled {
-						player.infoDesc.SetText("[::b]No information for\n" + title)
+						player.info.SetText("[::b]No information for\n" + title)
 					}
 
 					return
@@ -527,43 +669,48 @@ func renderInfo(id, title string, force ...struct{}) {
 
 				renderInfo(id, title, struct{}{})
 			})
-		}(ctx, id, title)
+		}(infoContext(false), id, title)
 
 		return
 	}
 
 	text := "\n"
-
 	if video.Author != "" {
 		text += fmt.Sprintf("[::bu]%s[-:-:-]\n\n", video.Author)
 	}
-
 	if video.PublishedText != "" {
 		text += fmt.Sprintf("[lightpink::b]Uploaded %s[-:-:-]\n", video.PublishedText)
 	}
-
 	text += fmt.Sprintf(
 		"[aqua::b]%s views[-:-:-] / [red::b]%s likes[-:-:-] / [purple::b]%s subscribers[-:-:-]\n\n",
 		utils.FormatNumber(video.ViewCount),
 		utils.FormatNumber(video.LikeCount),
 		video.SubCountText,
 	)
-
 	text += "[::b]" + tview.Escape(video.Description)
 
-	player.infoDesc.SetText(text)
-	player.infoDesc.ScrollToBeginning()
+	player.info.SetText(text)
+	player.info.ScrollToBeginning()
 
-	go renderInfoImage(ctx, id)
+	changeImageQuality(struct{}{})
+	go renderInfoImage(infoContext(true), id, filepath.Base(player.thumbURI))
 }
 
 // renderInfoImage renders the image for the track information display.
-func renderInfoImage(ctx context.Context, id string) {
-	thumbdata, err := inv.VideoThumbnail(ctx, id, "default")
+func renderInfoImage(ctx context.Context, id, image string, change ...struct{}) {
+	if image == "." {
+		return
+	}
+
+	app.ShowInfo("Player: Loading image", true, change != nil)
+
+	thumbdata, err := inv.VideoThumbnail(ctx, id, image)
 	if err != nil {
 		if ctx.Err() != context.Canceled {
 			app.ShowError(fmt.Errorf("Player: Unable to download thumbnail"))
 		}
+
+		app.ShowInfo("", false, change != nil)
 
 		return
 	}
@@ -577,6 +724,8 @@ func renderInfoImage(ctx context.Context, id string) {
 	app.UI.QueueUpdateDraw(func() {
 		player.image.SetImage(thumbnail)
 	})
+
+	app.ShowInfo("Player: Image loaded", false, change != nil)
 }
 
 // playingStatusCheck monitors the playing status.
@@ -835,4 +984,30 @@ func playingStatus(set ...bool) bool {
 	}
 
 	return player.playing
+}
+
+// infoContext returns a new context for loading the player information.
+func infoContext(image bool, all ...struct{}) context.Context {
+	ctx, cancel := context.WithCancel(context.Background())
+
+	if image {
+		if player.imgCancel != nil {
+			player.imgCancel()
+		}
+
+		player.imgCancel = cancel
+
+		if all == nil {
+			goto InfoContext
+		}
+	}
+
+	if player.infoCancel != nil {
+		player.infoCancel()
+	}
+
+	player.infoCancel = cancel
+
+InfoContext:
+	return ctx
 }

@@ -212,7 +212,11 @@ func (s *Status) inputFocus() {
 }
 
 // ShowInfo shows an information message.
-func ShowInfo(text string, persist bool) {
+func ShowInfo(text string, persist bool, print ...bool) {
+	if print != nil && !print[0] {
+		return
+	}
+
 	UI.Status.InfoMessage(text, persist)
 }
 

@@ -66,6 +66,7 @@ const (
 	KeyPlayerPlayAudio         Key = "PlayerPlayAudio"
 	KeyPlayerPlayVideo         Key = "PlayerPlayVideo"
 	KeyPlayerInfo              Key = "PlayerInfo"
+	KeyPlayerInfoChangeQuality Key = "PlayerInfoChangeQuality"
 	KeyPlayerSeekForward       Key = "PlayerSeekForward"
 	KeyPlayerSeekBackward      Key = "PlayerSeekBackward"
 	KeyPlayerStop              Key = "PlayerStop"
@@ -321,6 +322,12 @@ var (
 			Title:   "Track Information",
 			Context: KeyContextPlayer,
 			Kb:      Keybinding{tcell.KeyRune, ' ', tcell.ModAlt},
+			Global:  true,
+		},
+		KeyPlayerInfoChangeQuality: {
+			Title:   "Change Image Quality",
+			Context: KeyContextPlayer,
+			Kb:      Keybinding{tcell.KeyRune, ':', tcell.ModAlt},
 			Global:  true,
 		},
 		KeyPlayerSeekForward: {

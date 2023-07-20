@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	github.com/darkhz/mpvipc v0.0.0-20220202153421-58758ad355dd
-	github.com/darkhz/tview v0.0.0-20230626052013-d5ab7840a3f4
+	github.com/darkhz/tview v0.0.0-20230720044103-bb5a57216ca9
 	github.com/davidmytton/url-verifier v1.0.0
 	github.com/etherlabsio/go-m3u8 v1.0.0
 	github.com/gdamore/tcell/v2 v2.6.0

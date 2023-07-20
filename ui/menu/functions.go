@@ -118,7 +118,11 @@ func playerQueue(menuType string) bool {
 }
 
 func infoShown(menuType string) bool {
-	return player.IsInfoShown()
+	return isPlaying(menuType) && player.IsInfoShown()
+}
+
+func isPlaying(menuType string) bool {
+	return player.IsPlayerShown()
 }
 
 func playlistAddTo(menuType string) bool {

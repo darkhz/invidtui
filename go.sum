@@ -4,8 +4,8 @@ github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 h1:DklsrG3d
 github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2/go.mod h1:WaHUgvxTVq04UNunO+XhnAqY/wQc+bxr74GqbsZ/Jqw=
 github.com/darkhz/mpvipc v0.0.0-20220202153421-58758ad355dd h1:8sCjVwv+r8j49dGqR5AbAKQpUBkg+asfZxQFjEq/P4Y=
 github.com/darkhz/mpvipc v0.0.0-20220202153421-58758ad355dd/go.mod h1:pr6hYjxmWUEZs8f92wYfp7AK8P7b3Tl6RbjDxVWDm78=
-github.com/darkhz/tview v0.0.0-20230626052013-d5ab7840a3f4 h1:njAbE1bapMnpJhzzVM//tlzb4OkmtOTSYxsBI496NIo=
-github.com/darkhz/tview v0.0.0-20230626052013-d5ab7840a3f4/go.mod h1:AMVvDCpcWG8IEqVuFSM7wKSeSHNpupJUkDAaWFokdnA=
+github.com/darkhz/tview v0.0.0-20230720044103-bb5a57216ca9 h1:yF3vS+n1VO4yZHZShlkg68ExCG8er7XjK6p1i3OX5bQ=
+github.com/darkhz/tview v0.0.0-20230720044103-bb5a57216ca9/go.mod h1:AMVvDCpcWG8IEqVuFSM7wKSeSHNpupJUkDAaWFokdnA=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=

@@ -15,7 +15,7 @@ import (
 	"github.com/etherlabsio/go-m3u8/m3u8"
 )
 
-const videoFields = "?fields=title,videoId,author,hlsUrl,publishedText,lengthSeconds,formatStreams,adaptiveFormats,liveNow,viewCount,likeCount,subCountText,description&hl=en"
+const videoFields = "?fields=title,videoId,author,hlsUrl,publishedText,lengthSeconds,formatStreams,adaptiveFormats,videoThumbnails,liveNow,viewCount,likeCount,subCountText,description&hl=en"
 
 // VideoData stores information about a video.
 type VideoData struct {
@@ -82,7 +82,7 @@ func Video(id string, ctx ...context.Context) (VideoData, error) {
 
 // VideoThumbnail returns data to parse a video thumbnail.
 func VideoThumbnail(ctx context.Context, id, image string) (*http.Response, error) {
-	res, err := client.Get(ctx, fmt.Sprintf("/vi/%s/%s.jpg", id, image))
+	res, err := client.Get(ctx, fmt.Sprintf("/vi/%s/%s", id, image))
 	if err != nil {
 		return nil, err
 	}
