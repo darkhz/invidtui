@@ -108,12 +108,6 @@ var options = []Option{
 		Type:        "bool",
 	},
 	{
-		Name:        "use-current-instance",
-		Description: "Use the current invidious instance to retrieve media.",
-		Value:       "",
-		Type:        "bool",
-	},
-	{
 		Name:        "show-instances",
 		Description: "Show a list of instances.",
 		Value:       "",
@@ -178,7 +172,6 @@ func parse() {
 				"close-instances",
 				"version",
 				"download-dir",
-				"use-current-instance",
 			} {
 				if f.Name == name {
 					goto cmdOutPrint

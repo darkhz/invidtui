@@ -177,7 +177,6 @@ func generateConfig() {
 			"force-instance",
 			"download-dir",
 			"num-retries",
-			"use-current-instance",
 			"video-res",
 		} {
 			if option.Type == "path" || option.Name == name {

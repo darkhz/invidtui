@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/darkhz/invidtui/client"
 	"github.com/darkhz/invidtui/utils"
 	"github.com/darkhz/mpvipc"
 )
@@ -102,6 +103,8 @@ func (m *MPV) LoadFile(title string, duration int64, audio bool, files ...string
 // LoadPlaylist loads the provided playlist into MPV.
 // If replace is true, the provided playlist will replace the current playing queue.
 // renewLiveURL is a function to check and renew expired liev URLs in the playlist.
+//
+//gocyclo:ignore
 func (m *MPV) LoadPlaylist(
 	plpath string,
 	replace bool,
@@ -134,12 +137,19 @@ func (m *MPV) LoadPlaylist(
 		var title, options string
 
 		line := scanner.Text()
-
 		if strings.HasPrefix(line, "#") || line == "" {
 			continue
 		}
 
-		data := utils.GetDataFromURL(line)
+		lineURI, err := utils.IsValidURL(line)
+		if err != nil {
+			continue
+		}
+
+		lineURI.Host = utils.GetHostname(client.Instance())
+		line = lineURI.String()
+
+		data := lineURI.Query()
 		if t := data.Get("title"); t != "" {
 			title = t
 		}
