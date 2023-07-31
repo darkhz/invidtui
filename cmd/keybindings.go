@@ -49,6 +49,8 @@ const (
 	KeyFilebrowserDirForward   Key = "FilebrowserDirForward"
 	KeyFilebrowserDirBack      Key = "FilebrowserDirBack"
 	KeyFilebrowserToggleHidden Key = "FilebrowserToggleHidden"
+	KeyFilebrowserNewFolder    Key = "FilebrowserNewFolder"
+	KeyFilebrowserRename       Key = "FilebrowserRename"
 	KeyDownloadChangeDir       Key = "DownloadChangeDir"
 	KeyDownloadView            Key = "DownloadView"
 	KeyDownloadOptions         Key = "DownloadOptions"
@@ -232,6 +234,16 @@ var (
 			Title:   "Toggle hidden",
 			Context: KeyContextFiles,
 			Kb:      Keybinding{tcell.KeyCtrlG, ' ', tcell.ModCtrl},
+		},
+		KeyFilebrowserNewFolder: {
+			Title:   "New folder",
+			Context: KeyContextFiles,
+			Kb:      Keybinding{tcell.KeyCtrlN, ' ', tcell.ModCtrl},
+		},
+		KeyFilebrowserRename: {
+			Title:   "Rename",
+			Context: KeyContextFiles,
+			Kb:      Keybinding{tcell.KeyCtrlB, ' ', tcell.ModCtrl},
 		},
 		KeyDownloadChangeDir: {
 			Title:   "Change download directory",

@@ -1,6 +1,7 @@
 package app
 
 import (
+	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -164,6 +165,13 @@ func (f *FileBrowser) Keybindings(event *tcell.EventKey) *tcell.EventKey {
 	case cmd.KeyFilebrowserToggleHidden:
 		f.hiddenStatus(struct{}{})
 		go f.cd("", false, false)
+
+	case cmd.KeyFilebrowserNewFolder:
+		go f.newFolder()
+
+	case cmd.KeyFilebrowserRename:
+		go f.renameItem()
+		return nil
 	}
 
 	return event
@@ -342,6 +350,51 @@ func (f *FileBrowser) render(dlist []fs.DirEntry, cdBack bool) {
 
 		ResizeModal()
 	})
+}
+
+// newFolder prompts for a name and creates a directory.
+func (f *FileBrowser) newFolder() {
+	name := f.Query("[::b]Folder name:", f.validate)
+	if name == "" {
+		return
+	}
+
+	if err := os.Mkdir(filepath.Join(f.currentPath, name), os.ModePerm); err != nil {
+		ShowError(fmt.Errorf("Filebrowser: Could not create directory %s", name))
+		return
+	}
+
+	go f.cd("", false, false)
+}
+
+// renameItem prompts for a name and renames the currently selected entry.
+func (f *FileBrowser) renameItem() {
+	name := f.Query("[::b]Rename to:", f.validate)
+	if name == "" {
+		return
+	}
+
+	row, _ := f.table.GetSelection()
+	oldname := f.table.GetCell(row, 0).Text
+
+	if err := os.Rename(filepath.Join(f.currentPath, oldname), filepath.Join(f.currentPath, name)); err != nil {
+		ShowError(fmt.Errorf("Filebrowser: Could not rename %s to %s", oldname, name))
+		return
+	}
+
+	go f.cd("", false, false)
+}
+
+func (f *FileBrowser) validate(text string, reply chan string) {
+	if text == "" {
+		return
+	}
+
+	select {
+	case reply <- text:
+
+	default:
+	}
 }
 
 // hiddenStatus returns whether hidden files are displayed or not.

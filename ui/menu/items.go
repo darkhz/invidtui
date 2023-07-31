@@ -24,6 +24,8 @@ var Items = &app.MenuData{
 			cmd.KeyFilebrowserDirForward,
 			cmd.KeyFilebrowserDirBack,
 			cmd.KeyFilebrowserToggleHidden,
+			cmd.KeyFilebrowserNewFolder,
+			cmd.KeyFilebrowserRename,
 			cmd.KeyClose,
 		},
 		cmd.KeyContextPlaylist: {
