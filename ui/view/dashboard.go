@@ -65,6 +65,9 @@ func (d *DashboardView) Init() bool {
 	d.token = tview.NewInputField()
 	d.token.SetLabel("[white::b]Token: ")
 	d.token.SetBackgroundColor(tcell.ColorDefault)
+	d.token.SetFocusFunc(func() {
+		app.SetContextMenu("", nil)
+	})
 
 	d.flex = tview.NewFlex().
 		SetDirection(tview.FlexRow).
