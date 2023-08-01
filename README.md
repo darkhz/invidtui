@@ -17,9 +17,9 @@ Currently, it is tested on Linux and Windows, and it should work on MacOS.
 - Download video and/or audio
 
 ## Documentation
-Refer to the [wiki](https://github.com/darkhz/invidtui/wiki) for installation and operational instructions.<br /><br />
-As of v0.3.2 some of the keybindings in the "Features and Keybindings" page has been changed.<br>
-To view most of the keybindings within the application itself, use the <kbd>Alt</kbd>+<kbd>m</kbd> key.
+Refer to the documentation [here](https://darkhz.github.io/invidtui/).
+
+The wiki is now out-of-date.
 
 ## License
 MIT
