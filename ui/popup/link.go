@@ -48,7 +48,7 @@ func ShowLink() {
 func getLinks(info inv.SearchData) (string, string) {
 	var linkparam string
 
-	invlink := "https://" + client.Instance()
+	invlink := client.Instance()
 	ytlink := "https://youtube.com"
 
 	switch info.Type {
