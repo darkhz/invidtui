@@ -121,32 +121,36 @@ func (f *FileBrowser) Query(
 		acceptFunc = tview.InputFieldMaxLength(max[0])
 	}
 
-	f.input.SetText("")
-	f.input.SetLabel(prompt + " ")
-	f.input.SetAcceptanceFunc(acceptFunc)
-	f.input.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		switch event.Key() {
-		case tcell.KeyEnter:
-			go validate(f.input.GetText(), reply)
+	UI.QueueUpdateDraw(func() {
+		f.input.SetText("")
+		f.input.SetLabel(prompt + " ")
+		f.input.SetAcceptanceFunc(acceptFunc)
+		f.input.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+			switch event.Key() {
+			case tcell.KeyEnter:
+				go validate(f.input.GetText(), reply)
 
-		case tcell.KeyEscape:
-			select {
-			case reply <- "":
+			case tcell.KeyEscape:
+				select {
+				case reply <- "":
 
-			default:
+				default:
+				}
 			}
-		}
 
-		return event
+			return event
+		})
 	})
 
 	response := <-reply
 
-	row, _ := f.table.GetSelection()
-	f.table.Select(row, 0)
+	UI.QueueUpdateDraw(func() {
+		row, _ := f.table.GetSelection()
+		f.table.Select(row, 0)
 
-	f.input.SetLabel(f.prompt)
-	f.input.SetInputCapture(f.inputFunc)
+		f.input.SetLabel(f.prompt)
+		f.input.SetInputCapture(f.inputFunc)
+	})
 
 	return response
 }
