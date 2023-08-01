@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html class="no-js" lang="en">
+<head>
+    <title>Command Line Options - InvidTUI</title>
+    <meta name="description" content="A cross-platform terminal-based Invidious client">
+    <meta name="author" content="darkhz">
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+    <link rel="icon" href="../themes/daux/img/favicon-navy.png" type="image/x-icon">
+
+    <!-- Mobile -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- JS -->
+    <script>
+        window.base_url = "../";
+        document.documentElement.classList.remove('no-js');
+    </script>
+
+    <!-- Font -->
+    
+    <!-- CSS -->
+            <link href='../themes/daux/css/theme-navy.min.css' rel='stylesheet' type='text/css'>
+            <link href='../daux_libraries/search.css' rel='stylesheet' type='text/css'>
+    </head>
+<body class="">
+    <div class="Columns content">
+    <aside class="Columns__left Collapsible">
+        <button type="button" class="Button Collapsible__trigger" aria-controls="sidebar_content" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="Collapsible__trigger__bar"></span>
+            <span class="Collapsible__trigger__bar"></span>
+            <span class="Collapsible__trigger__bar"></span>
+        </button>
+
+        <a class="Brand" href="../index.html">InvidTUI</a>
+
+    <form role='search' action="/" method="get" class="Search" id="search_form">
+        <label for="search_input">
+            <span class='u-visuallyHidden'>Search</span>
+        </label>
+        <input
+            type="search"
+            id="search_input"
+            class="Search__field"
+            placeholder="Search..."
+            aria-label="Search..."
+            autocomplete="on"
+            results=25
+            autosave=text_search
+        >
+        <label>
+            <input type="submit" class='u-visuallyHidden' />
+            <span class='u-visuallyHidden'>Search...</span>
+            <svg class="Search__icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 451 451">
+                <path d="M447.05 428l-109.6-109.6c29.4-33.8 47.2-77.9 47.2-126.1C384.65 86.2 298.35 0 192.35 0 86.25 0 .05 86.3.05 192.3s86.3 192.3 192.3 192.3c48.2 0 92.3-17.8 126.1-47.2L428.05 447c2.6 2.6 6.1 4 9.5 4s6.9-1.3 9.5-4c5.2-5.2 5.2-13.8 0-19zM26.95 192.3c0-91.2 74.2-165.3 165.3-165.3 91.2 0 165.3 74.2 165.3 165.3s-74.1 165.4-165.3 165.4c-91.1 0-165.3-74.2-165.3-165.4z"/>
+            </svg>
+        </label>
+    </form>
+
+        <div class="Collapsible__content" id="sidebar_content">
+            <!-- Navigation -->
+            <ul class='Nav'>
+<li class='Nav__item '><a href="../Installation.html">Installation</a></li>
+<li class='Nav__item '><a href="../Configuration.html">Configuration</a></li>
+<li class='Nav__item Nav__item--open has-children'><a href="../Usage/index.html" class="Nav__item__link"><i class="Nav__arrow">&nbsp;</i>Usage</a><ul class='Nav'>
+<li class='Nav__item Nav__item--active'><a href="../Usage/Command_Line_Options.html">Command Line Options</a></li>
+<li class='Nav__item  has-children'><a href="../Usage/Keybindings/Global_Keybindings.html" class="Nav__item__link"><i class="Nav__arrow">&nbsp;</i>Keybindings</a><ul class='Nav'>
+<li class='Nav__item '><a href="../Usage/Keybindings/Global_Keybindings.html">Global Keybindings</a></li>
+<li class='Nav__item '><a href="../Usage/Keybindings/Page_Specific_Keybindings.html">Page Specific Keybindings</a></li></ul></li></ul></li>
+<li class='Nav__item  has-children'><a href="../Pages/index.html" class="Nav__item__link"><i class="Nav__arrow">&nbsp;</i>Pages</a><ul class='Nav'>
+<li class='Nav__item '><a href="../Pages/Start.html">Start</a></li>
+<li class='Nav__item '><a href="../Pages/Search.html">Search</a></li>
+<li class='Nav__item '><a href="../Pages/Playlist.html">Playlist</a></li>
+<li class='Nav__item '><a href="../Pages/Channel.html">Channel</a></li>
+<li class='Nav__item '><a href="../Pages/Dashboard.html">Dashboard</a></li>
+<li class='Nav__item '><a href="../Pages/Downloads.html">Downloads</a></li></ul></li>
+<li class='Nav__item '><a href="../Authentication.html">Authentication</a></li>
+<li class='Nav__item '><a href="../Additional_Notes.html">Additional Notes</a></li>
+<li class='Nav__item '><a href="../Credits.html">Credits</a></li></ul>
+            <div class="Links">
+                                    <hr/>
+                                            <a href="https://youtube.com/watch?v=SwPyPYukuRQ" target="_blank"  rel="noopener noreferrer">Video Demo</a>
+                        <br />
+                                            <a href="https://github.com/darkhz/invidtui" target="_blank"  rel="noopener noreferrer">GitHub Repository</a>
+                        <br />
+                                            <a href="https://github.com/darkhz/invidtui/issues" target="_blank"  rel="noopener noreferrer">Help/Support/Bugs</a>
+                        <br />
+                                                </div>
+
+            
+            <div class="DarkModeToggler">
+                <hr/>
+                <label class="Checkbox">Dark Mode                    <input type="checkbox" class="ColorMode__button" />
+                    <div class="Checkbox__indicator"></div>
+                </label>
+            </div>
+
+                
+                                    <div class="PoweredBy">
+                        <hr/>
+                        Powered by Daux.io                    </div>
+                        </div>
+    </aside>
+    <div class="Columns__right">
+        <div class="Columns__right__content">
+            <div class="doc_content">
+                <article class="Page">
+
+    <div class="Page__header">
+        <h1><a href="../Usage/index.html">Usage</a> <svg class="Page__header--separator" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 477.175 477.175"><path d="M360.73 229.075l-225.1-225.1c-5.3-5.3-13.8-5.3-19.1 0s-5.3 13.8 0 19.1l215.5 215.5-215.5 215.5c-5.3 5.3-5.3 13.8 0 19.1 2.6 2.6 6.1 4 9.5 4 3.4 0 6.9-1.3 9.5-4l225.1-225.1c5.3-5.2 5.3-13.8.1-19z"/></svg> <a href="../Usage/Command_Line_Options.html">Command Line Options</a></h1>
+                        <span class="EditOn">
+            <a href="https://github.com/darkhz/invidtui/blob/master/documentation/docs/03_Usage/01_Command_Line_Options.md" target="_blank">
+                Edit on GitHub            </a>
+        </span>
+            </div>
+
+    <div class="s-content">
+        <div class="TableOfContentsContainer">
+    <h4 class="TableOfContentsContainer__title">Table of Contents</h4>
+    <div class="TableOfContentsContainer__content">
+        <ul class="TableOfContents">
+<li>
+<a href="#close-instances">close-instances</a>
+</li>
+<li>
+<a href="#download-dir">download-dir</a>
+</li>
+<li>
+<a href="#force-instance">force-instance</a>
+</li>
+<li>
+<a href="#generate">generate</a>
+<ul>
+<li>
+<a href="#play">play</a>
+</li>
+<li>
+<a href="#search">search</a>
+</li>
+<li>
+<a href="#show-instances">show-instances</a>
+</li>
+<li>
+<a href="#token">token</a>
+</li>
+<li>
+<a href="#ytdl-path">ytdl-path</a>
+</li>
+<li>
+<a href="#version">version</a>
+</li>
+</ul>
+</li>
+</ul>    </div>
+</div>
+<p>The general usage syntax is:</p>
+<pre><code>invidtui [&lt;option&gt;=&lt;parameter&gt;]
+</code></pre>
+<p>or</p>
+<pre><code>invidtui [&lt;option&gt; &lt;parameter&gt;]
+</code></pre>
+<p>The supported command-line options are listed below. Click on each option to see detailed information about its usage.</p>
+<ul>
+<li>
+<a href="#close-instances">–close-instances</a>: Force closes all currently running instances.</li>
+<li>
+<a href="#download-dir">–download-dir</a>: Specify directory to download media into.</li>
+<li>
+<a href="#force-instance">–force-instance</a>: Force load media from a specified invidious instance.</li>
+<li>
+<a href="#generate">–generate</a>: Generate the configuration</li>
+<li>
+<a href="#mpv-path">–mpv-path</a>:  Specify path to the mpv executable. (default “mpv”)</li>
+<li>
+<a href="#num-retries">–num-retries</a>:  Set the number of retries for connecting to the socket. (default 100)</li>
+<li>
+<a href="#play">–play-audio</a>: Specify video/playlist URL or ID to play audio from.</li>
+<li>
+<a href="#play">–play-video</a>: Specify video/playlist URL or ID to play video from.</li>
+<li>
+<a href="#search">–search-channel</a>:  Search for a channel.</li>
+<li>
+<a href="#search">–search-playlist</a>:  Search for a playlist.</li>
+<li>
+<a href="#show-instances">–show-instances</a>: Show a list of available instances.</li>
+<li>
+<a href="#search">–search-video</a>:  Search for a video.</li>
+<li>
+<a href="#token">–token</a>:  Specify an authorization token.</li>
+<li>
+<a href="#token">–token-link</a>:  Display a link to the token generation page.</li>
+<li>
+<a href="#video-res">–video-res</a>:  Set the default video resolution. (default “720p”)</li>
+<li>
+<a href="#ytdl-path">–ytdl-path</a>:  Specify path to youtube-dl executable.</li>
+<li>
+<a href="#version">–version</a>: Print version information.</li>
+</ul>
+<div class="Admonition Admonition--warning"><p class="Admonition__title">use-current-instances</p><p>As of v0.3.3, the use-current-instances option is deprecated since its behavior has been made the default for loading media from instances.</p></div>
+<h2><a id="close-instances" href="#close-instances" class="Permalink" aria-hidden="true" title="Permalink">#</a>close-instances</h2>
+<p>This option should mainly be used if another invidtui instance may be using the socket, if there was an application crash, or if an error pops up like this: <code>Error: Socket exists at /home/test/.config/invidtui/socket, is another instance running?</code>.</p>
+<h2><a id="download-dir" href="#download-dir" class="Permalink" aria-hidden="true" title="Permalink">#</a>download-dir</h2>
+<p>This option must be specified to enable media download. It currently only accepts absolute paths (<code>/home/test/Downloads</code>), and not relative paths (<code>~/Downloads</code>).</p>
+<p>For example: <code>invidtui --download-dir /home/test/Downloads</code></p>
+<h2><a id="force-instance" href="#force-instance" class="Permalink" aria-hidden="true" title="Permalink">#</a>force-instance</h2>
+<p>While using this option, it is recommended to input just the instance name, remove the “https://” prefix if present. If the instance URL is not valid, invidtui will automatically choose another valid instance.</p>
+<p>For example: <code>invidtui --force-instance &quot;y.com.sb&quot;</code></p>
+<h1><a id="generate" href="#generate" class="Permalink" aria-hidden="true" title="Permalink">#</a>generate</h1>
+<p>This option can be used to generate the configuration.</p>
+<p>Note that if you are regenerating the config, the existing values will be re-applied to the generated output.</p>
+<h2><a id="play" href="#play" class="Permalink" aria-hidden="true" title="Permalink">#</a>play</h2>
+<p>Only either of the <strong>play-audio</strong> and <strong>play-video</strong> options should be applied. The parameter for these options can be a video/playlist:</p>
+<ul>
+<li>
+<p><strong>URL:</strong>
+<code>invidtui --play-audio &quot;https://yewtu.be/watch?v=z1MmPk1pdLY&quot;</code>
+<code>invidtui --play-video &quot;https://yewtu.be/playlist?list=PLnikWbtnBaM48OF_QWZqbjtvRvbnVpCaP&quot;</code></p>
+</li>
+<li>
+<p><strong>ID:</strong>
+<code>invidtui --play-audio &quot;z1MmPk1pdLY&quot;</code>
+<code>invidtui --play-video &quot;PLnikWbtnBaM48OF_QWZqbjtvRvbnVpCaP&quot;</code></p>
+</li>
+</ul>
+<p>To load URLs/IDs from within invidtui, go <a href="Keybindings/Global_Keybindings.html#play">here</a>.</p>
+<h2><a id="search" href="#search" class="Permalink" aria-hidden="true" title="Permalink">#</a>search</h2>
+<p>The <strong>search-channel</strong>, <strong>search-playlist</strong> and <strong>search-video</strong> options are meant to be used individually. Make sure the search queries are properly quoted.</p>
+<p>For example: <code>invidtui --search-video &quot;linux&quot;</code></p>
+<h2><a id="show-instances" href="#show-instances" class="Permalink" aria-hidden="true" title="Permalink">#</a>show-instances</h2>
+<p>This option can be used to list active Invidious instances.</p>
+<h2><a id="token" href="#token" class="Permalink" aria-hidden="true" title="Permalink">#</a>token</h2>
+<p>The <strong>token</strong> and <strong>token-link</strong> options have to be used along with the <strong>force-instance</strong> option.</p>
+<p>For example:</p>
+<ul>
+<li>
+<p><strong>To generate a token link:</strong>
+<code>invidtui --force-instance &quot;y.com.sb&quot; --token-link</code></p>
+</li>
+<li>
+<p><strong>To use the generated token:</strong>
+<code>invidtui --force-instance &quot;y.com.sb&quot; --token &lt;generated-token&gt;</code></p>
+</li>
+</ul>
+<p>See <a href="../Authentication.html">Authentication</a> for more details.</p>
+<h2><a id="ytdl-path" href="#ytdl-path" class="Permalink" aria-hidden="true" title="Permalink">#</a>ytdl-path</h2>
+<p>This option can be used to specify paths to youtube-dl forks that are supported by MPV as well (yt-dlp or yt-dtlp_x86).</p>
+<h2><a id="version" href="#version" class="Permalink" aria-hidden="true" title="Permalink">#</a>version</h2>
+<p>This option can be used to print the version information.</p>
+    </div>
+
+        <nav>
+        <ul class="Pager">
+            <li class=Pager--prev><a href="../Usage/index.html">Previous</a></li>            <li class=Pager--next><a href="../Usage/Keybindings/Global_Keybindings.html">Next</a></li>        </ul>
+    </nav>
+    </article>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+    
+    <!-- JS -->
+            <script src="../themes/daux/js/main.mjs"></script>
+    
+        <script>
+        
+        window.searchLanguage = "";
+        window.searchTranslation = {"Search_one_result":"1 result","Search_results":"!count results","Search_no_results":"Nothing found","Search_common_words_ignored":"Common words are largely ignored","Search_too_short":"Search too short","Search_one_character_or_more":"Should be one character or more","Search_should_be_x_or_more":"Should be !min characters or more","Link_previous":"Previous","Link_next":"Next"};
+    </script>
+
+    <!-- Search -->
+    <script type="text/javascript" src="../daux_libraries/search.min.js"></script>
+
+    <script>
+        window.search({'base_url': '../'})
+    </script>
+</body>
+</html>

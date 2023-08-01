@@ -1,0 +1,28 @@
+{
+    "title": "InvidTUI",
+    "tagline": "A cross-platform terminal-based Invidious client",
+    "author": "darkhz",
+    "image": "images/banner.png",
+    "live": {
+        "clean_urls": true
+    },
+    "html": {
+        "theme": "daux-navy",
+        "breadcrumbs": true,
+        "breadcrumb_separator": "Chevrons",
+        "toggle_code": false,
+        "date_modified": false,
+        "inherit_index": true,
+
+        "repo": "darkhz/invidtui",
+        "edit_on_github": "darkhz/invidtui/blob/master/documentation/docs",
+        "google_analytics": false,
+        "plausible_domain": false,
+        "links": {
+	    "Video Demo": "https://youtube.com/watch?v=SwPyPYukuRQ",
+            "GitHub Repository": "https://github.com/darkhz/invidtui",
+            "Help/Support/Bugs": "https://github.com/darkhz/invidtui/issues"
+        },
+        "powered_by": "Powered by Daux.io"
+    }
+}
