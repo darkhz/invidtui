@@ -2,6 +2,7 @@ package client
 
 import (
 	"fmt"
+	"net/url"
 	"sync"
 )
 
@@ -53,7 +54,12 @@ func AddAuth(instance, token string) {
 		return
 	}
 
-	auth.store[instance] = token
+	instanceURI, _ := url.Parse(instance)
+	if instanceURI.Scheme == "" {
+		instanceURI.Scheme = "https"
+	}
+
+	auth.store[instanceURI.String()] = token
 }
 
 // AddCurrentAuth adds and stores an instance and token credential
