@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"net/url"
 	"sync"
+
+	"github.com/darkhz/invidtui/utils"
 )
 
 // Auth stores information about instances and the user's authentication
@@ -82,10 +84,10 @@ func Token() string {
 // AuthLink returns an authorization link.
 func AuthLink(instance ...string) string {
 	if instance == nil {
-		instance = append(instance, Instance())
+		instance = append(instance, utils.GetHostname(Instance()))
 	}
 
-	return fmt.Sprintf("%s/authorize_token?scopes=%s",
+	return fmt.Sprintf("https://%s/authorize_token?scopes=%s",
 		instance[0], Scopes,
 	)
 }
