@@ -15,7 +15,7 @@ import (
 )
 
 // SetupUI sets up the UI and starts the application.
-func SetupUI() error {
+func SetupUI() {
 	app.Setup()
 	app.InitMenu(menu.Items)
 	app.SetResizeHandler(Resize)
@@ -35,7 +35,10 @@ func SetupUI() error {
 	view.SetView(&view.Banner)
 
 	_, focusedItem := app.UI.Pages.GetFrontPage()
-	return app.UI.SetRoot(app.UI.Area, true).SetFocus(focusedItem).Run()
+
+	if err := app.UI.SetRoot(app.UI.Area, true).SetFocus(focusedItem).Run(); err != nil {
+		cmd.PrintError("UI: Could not start", err)
+	}
 }
 
 // StopUI stops the application.
