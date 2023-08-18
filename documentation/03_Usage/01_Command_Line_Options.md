@@ -50,7 +50,7 @@ For example: `invidtui --force-instance "y.com.sb"`
 # generate
 This option can be used to generate the configuration.
 
-Note that if you are regenerating the config, the existing values will be re-applied to the generated output.
+Note that the config file location will be stored under the User Home/Profile directory in `.config/invidtui/invidtui.conf` once generated. If you are regenerating the config, the existing values will be re-applied to the generated output.
 
 ## play
 Only either of the **play-audio** and **play-video** options should be applied. The parameter for these options can be a video/playlist:
