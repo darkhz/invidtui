@@ -38,7 +38,7 @@ var options = []Option{
 	{
 		Name:        "ytdl-path",
 		Description: "Specify path to youtube-dl executable or its forks (yt-dlp, yt-dtlp_x86)",
-		Value:       "youtube-dl",
+		Value:       "",
 		Type:        "path",
 	},
 	{
@@ -279,29 +279,26 @@ func checkExecutablePaths(pathType, path string) {
 		}
 
 	case "ytdl-path":
-		if path == "" {
-			for _, ytdl := range []string{
-				"youtube-dl",
-				"yt-dlp",
-				"yt-dtlp_x86",
-			} {
-				_, err := exec.LookPath(ytdl)
-				if err == nil {
-					SetOptionValue(pathType, path)
-				}
+		for _, ytdl := range []string{
+			path,
+			"youtube-dl",
+			"yt-dlp",
+			"yt-dtlp_x86",
+		} {
+			if _, err := exec.LookPath(ytdl); err == nil {
+				SetOptionValue("ytdl-path", ytdl)
+				return
 			}
 		}
 
-		fallthrough
+		if GetOptionValue("ytdl-path") == "" {
+			printer.Error("Could not find the youtube-dl/yt-dlp/yt-dtlp_x86 executables")
+		}
 
 	default:
 		if _, err := exec.LookPath(path); err != nil {
 			printer.Error(fmt.Sprintf("%s: Could not find %s", pathType, path))
 		}
-	}
-
-	if GetOptionValue("ytdl-path") == "" {
-		printer.Error("Could not find the youtube-dl/yt-dlp/yt-dtlp_x86 executables")
 	}
 }
 
