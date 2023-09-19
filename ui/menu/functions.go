@@ -69,10 +69,11 @@ func isPlaylist(menuType string) bool {
 	return err == nil && info.Type == "playlist"
 }
 
-func isChannel(menuType string) bool {
+func isVideoOrChannel(menuType string) bool {
 	info, err := app.FocusedTableReference()
 
-	return err == nil && info.Type == "channel"
+	return err == nil &&
+		(info.Type == "video" && info.AuthorID != "" || info.Type == "channel")
 }
 
 func isVideoOrPlaylist(menuType string) bool {
@@ -103,7 +104,7 @@ func editPlaylist(menuType string) bool {
 }
 
 func isDashboardSubscription(menuType string) bool {
-	return isDashboardFocused(menuType) && isChannel(menuType)
+	return isDashboardFocused(menuType) && isVideoOrChannel(menuType)
 }
 
 func downloadViewVisible(menuType string) bool {
