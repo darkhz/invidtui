@@ -155,14 +155,15 @@ func (q *Queue) play() {
 	row, _ := q.table.GetSelection()
 
 	if q.moveMode {
+		selected := row
 		if row > q.prevrow {
-			mp.Player().QueueMove(q.prevrow, row+1)
-		} else {
-			mp.Player().QueueMove(q.prevrow, row)
+			row++
 		}
 
+		mp.Player().QueueMove(row, q.prevrow)
+
 		q.moveMode = false
-		q.table.Select(row, 0)
+		q.table.Select(selected, 0)
 
 		return
 	}
