@@ -25,7 +25,7 @@ import (
 type Player struct {
 	queue Queue
 
-	currentID, thumbURI   string
+	infoID, thumbURI      string
 	init, playing, toggle bool
 	width                 int
 	states                []string
@@ -140,7 +140,7 @@ func Show() {
 func ToggleInfo(hide ...struct{}) {
 	if hide != nil || player.toggle {
 		player.toggle = false
-		player.currentID = ""
+		player.infoID = ""
 
 		infoContext(true, struct{}{})
 
@@ -531,7 +531,7 @@ func changeImageQuality(set ...struct{}) {
 	var prev string
 	var options []string
 
-	video := player.queue.currentVideo(player.currentID)
+	video := player.queue.currentVideo(player.infoID)
 	if video == nil {
 		return
 	}
@@ -612,7 +612,7 @@ func changeImageQuality(set ...struct{}) {
 
 		if uri := video.Thumbnails[index].URL; uri != player.thumbURI {
 			player.thumbURI = uri
-			go renderInfoImage(infoContext(true), player.currentID, filepath.Base(uri), struct{}{})
+			go renderInfoImage(infoContext(true), player.infoID, filepath.Base(uri), struct{}{})
 		}
 	})
 	player.quality.SetCurrentOption(pos)
@@ -635,11 +635,11 @@ func renderInfo(id, title string, force ...struct{}) {
 	}
 	defer player.render.Release(1)
 
-	if force == nil && (id == "" || (id != "" && id == player.currentID)) {
+	if force == nil && (id == "" || id == player.infoID || !player.toggle) {
 		return
 	}
 
-	player.currentID = id
+	player.infoID = id
 	player.image.SetImage(nil)
 	if player.region.GetItemCount() > 2 {
 		player.region.RemoveItemIndex(1)

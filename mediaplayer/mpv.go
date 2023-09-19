@@ -187,16 +187,10 @@ func (m *MPV) LoadPlaylist(
 
 // Title returns the title of the track located at 'pos'.
 func (m *MPV) Title(pos int) string {
-	pltitle, _ := m.Call("get_property_string", "playlist/"+strconv.Itoa(pos)+"/title")
+	pltitle, _ := m.Call("get_property_string", "playlist/"+strconv.Itoa(pos)+"/filename")
 
 	if pltitle == nil {
-		plfile, _ := m.Call("get_property_string", "playlist/"+strconv.Itoa(pos)+"/filename")
-
-		if plfile == nil {
-			return "-"
-		}
-
-		return plfile.(string)
+		return "-"
 	}
 
 	return pltitle.(string)
