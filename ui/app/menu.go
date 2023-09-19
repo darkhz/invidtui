@@ -87,6 +87,10 @@ func SetContextMenu(menuType cmd.KeyContext, item tview.Primitive) {
 
 // FocusMenu activates the menu bar.
 func FocusMenu() {
+	if len(UI.Menu.GetHighlights()) > 0 {
+		return
+	}
+
 	regions := UI.Menu.GetRegionIDs()
 	if regions == nil {
 		return
