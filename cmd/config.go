@@ -25,22 +25,28 @@ var config Config
 
 // Init sets up the configuration.
 func (c *Config) setup() {
-	var configExists bool
+	var (
+		configExists bool
+		dirs         []string
+	)
 
 	c.Koanf = koanf.New(".")
 
-	homedir, err := os.UserHomeDir()
+	home, err := os.UserHomeDir()
 	if err != nil {
 		printer.Error(err.Error())
 	}
+	dirs = append(dirs, filepath.Join(home, ".invidtui"))
 
-	dirs := []string{".config/invidtui", ".invidtui"}
+	conf, err := os.UserConfigDir()
+	if err != nil {
+		printer.Error(err.Error())
+	}
+	dirs = append(dirs, filepath.Join(conf, "invidtui"))
+
 	for i, dir := range dirs {
-		p := filepath.Join(homedir, dir)
-		dirs[i] = p
-
-		if _, err := os.Stat(p); err == nil {
-			c.path = p
+		if _, err := os.Stat(dir); err == nil {
+			c.path = dir
 			return
 		}
 
@@ -48,7 +54,7 @@ func (c *Config) setup() {
 			continue
 		}
 
-		if _, err := os.Stat(filepath.Clean(filepath.Dir(p))); err == nil {
+		if _, err := os.Stat(filepath.Clean(filepath.Dir(dir))); err == nil {
 			configExists = true
 		}
 	}
