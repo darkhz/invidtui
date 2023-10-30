@@ -27,50 +27,27 @@ var config Config
 
 // Init sets up the configuration.
 func (c *Config) setup() {
-	var configExists bool
+	var homedirExist bool
 
 	c.Koanf = koanf.New(".")
 
-	homedir, err := os.UserHomeDir()
+	dir, err := os.UserConfigDir()
 	if err != nil {
+		dir, err = os.UserHomeDir()
+		homedirExist = true
+	}
+	if err != nil {
+		printer.Error("No config/home directories found")
+	}
+
+	name := "invidtui"
+	if homedirExist {
+		name = "." + name
+	}
+
+	c.path = filepath.Join(dir, name)
+	if err := os.Mkdir(c.path, os.ModePerm); err != nil && !errors.Is(err, fs.ErrExist) {
 		printer.Error(err.Error())
-	}
-
-	dirs := []string{".config/invidtui", ".invidtui"}
-	for i, dir := range dirs {
-		p := filepath.Join(homedir, dir)
-		dirs[i] = p
-
-		if _, err := os.Stat(p); err == nil {
-			c.path = p
-			return
-		}
-
-		if i > 0 {
-			continue
-		}
-
-		if _, err := os.Stat(filepath.Clean(filepath.Dir(p))); err == nil {
-			configExists = true
-		}
-	}
-
-	if c.path == "" {
-		var pos int
-		var err error
-
-		if configExists {
-			err = os.Mkdir(dirs[0], 0700)
-		} else {
-			pos = 1
-			err = os.Mkdir(dirs[1], 0700)
-		}
-
-		if err != nil {
-			printer.Error(err.Error())
-		}
-
-		c.path = dirs[pos]
 	}
 }
 
