@@ -3,7 +3,7 @@ module github.com/darkhz/invidtui
 go 1.17
 
 require (
-	github.com/darkhz/mpvipc v0.0.0-20220202153421-58758ad355dd
+	github.com/darkhz/mpvipc v0.0.0-20231115020632-e9de5925b87d
 	github.com/darkhz/tview v0.0.0-20230720044103-bb5a57216ca9
 	github.com/davidmytton/url-verifier v1.0.0
 	github.com/etherlabsio/go-m3u8 v1.0.0

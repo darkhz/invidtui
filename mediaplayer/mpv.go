@@ -2,6 +2,7 @@ package mediaplayer
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"io"
 	"net/url"
@@ -12,6 +13,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/beefsack/go-rate"
 	"github.com/darkhz/invidtui/client"
 	"github.com/darkhz/invidtui/utils"
 	"github.com/darkhz/mpvipc"
@@ -125,58 +127,35 @@ func (m *MPV) LoadPlaylist(
 	}
 	defer pl.Close()
 
+	rate := rate.New(10, time.Second)
+
 	// We implement a simple playlist parser instead of relying on
 	// the m3u8 package here, since that package deals with mainly
 	// HLS playlists, and it seems to panic when certain EXTINF fields
 	// are blank. With this method, we can parse the URLs from the playlist
 	// directly, and pass the relevant options to mpv as well.
-	scanner := bufio.NewScanner(pl)
-	scanner.Split(bufio.ScanLines)
+	reader := bufio.NewReader(pl)
+	for {
+		line, err := reader.ReadString('\n')
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
 
-	for scanner.Scan() {
-		var title, options string
+			return err
+		}
 
-		line := scanner.Text()
+		line = strings.TrimSpace(line)
 		if strings.HasPrefix(line, "#") || line == "" {
 			continue
 		}
 
-		lineURI, err := utils.IsValidURL(line)
-		if err != nil {
-			continue
-		}
-
-		lineURI.Host = utils.GetHostname(client.Instance())
-		line = lineURI.String()
-
-		data := lineURI.Query()
-		if t := data.Get("title"); t != "" {
-			title = t
-		}
-		if o := data.Get("options"); o != "" {
-			options = replaceOptions(o)
-		}
-		if l := data.Get("length"); l == "Live" {
-			audio := data.Get("mediatype") == "Audio"
-			if renewed := renewLiveURL(line, audio); renewed {
-				continue
-			}
-		}
-
-		if !strings.Contains(options, "force-media-title") {
-			options += ",force-media-title=%" + strconv.Itoa(len(title)) + "%" + title
-		}
-
-		if _, err := m.Call("loadfile", line, "append-play", options); err != nil {
+		rate.Wait()
+		if err := m.playlistAddEntry(line, &renewLiveURL); err != nil {
 			return err
 		}
 
 		filesAdded++
-
-		m.addToMonitor(title)
-	}
-	if err := scanner.Err(); err != nil && err != io.EOF {
-		return err
 	}
 	if filesAdded == 0 {
 		return fmt.Errorf("MPV: No files were added")
@@ -579,6 +558,48 @@ func (m *MPV) addToMonitor(title string) {
 
 	default:
 	}
+}
+
+// playlistAddEntry adds a playlist entry to mpv.
+func (m *MPV) playlistAddEntry(line string, renew *func(uri string, audio bool) bool) error {
+	var title, options string
+
+	lineURI, err := utils.IsValidURL(line)
+	if err != nil {
+		return err
+	}
+
+	lineURI.Host = utils.GetHostname(client.Instance())
+	line = lineURI.String()
+
+	data := lineURI.Query()
+	audio := data.Get("mediatype") == "Audio"
+	if t := data.Get("title"); t != "" {
+		title = t
+	}
+	if o := data.Get("options"); o != "" {
+		options = replaceOptions(o)
+	}
+	if l := data.Get("length"); l == "Live" {
+		ren := *renew
+
+		if renewed := ren(line, audio); renewed {
+			return nil
+		}
+	}
+	if !strings.Contains(options, "force-media-title") {
+		options += ",force-media-title=%" + strconv.Itoa(len(title)) + "%" + title
+	}
+	if audio {
+		options += ",vid=no"
+	}
+
+	_, err = m.Call("loadfile", line, "append-play", options)
+	if err == nil {
+		m.addToMonitor(title)
+	}
+
+	return err
 }
 
 // eventListener listens for MPV events.
