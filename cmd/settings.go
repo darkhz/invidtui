@@ -9,6 +9,7 @@ import (
 
 	"github.com/darkhz/invidtui/client"
 	"github.com/darkhz/invidtui/utils"
+	"github.com/goccy/go-json"
 )
 
 // SettingsData describes the format to store the application settings.
@@ -40,7 +41,7 @@ func SaveSettings() {
 
 	Settings.SearchHistory = utils.Deduplicate(Settings.SearchHistory)
 
-	data, err := utils.JSON().MarshalIndent(Settings, "", " ")
+	data, err := json.MarshalIndent(Settings, "", " ")
 	if err != nil {
 		printer.Error(fmt.Sprintf("Settings: Cannot encode data: %s", err))
 	}
@@ -77,7 +78,7 @@ func getSettings() {
 	}
 	defer fd.Close()
 
-	err = utils.JSON().NewDecoder(fd).Decode(&Settings)
+	err = json.NewDecoder(fd).Decode(&Settings)
 	if err != nil && err != io.EOF {
 		printer.Error("Settings: Cannot parse values")
 	}
@@ -107,7 +108,7 @@ func getOldSettings() {
 			continue
 		}
 
-		decoder := utils.JSON().NewDecoder(fd)
+		decoder := json.NewDecoder(fd)
 
 		switch files.Type {
 		case "Auth":

@@ -2,7 +2,8 @@ package invidious
 
 import (
 	"github.com/darkhz/invidtui/client"
-	"github.com/darkhz/invidtui/utils"
+
+	"github.com/goccy/go-json"
 )
 
 const channelFields = "?fields=title,authorId,author,description,viewCount&hl=en"
@@ -91,7 +92,7 @@ func decodeChannelData(query string) (ChannelData, error) {
 	}
 	defer res.Body.Close()
 
-	err = utils.JSON().NewDecoder(res.Body).Decode(&data)
+	err = json.NewDecoder(res.Body).Decode(&data)
 
 	return data, err
 }

@@ -2,7 +2,7 @@ package invidious
 
 import (
 	"github.com/darkhz/invidtui/client"
-	"github.com/darkhz/invidtui/utils"
+	"github.com/goccy/go-json"
 )
 
 // SubscriptionData stores information about the user's subscriptions.
@@ -21,7 +21,7 @@ func Subscriptions() (SubscriptionData, error) {
 	}
 	defer res.Body.Close()
 
-	err = utils.JSON().NewDecoder(res.Body).Decode(&data)
+	err = json.NewDecoder(res.Body).Decode(&data)
 	if err != nil {
 		return SubscriptionData{}, err
 	}

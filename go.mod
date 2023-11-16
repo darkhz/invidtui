@@ -8,8 +8,8 @@ require (
 	github.com/davidmytton/url-verifier v1.0.0
 	github.com/etherlabsio/go-m3u8 v1.0.0
 	github.com/gdamore/tcell/v2 v2.6.0
+	github.com/goccy/go-json v0.10.2
 	github.com/hjson/hjson-go/v4 v4.3.0
-	github.com/json-iterator/go v1.1.12
 	github.com/knadh/koanf/parsers/hjson v0.1.0
 	github.com/knadh/koanf/providers/file v0.1.0
 	github.com/knadh/koanf/providers/posflag v0.1.0
@@ -35,8 +35,6 @@ require (
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
-	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
-	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/rivo/uniseg v0.4.4 // indirect
 	golang.org/x/sys v0.10.0 // indirect
 	golang.org/x/term v0.10.0 // indirect

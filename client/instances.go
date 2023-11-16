@@ -6,7 +6,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/darkhz/invidtui/utils"
+	"github.com/goccy/go-json"
 )
 
 // Instance returns the client's current instance.
@@ -28,7 +28,7 @@ func GetInstances() ([]string, error) {
 		return nil, err
 	}
 
-	err = utils.JSON().NewDecoder(res.Body).Decode(&instances)
+	err = json.NewDecoder(res.Body).Decode(&instances)
 	if err != nil {
 		return nil, err
 	}

@@ -14,6 +14,7 @@ import (
 	"github.com/darkhz/invidtui/utils"
 	"github.com/darkhz/tview"
 	"github.com/gdamore/tcell/v2"
+	"github.com/goccy/go-json"
 	"golang.org/x/sync/semaphore"
 )
 
@@ -492,7 +493,7 @@ func (q *Queue) getQueueData() []QueueData {
 		return []QueueData{}
 	}
 
-	err := utils.JSON().Unmarshal([]byte(playlistJSON), &data)
+	err := json.Unmarshal([]byte(playlistJSON), &data)
 	if err != nil {
 		app.ShowError(fmt.Errorf("Queue: Error while parsing playlist data"))
 		return []QueueData{}
