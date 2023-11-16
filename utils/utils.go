@@ -99,6 +99,26 @@ func FormatNumber(num int) string {
 	return strconv.Itoa(num)
 }
 
+// ConvertDurationToSeconds converts a "hh:mm:ss" string to seconds.
+func ConvertDurationToSeconds(duration string) int64 {
+	if duration == "" {
+		return 0
+	}
+
+	dursplit := strings.Split(duration, ":")
+	if len(dursplit) == 2 {
+		dursplit = append([]string{"00"}, dursplit...)
+	}
+
+	for i, v := range []string{"h", "m", "s"} {
+		dursplit[i] = dursplit[i] + v
+	}
+
+	d, _ := time.ParseDuration(strings.Join(dursplit, ""))
+
+	return int64(d.Seconds())
+}
+
 // SplitLines splits a given string into separate lines.
 func SplitLines(line string) []string {
 	var currPos int

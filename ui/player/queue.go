@@ -238,11 +238,11 @@ func (q *Queue) selectorHandler(row, col int) {
 
 // render renders the player queue.
 func (q *Queue) render(data []map[string]interface{}) {
-	q.data = data
-	q.table.Clear()
-
 	if len(data) == 0 {
+		q.table.Clear()
+		q.data = nil
 		q.removeVideo(-1, struct{}{})
+
 		if q.table.HasFocus() {
 			q.Hide()
 		}
@@ -250,15 +250,17 @@ func (q *Queue) render(data []map[string]interface{}) {
 		return
 	}
 
+	length := len(q.data)
 	_, _, w, _ := q.table.GetRect()
 	pos, _ := q.table.GetSelection()
+
 	q.table.SetSelectable(false, false)
 
 	for i, pldata := range data {
 		var marker string
 
-		data := q.getData(i, pldata)
-		if data == (QueueData{}) {
+		data, skip := q.getData(i, pldata, length)
+		if skip {
 			continue
 		}
 
@@ -315,61 +317,91 @@ func (q *Queue) render(data []map[string]interface{}) {
 	q.table.Select(pos, 0)
 
 	app.ResizeModal()
+
+	q.data = data
 }
 
 // getData organises and returns the queue data from the provided playlist data map.
-func (q *Queue) getData(row int, pldata map[string]interface{}) QueueData {
-	var id int
+//
+//gocyclo:ignore
+func (q *Queue) getData(row int, pldata map[string]interface{}, length ...int) (QueueData, bool) {
 	var data QueueData
 	var filename string
-	var playing bool
 
-	if i, ok := pldata["id"].(float64); ok {
-		id = int(i)
+	props := []string{"id", "filename", "current"}
+
+	if length != nil && row < length[0] {
+		var count int
+
+		if _, ok := pldata["current"]; !ok {
+			pldata["current"] = false
+		}
+
+		for _, prop := range props {
+			pdata, recent := pldata[prop]
+			qdata, existing := q.data[row][prop]
+			if (recent && existing) && (pdata == qdata) {
+				count++
+			}
+		}
+		if count == len(props) {
+			return (QueueData{}), true
+		}
 	}
-	if f, ok := pldata["filename"].(string); ok {
-		filename = f
-	}
-	if p, ok := pldata["current"].(bool); ok {
-		playing = p
+
+	for _, prop := range props {
+		value := pldata[prop]
+
+		switch prop {
+		case "id":
+			if v, ok := value.(int); ok {
+				data.ID = v
+			}
+
+		case "filename":
+			if v, ok := value.(string); ok {
+				filename = v
+			}
+
+		case "current":
+			if v, ok := value.(bool); ok {
+				data.Playing = v
+			}
+		}
 	}
 
 	urlData := utils.GetDataFromURL(filename)
 	if urlData == nil {
-		return (QueueData{})
+		return (QueueData{}), true
 	}
 
-	for _, udata := range []string{
-		"id",
-		"title",
-		"author",
-		"length",
-		"mediatype",
-	} {
-		if urlData.Get("id") == "" {
+	for udata := range urlData {
+		key, value := udata, urlData.Get(udata)
+		if value != "" {
 			continue
 		}
 
-		if udata == "title" && urlData.Get(udata) == "" {
-			urlData.Set(udata, mp.Player().Title(row))
-			continue
+		switch key {
+		case "title":
+			value = mp.Player().Title(row)
+
+		default:
+			if key != "id" {
+				value = "-"
+			}
 		}
 
-		if urlData.Get(udata) == "" {
-			urlData.Set(udata, "-")
-		}
+		urlData.Set(key, value)
 	}
 
-	data.ID = id
-	data.Playing = playing
-	data.Filename = filename
 	data.VideoID = urlData.Get("id")
 	data.Title = urlData.Get("title")
 	data.Author = urlData.Get("author")
 	data.Type = urlData.Get("mediatype")
 	data.Duration = urlData.Get("length")
+	data.LengthSeconds = utils.ConvertDurationToSeconds(data.Duration)
 
-	return data
+	return data, false
 }
 
 // appendFrom appends the entries from the provided playlist file
@@ -503,7 +535,7 @@ func (q *Queue) getQueueData() []QueueData {
 	}
 
 	for i := range data {
-		data[i] = q.getData(i, map[string]interface{}{
+		data[i], _ = q.getData(i, map[string]interface{}{
 			"id":       data[i].ID,
 			"playing":  data[i].Playing,
 			"filename": data[i].Filename,
