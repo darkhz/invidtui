@@ -306,7 +306,7 @@ func (s *SearchView) Keybindings(event *tcell.EventKey) *tcell.EventKey {
 		s.Query()
 
 	case cmd.KeyPlaylist:
-		Playlist.EventHandler(event.Modifiers() == tcell.ModAlt)
+		Playlist.EventHandler(event.Modifiers() == tcell.ModAlt, false)
 
 	case cmd.KeyChannelVideos:
 		Channel.EventHandler("video", event.Modifiers() == tcell.ModAlt)
@@ -641,7 +641,7 @@ func (s *SearchView) renderResults(results []inv.SearchData) {
 		)
 
 		if result.Type == "playlist" || result.Type == "channel" {
-			s.table.SetCell(actualRow, 4, tview.NewTableCell("[pink]"+strconv.Itoa(result.VideoCount)+" videos").
+			s.table.SetCell(actualRow, 4, tview.NewTableCell("[pink]"+strconv.FormatInt(result.VideoCount, 10)+" videos").
 				SetSelectable(true).
 				SetAlign(tview.AlignRight).
 				SetSelectedStyle(app.UI.ColumnStyle),

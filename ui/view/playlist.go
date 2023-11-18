@@ -16,9 +16,9 @@ import (
 
 // PlaylistView describes the layout of a playlist view.
 type PlaylistView struct {
-	init, removed bool
-	page          int
-	currentID     string
+	init, auth, removed bool
+	page                int
+	currentID           string
 
 	table    *tview.Table
 	infoView InfoView
@@ -95,7 +95,7 @@ func (p *PlaylistView) View() {
 }
 
 // EventHandler shows the playlist view for the currently selected playlist.
-func (p *PlaylistView) EventHandler(justView bool, loadMore ...struct{}) {
+func (p *PlaylistView) EventHandler(justView, auth bool, loadMore ...struct{}) {
 	if justView {
 		p.View()
 		return
@@ -103,6 +103,7 @@ func (p *PlaylistView) EventHandler(justView bool, loadMore ...struct{}) {
 
 	p.Init()
 
+	p.auth = auth
 	p.removed = false
 
 	info, err := app.FocusedTableReference()
@@ -120,8 +121,6 @@ func (p *PlaylistView) EventHandler(justView bool, loadMore ...struct{}) {
 
 // Load loads the playlist.
 func (p *PlaylistView) Load(id string, loadMore ...struct{}) {
-	var auth bool
-
 	if !p.lock.TryAcquire(1) {
 		app.ShowError(fmt.Errorf("View: Playlist: Still loading data"))
 		return
@@ -137,7 +136,7 @@ func (p *PlaylistView) Load(id string, loadMore ...struct{}) {
 
 	app.ShowInfo("Loading Playlist results", true)
 
-	result, err := inv.Playlist(p.currentID, auth, p.page)
+	result, err := inv.Playlist(p.currentID, p.auth, p.page)
 	if err != nil {
 		app.ShowError(err)
 		return
@@ -161,11 +160,37 @@ func (p *PlaylistView) Load(id string, loadMore ...struct{}) {
 	app.ShowInfo("Playlist loaded", false)
 }
 
+// Save downloads and saves the playlist to a file.
+func (p *PlaylistView) Save(id string, auth bool) {
+	app.ShowInfo("Initializing playlist", true)
+
+	result, err := inv.Playlist(id, auth, 1)
+	if err != nil {
+		app.ShowError(err)
+		return
+	}
+	if len(result.Videos) == 0 {
+		app.ShowError(fmt.Errorf("Playlist: Save: No videos found"))
+		return
+	}
+
+	app.ShowInfo("Playlist initialized", false)
+
+	app.UI.FileBrowser.Show("Save playlist to:", func(file string) {
+		app.UI.FileBrowser.SaveFile(file, func(appendToFile bool) (string, error) {
+			return Downloads.TransferPlaylist(id, file, result, auth, appendToFile)
+		})
+	})
+}
+
 // Keybindings describes the keybindings for the playlist view.
 func (p *PlaylistView) Keybindings(event *tcell.EventKey) *tcell.EventKey {
-	switch cmd.KeyOperation(event, cmd.KeyContextComments) {
+	switch cmd.KeyOperation(event, cmd.KeyContextCommon, cmd.KeyContextComments, cmd.KeyContextPlaylist) {
 	case cmd.KeyLoadMore:
 		go p.Load(p.currentID, struct{}{})
+
+	case cmd.KeyPlaylistSave:
+		go Playlist.Save(p.currentID, p.auth)
 
 	case cmd.KeyClose:
 		CloseView()

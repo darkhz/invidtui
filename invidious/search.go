@@ -23,7 +23,7 @@ type SearchData struct {
 	PublishedText string `json:"publishedText"`
 	Duration      string `json:"duration"`
 	Description   string `json:"description"`
-	VideoCount    int    `json:"videoCount"`
+	VideoCount    int64  `json:"videoCount"`
 	SubCount      int    `json:"subCount"`
 	LengthSeconds int64  `json:"lengthSeconds"`
 	LiveNow       bool   `json:"liveNow"`

@@ -393,7 +393,7 @@ func (c *ChannelView) Playlists(id string, loadMore ...struct{}) (string, string
 				SetSelectedStyle(app.UI.SelectedStyle),
 			)
 
-			playlistTable.SetCell((rows + i), 1, tview.NewTableCell("[pink]"+strconv.Itoa(p.VideoCount)+" videos").
+			playlistTable.SetCell((rows + i), 1, tview.NewTableCell("[pink]"+strconv.FormatInt(p.VideoCount, 10)+" videos").
 				SetSelectable(true).
 				SetAlign(tview.AlignRight).
 				SetSelectedStyle(app.UI.ColumnStyle),
@@ -528,7 +528,7 @@ func (c *ChannelView) Keybindings(event *tcell.EventKey) *tcell.EventKey {
 		go c.Load(c.currentType)
 
 	case cmd.KeyPlaylist:
-		go Playlist.EventHandler(event.Modifiers() == tcell.ModAlt)
+		go Playlist.EventHandler(event.Modifiers() == tcell.ModAlt, false)
 
 	case cmd.KeyAdd:
 		Dashboard.ModifyHandler(true)

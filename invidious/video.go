@@ -34,6 +34,8 @@ type VideoData struct {
 	Thumbnails      []VideoThumbnails `json:"videoThumbnails"`
 	FormatStreams   []VideoFormat     `json:"formatStreams"`
 	AdaptiveFormats []VideoFormat     `json:"adaptiveFormats"`
+
+	MediaType string
 }
 
 // VideoFormat stores information about the video's format.
@@ -128,18 +130,14 @@ func VideoLoadParams(id string, audio bool, ctx ...context.Context) (VideoData, 
 		urls = append(urls, audioURL)
 	}
 
-	mediaURL += "&id=" + url.QueryEscape(id)
-	mediaURL += "&title=" + url.QueryEscape(video.Title)
-	mediaURL += "&author=" + url.QueryEscape(video.Author)
-	mediaURL += "&mediatype=" + url.QueryEscape(mediatype)
-	mediaURL += "&length=" + url.QueryEscape(durationtext)
+	video.MediaType = mediatype
 
-	_, err = utils.IsValidURL(mediaURL)
+	murl, err := encodeVideoURI(mediaURL, durationtext, video)
 	if err != nil {
 		return VideoData{}, nil, err
 	}
 
-	urls = append([]string{mediaURL}, urls...)
+	urls = append([]string{murl.String()}, urls...)
 
 	return video, urls, nil
 }
@@ -273,7 +271,7 @@ func loopFormats(
 	if !audio {
 		for _, format := range video.FormatStreams {
 			if format.Resolution == cmd.GetOptionValue("video-res") {
-				videoURL = getLatestURL(video.VideoID, format.Itag)
+				videoURL = format.URL
 				return videoURL, audioURL
 			}
 		}
@@ -310,10 +308,44 @@ func loopFormats(
 // getLatestURL appends the latest_version query to the current client's host URL.
 // For example: https://invidious.snopyta.org/latest_version?id=mWDOxRWcoPE&itag=22&local=true
 func getLatestURL(id, itag string) string {
+	var itagstr string
+
 	host := client.Instance()
 
 	idstr := "id=" + id
-	itagstr := "&itag=" + itag
+
+	if itag != "" {
+		itagstr += "&itag=" + itag
+	}
 
 	return host + "/latest_version?" + idstr + itagstr + "&local=true"
+}
+
+// encodeVideoURI encodes a video URI with data.
+func encodeVideoURI(uri, duration string, video VideoData) (*url.URL, error) {
+	murl, err := url.Parse(uri)
+	if err != nil {
+		return nil, err
+	}
+
+	if video.MediaType == "" {
+		video.MediaType = "Audio"
+	}
+
+	mvalues := murl.Query()
+	for _, params := range [][]string{
+		{"id", video.VideoID},
+		{"title", video.Title},
+		{"mediatype", video.MediaType},
+		{"author", video.Author},
+
+		{"length", duration},
+	} {
+		if !mvalues.Has(params[0]) {
+			mvalues.Add(params[0], params[1])
+		}
+	}
+	murl.RawQuery = mvalues.Encode()
+
+	return murl, nil
 }

@@ -383,7 +383,7 @@ func (d *DashboardView) plKeybindings(event *tcell.EventKey) *tcell.EventKey {
 
 	switch cmd.KeyOperation(event, cmd.KeyContextDashboard) {
 	case cmd.KeyPlaylist:
-		Playlist.EventHandler(event.Modifiers() == tcell.ModAlt)
+		Playlist.EventHandler(event.Modifiers() == tcell.ModAlt, true)
 
 	case cmd.KeyDashboardCreatePlaylist, cmd.KeyDashboardEditPlaylist:
 		d.PlaylistForm(event.Rune() == 'e')
@@ -613,7 +613,7 @@ func (d *DashboardView) modifyVideoInPlaylist(info inv.SearchData, add bool, loc
 			SetSelectedStyle(app.UI.SelectedStyle),
 		)
 
-		table.SetCell(i, 1, tview.NewTableCell("[pink]"+strconv.Itoa(p.VideoCount)+" videos").
+		table.SetCell(i, 1, tview.NewTableCell("[pink]"+strconv.FormatInt(p.VideoCount, 10)+" videos").
 			SetSelectable(true).
 			SetAlign(tview.AlignRight).
 			SetSelectedStyle(app.UI.ColumnStyle),
@@ -782,7 +782,7 @@ func (d *DashboardView) loadPlaylists(reload bool) {
 				SetSelectedStyle(app.UI.SelectedStyle),
 			)
 
-			plView.table.SetCell(i, 1, tview.NewTableCell("[pink]"+strconv.Itoa(playlist.VideoCount)+" videos").
+			plView.table.SetCell(i, 1, tview.NewTableCell("[pink]"+strconv.FormatInt(playlist.VideoCount, 10)+" videos").
 				SetSelectable(true).
 				SetAlign(tview.AlignRight).
 				SetSelectedStyle(app.UI.ColumnStyle),

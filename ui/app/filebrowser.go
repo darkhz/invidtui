@@ -155,6 +155,44 @@ func (f *FileBrowser) Query(
 	return response
 }
 
+// SaveFile saves the generated entries into a file.
+func (f *FileBrowser) SaveFile(
+	file string,
+	entriesFunc func(appendToFile bool) (string, error),
+) {
+	flags, appendToFile, confirm, exist := f.confirmOverwrite(file)
+	if exist && !confirm {
+		return
+	}
+
+	f.Hide()
+
+	entries, err := entriesFunc(appendToFile)
+	if err != nil {
+		ShowError(err)
+		return
+	}
+
+	saveFile, err := os.OpenFile(file, flags, 0664)
+	if err != nil {
+		ShowError(fmt.Errorf("FileBrowser: Unable to open file"))
+		return
+	}
+
+	_, err = saveFile.WriteString(entries)
+	if err != nil {
+		ShowError(fmt.Errorf("FileBrowser: Unable to save file"))
+		return
+	}
+
+	message := " saved in "
+	if appendToFile {
+		message = " appended to "
+	}
+
+	ShowInfo("Contents"+message+file, false)
+}
+
 // Keybindings define the keybindings for the file browser.
 func (f *FileBrowser) Keybindings(event *tcell.EventKey) *tcell.EventKey {
 	switch cmd.KeyOperation(event, "Files") {
@@ -356,6 +394,37 @@ func (f *FileBrowser) render(dlist []fs.DirEntry, cdBack bool) {
 	})
 }
 
+// confirmOverwrite displays an overwrite confirmation message
+// within the file browser. This is triggered if the selected file
+// in the file browser already exists and has entries in it.
+func (f *FileBrowser) confirmOverwrite(file string) (int, bool, bool, bool) {
+	var appendToFile bool
+
+	flags := os.O_CREATE | os.O_WRONLY
+
+	if _, err := os.Stat(file); err != nil {
+		return flags, false, false, false
+	}
+
+	reply := f.Query("Overwrite file (y/n/a)?", f.validate, 1)
+	switch reply {
+	case "y":
+		flags |= os.O_TRUNC
+
+	case "a":
+		flags |= os.O_APPEND
+		appendToFile = true
+
+	case "n":
+		break
+
+	default:
+		reply = ""
+	}
+
+	return flags, appendToFile, reply != "", true
+}
+
 // newFolder prompts for a name and creates a directory.
 func (f *FileBrowser) newFolder() {
 	name := f.Query("[::b]Folder name:", f.validate)
@@ -389,15 +458,18 @@ func (f *FileBrowser) renameItem() {
 	go f.cd("", false, false)
 }
 
+// validate validates the overwrite confirmation reply.
 func (f *FileBrowser) validate(text string, reply chan string) {
-	if text == "" {
-		return
-	}
+	for _, option := range []string{"y", "n", "a"} {
+		if text == option {
+			select {
+			case reply <- text:
 
-	select {
-	case reply <- text:
+			default:
+			}
 
-	default:
+			break
+		}
 	}
 }
 

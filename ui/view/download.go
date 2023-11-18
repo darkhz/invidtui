@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -35,7 +37,7 @@ type DownloadProgress struct {
 
 // DownloadData describes the information for the downloading item.
 type DownloadData struct {
-	id, title string
+	id, title, dtype string
 
 	format inv.VideoFormat
 }
@@ -185,11 +187,11 @@ func (d *DownloadsView) LoadOptions(id, title string) {
 	})
 }
 
-// Start starts the download for the selected video.
-func (d *DownloadsView) Start(id, itag, filename string) {
+// TransferVideo starts the download for the selected video.
+func (d *DownloadsView) TransferVideo(id, itag, filename string) {
 	var progress DownloadProgress
 
-	app.ShowInfo("Starting download for "+tview.Escape(filename), false)
+	app.ShowInfo("Starting download for video "+tview.Escape(filename), false)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -202,7 +204,7 @@ func (d *DownloadsView) Start(id, itag, filename string) {
 	defer res.Body.Close()
 	defer file.Close()
 
-	progress.renderBar(filename, res.ContentLength, cancel)
+	progress.renderBar(filename, res.ContentLength, cancel, true)
 	defer app.UI.QueueUpdateDraw(func() {
 		progress.remove()
 	})
@@ -211,6 +213,89 @@ func (d *DownloadsView) Start(id, itag, filename string) {
 	if err != nil {
 		app.ShowError(err)
 	}
+}
+
+// TransferPlaylist starts the download for the selected playlist.
+func (d *DownloadsView) TransferPlaylist(id, file string, data inv.PlaylistData, auth, appendToFile bool) (string, error) {
+	var skipped int64
+	var progress DownloadProgress
+
+	page := 2
+	filename := filepath.Base(file)
+	idx := int64(data.Videos[len(data.Videos)-1].Index)
+
+	d.Init()
+
+	app.ShowInfo("Starting download for playlist '"+tview.Escape(filename)+"'", false)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	progress.renderBar(filename, data.VideoCount, cancel, false)
+	progress.bar.Add64(idx)
+	defer app.UI.QueueUpdateDraw(func() {
+		progress.remove()
+	})
+
+	videoMap := make(map[int32]inv.PlaylistVideo, data.VideoCount)
+	for _, video := range data.Videos {
+		videoMap[video.Index] = video
+	}
+
+	for idx < data.VideoCount-1 {
+		select {
+		case <-ctx.Done():
+			return "", nil
+
+		default:
+		}
+
+		playlist, err := inv.Playlist(id, auth, page, ctx)
+		if err != nil {
+			app.ShowError(err)
+			return "", err
+		}
+		if len(playlist.Videos) == 0 || skipped == int64(len(videoMap)) {
+			return "", fmt.Errorf("Playlist Downloader: No more videos")
+		}
+
+		for _, video := range playlist.Videos {
+			if _, ok := videoMap[video.Index]; ok {
+				continue
+			}
+
+			videoMap[video.Index] = video
+			progress.bar.Add64(1)
+		}
+
+		idx = int64(playlist.Videos[len(playlist.Videos)-1].Index)
+		page++
+	}
+
+	idx = 0
+
+	indexKeys := make([]int32, len(videoMap))
+	for index := range videoMap {
+		indexKeys[idx] = index
+		idx++
+	}
+	sort.Slice(indexKeys, func(i, j int) bool {
+		return indexKeys[i] < indexKeys[j]
+	})
+
+	videos := make([]inv.VideoData, len(videoMap))
+	for _, key := range indexKeys {
+		video := videoMap[key]
+
+		videos[key] = inv.VideoData{
+			VideoID:       video.VideoID,
+			Title:         video.Title,
+			LengthSeconds: video.LengthSeconds,
+			Author:        video.Author,
+		}
+	}
+
+	return inv.GeneratePlaylist(file, videos, appendToFile)
 }
 
 // OptionKeybindings describes the keybindings for the download options popup.
@@ -225,7 +310,7 @@ func (d *DownloadsView) OptionKeybindings(event *tcell.EventKey) *tcell.EventKey
 
 		if data, ok := cell.GetReference().(DownloadData); ok {
 			filename := data.title + "." + data.format.Container
-			go d.Start(data.id, data.format.Itag, filename)
+			go d.TransferVideo(data.id, data.format.Itag, filename)
 		}
 
 		fallthrough
@@ -317,6 +402,7 @@ func (d *DownloadsView) renderOptions(video inv.VideoData) {
 				id:    video.VideoID,
 				title: video.Title,
 
+				dtype:  "video",
 				format: format,
 			}
 
@@ -368,7 +454,20 @@ func (p *DownloadProgress) remove() {
 }
 
 // renderBar renders the progress bar within the downloads view.
-func (p *DownloadProgress) renderBar(filename string, clen int64, cancel func()) {
+func (p *DownloadProgress) renderBar(filename string, clen int64, cancel func(), video bool) {
+	options := []progressbar.Option{
+		progressbar.OptionSpinnerType(34),
+		progressbar.OptionSetWriter(p),
+		progressbar.OptionSetRenderBlankState(true),
+		progressbar.OptionSetElapsedTime(false),
+		progressbar.OptionShowCount(),
+		progressbar.OptionSetPredictTime(false),
+		progressbar.OptionThrottle(200 * time.Millisecond),
+	}
+	if video {
+		options = append(options, progressbar.OptionShowBytes(true))
+	}
+
 	p.desc = tview.NewTableCell("[::b]" + tview.Escape(filename)).
 		SetExpansion(1).
 		SetSelectable(true).
@@ -379,17 +478,7 @@ func (p *DownloadProgress) renderBar(filename string, clen int64, cancel func())
 		SetSelectable(false).
 		SetAlign(tview.AlignRight)
 
-	p.bar = progressbar.NewOptions64(
-		clen,
-		progressbar.OptionSpinnerType(34),
-		progressbar.OptionSetWriter(p),
-		progressbar.OptionShowBytes(true),
-		progressbar.OptionSetElapsedTime(false),
-		progressbar.OptionSetRenderBlankState(true),
-		progressbar.OptionSetPredictTime(false),
-		progressbar.OptionShowCount(),
-		progressbar.OptionThrottle(200*time.Millisecond),
-	)
+	p.bar = progressbar.NewOptions64(clen, options...)
 
 	p.cancelFunc = cancel
 

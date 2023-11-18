@@ -34,6 +34,7 @@ var Items = &app.MenuData{
 			cmd.KeyAdd,
 			cmd.KeyRemove,
 			cmd.KeyLoadMore,
+			cmd.KeyPlaylistSave,
 			cmd.KeyDownloadOptions,
 			cmd.KeyClose,
 		},

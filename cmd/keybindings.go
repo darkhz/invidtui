@@ -87,6 +87,7 @@ const (
 	KeyCommentReplies          Key = "CommentReplies"
 	KeySwitchTab               Key = "SwitchTab"
 	KeyPlaylist                Key = "Playlist"
+	KeyPlaylistSave            Key = "PlaylistSave"
 	KeyChannelVideos           Key = "ChannelVideos"
 	KeyChannelPlaylists        Key = "ChannelPlaylists"
 	KeyAudioURL                Key = "AudioURL"
@@ -422,6 +423,11 @@ var (
 			Title:   "Play video from URL",
 			Context: KeyContextPlayer,
 			Kb:      Keybinding{tcell.KeyRune, 'B', tcell.ModNone},
+		},
+		KeyPlaylistSave: {
+			Title:   "Save Playlist",
+			Context: KeyContextPlaylist,
+			Kb:      Keybinding{tcell.KeyCtrlS, ' ', tcell.ModCtrl},
 		},
 		KeyComments: {
 			Title:   "Show Comments",
