@@ -16,9 +16,11 @@ import (
 
 // PlaylistView describes the layout of a playlist view.
 type PlaylistView struct {
+	ID string
+
 	init, auth, removed bool
 	page                int
-	currentID           string
+	idmap               map[string]struct{}
 
 	table    *tview.Table
 	infoView InfoView
@@ -50,6 +52,7 @@ func (p *PlaylistView) Init() bool {
 
 	p.infoView.Init(p.table)
 
+	p.idmap = make(map[string]struct{})
 	p.lock = semaphore.NewWeighted(1)
 
 	p.init = true
@@ -131,12 +134,13 @@ func (p *PlaylistView) Load(id string, loadMore ...struct{}) {
 		p.page++
 	} else {
 		p.page = 1
-		p.currentID = id
+		p.ID = id
+		p.idmap = make(map[string]struct{})
 	}
 
 	app.ShowInfo("Loading Playlist results", true)
 
-	result, err := inv.Playlist(p.currentID, p.auth, p.page)
+	result, err := inv.Playlist(p.ID, p.auth, p.page)
 	if err != nil {
 		app.ShowError(err)
 		return
@@ -154,7 +158,7 @@ func (p *PlaylistView) Load(id string, loadMore ...struct{}) {
 			p.table.Clear()
 		}
 
-		p.renderPlaylist(result, p.currentID)
+		p.renderPlaylist(result, p.ID)
 	})
 
 	app.ShowInfo("Playlist loaded", false)
@@ -187,10 +191,10 @@ func (p *PlaylistView) Save(id string, auth bool) {
 func (p *PlaylistView) Keybindings(event *tcell.EventKey) *tcell.EventKey {
 	switch cmd.KeyOperation(event, cmd.KeyContextCommon, cmd.KeyContextComments, cmd.KeyContextPlaylist) {
 	case cmd.KeyLoadMore:
-		go p.Load(p.currentID, struct{}{})
+		go p.Load(p.ID, struct{}{})
 
 	case cmd.KeyPlaylistSave:
-		go Playlist.Save(p.currentID, p.auth)
+		go Playlist.Save(p.ID, p.auth)
 
 	case cmd.KeyClose:
 		CloseView()
@@ -221,7 +225,6 @@ func (p *PlaylistView) renderPlaylist(result inv.PlaylistData, id string) {
 
 	pos := -1
 	rows := p.table.GetRowCount()
-	plistIDMap := make(map[string]struct{})
 	_, _, pageWidth, _ := app.UI.Pages.GetRect()
 
 	previousView := PreviousView()
@@ -247,13 +250,13 @@ func (p *PlaylistView) renderPlaylist(result inv.PlaylistData, id string) {
 		}
 
 		if !prevDashboard {
-			_, ok := plistIDMap[v.VideoID]
+			_, ok := p.idmap[v.VideoID]
 			if ok {
 				skipped++
 				continue
 			}
 
-			plistIDMap[v.VideoID] = struct{}{}
+			p.idmap[v.VideoID] = struct{}{}
 		}
 
 		sref := inv.SearchData{
@@ -299,7 +302,6 @@ func (p *PlaylistView) renderPlaylist(result inv.PlaylistData, id string) {
 		}
 	}
 
-	p.table.ScrollToEnd()
 	p.table.SetSelectable(true, false)
 
 	if pg, _ := app.UI.Pages.GetFrontPage(); pg == "ui" {
