@@ -6,6 +6,8 @@ import (
 	"unicode"
 
 	"github.com/gdamore/tcell/v2"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 // KeyData stores the metadata for the key.
@@ -644,7 +646,7 @@ func checkBindings(keyType, key string, keyNames map[string]tcell.Key) {
 
 	for _, token := range tokens {
 		if len(token) > 1 {
-			token = strings.Title(token)
+			token = cases.Title(language.Und).String(token)
 		} else if len(token) == 1 {
 			keybinding.Rune = rune(token[0])
 			runes = append(runes, keybinding.Rune)
