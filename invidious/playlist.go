@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -131,7 +132,7 @@ func RemoveVideoFromPlaylist(plid, index string) error {
 // GeneratePlaylist generates a playlist file.
 func GeneratePlaylist(file string, list []VideoData, appendToFile bool) (string, error) {
 	var skipped int
-	var entries string
+	var entries, ignored string
 	var fileEntries map[string]struct{}
 
 	if len(list) == 0 {
@@ -157,6 +158,14 @@ func GeneratePlaylist(file string, list []VideoData, appendToFile bool) (string,
 			}
 
 			fileEntries[line] = struct{}{}
+
+			iurl, err := url.Parse(line)
+			if err != nil {
+				continue
+			}
+			if iurl.Query().Get("length") == "00:00" {
+				ignored += line + "\n"
+			}
 		}
 	}
 
@@ -168,6 +177,10 @@ func GeneratePlaylist(file string, list []VideoData, appendToFile bool) (string,
 	}
 
 	for i, data := range list {
+		if data.VideoID == "" {
+			continue
+		}
+
 		murl, err := encodeVideoURI(getLatestURL(data.VideoID, ""), utils.FormatDuration(data.LengthSeconds), data)
 		if err != nil {
 			continue
@@ -182,12 +195,21 @@ func GeneratePlaylist(file string, list []VideoData, appendToFile bool) (string,
 			}
 		}
 
-		entries += "#EXTINF:," + data.Title + "\n"
-		entries += filename + "\n"
+		entry := "#EXTINF:," + data.Title + "\n"
+
+		if data.LengthSeconds == 0 {
+			ignored += entry + "# " + filename + "\n\n"
+			continue
+		}
+
+		entries += entry + filename + "\n"
 
 		if i != len(list)-1 {
 			entries += "\n"
 		}
+	}
+	if ignored != "" {
+		entries += "\n" + strings.TrimSuffix(ignored, "\n")
 	}
 
 	if skipped == len(list) {
