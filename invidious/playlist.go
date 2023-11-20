@@ -195,8 +195,7 @@ func GeneratePlaylist(file string, list []VideoData, appendToFile bool) (string,
 			}
 		}
 
-		entry := "#EXTINF:," + data.Title + "\n"
-
+		entry := fmt.Sprintf("#EXTINF:%d,%s\n", data.LengthSeconds, data.Title)
 		if data.LengthSeconds == 0 {
 			ignored += entry + "# " + filename + "\n\n"
 			continue
