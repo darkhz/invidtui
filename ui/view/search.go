@@ -18,10 +18,10 @@ import (
 
 // SearchView describes the layout for a search view.
 type SearchView struct {
-	init                         bool
-	page, pos                    int
-	currentType, savedText, file string
-	entries                      []string
+	init                              bool
+	page, pos                         int
+	currentType, savedText, file, tab string
+	entries                           []string
 
 	table *tview.Table
 
@@ -88,6 +88,7 @@ func (s *SearchView) Init() bool {
 	}
 
 	s.currentType = "video"
+	s.tab = s.currentType
 
 	s.table = tview.NewTable()
 	s.table.SetBorder(false)
@@ -215,7 +216,7 @@ func (s *SearchView) Query(switchMode ...struct{}) {
 		app.SetContextMenu(cmd.KeyContextSearch, app.UI.Status.InputField)
 	})
 
-	label := "[::b]Search (" + Search.currentType + "):"
+	label := "[::b]Search (" + s.tab + "):"
 	app.UI.Status.SetInput(label, 0, switchMode == nil, Search.Start, Search.inputFunc)
 }
 
@@ -330,6 +331,8 @@ func (s *SearchView) Keybindings(event *tcell.EventKey) *tcell.EventKey {
 func (s *SearchView) inputFunc(e *tcell.EventKey) *tcell.EventKey {
 	switch cmd.KeyOperation(e, cmd.KeyContextSearch) {
 	case cmd.KeySearchStart:
+		s.currentType = s.tab
+
 		text := app.UI.Status.GetText()
 		if text != "" {
 			go s.Start(text)
@@ -343,6 +346,10 @@ func (s *SearchView) inputFunc(e *tcell.EventKey) *tcell.EventKey {
 		}
 
 		s.historyReset()
+
+		s.tab = s.currentType
+		app.SelectTab(s.currentType)
+
 		app.UI.Status.SetFocusFunc()
 		app.UI.Status.SwitchToPage("messages")
 		app.SetPrimaryFocus()
@@ -352,9 +359,9 @@ func (s *SearchView) inputFunc(e *tcell.EventKey) *tcell.EventKey {
 
 	case cmd.KeySearchSwitchMode:
 		tab := s.Tabs()
-		tab.Selected = s.currentType
+		tab.Selected = s.tab
 
-		s.currentType = app.SwitchTab(false, tab)
+		s.tab = app.SwitchTab(false, tab)
 		s.Query(struct{}{})
 
 	case cmd.KeySearchParameters:
