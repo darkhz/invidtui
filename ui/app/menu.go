@@ -61,20 +61,19 @@ func SetContextMenu(menuType cmd.KeyContext, item tview.Primitive) {
 		return
 	}
 
-	text := string('\u2261')
 	menuArea.context = menuType
 
-	regionIDs := UI.Menu.GetRegionIDs()
-	for _, region := range regionIDs {
-		if strings.Contains(region, "context") {
-			break
-		}
+	text := UI.Menu.GetText(false)
+	if text == "" {
+		text = string('\u2261')
+	}
 
-		if _, ok := menuArea.data.Items[cmd.KeyContext(region)]; !ok {
-			continue
+	regions := strings.Split(text, " ")
+	for i, region := range regions {
+		if strings.Contains(region, "context-") {
+			regions = regions[0:i]
+			text = strings.Join(regions, " ")
 		}
-
-		text = menuFormat(text, region, region)
 	}
 
 	if _, ok := menuArea.data.Items[cmd.KeyContext(menuType)]; ok {
@@ -196,9 +195,9 @@ func MenuHighlightHandler(added, removed, remaining []string) {
 		return
 	}
 
-	for _, region := range UI.Menu.GetRegionInfos() {
-		if region.ID == added[0] {
-			DrawMenu(region.FromX, added[0])
+	for _, region := range UI.Menu.GetRegionIDs() {
+		if region == added[0] {
+			DrawMenu(UI.Menu.GetRegionStart(region), added[0])
 			break
 		}
 	}
@@ -218,9 +217,9 @@ func MenuKeybindings(event *tcell.EventKey) *tcell.EventKey {
 			goto Event
 		}
 
-		regions := UI.Menu.GetRegionInfos()
+		regions := UI.Menu.GetRegionIDs()
 		for i, region := range regions {
-			if highlighted[0] == region.ID {
+			if highlighted[0] == region {
 				index = i
 				break
 			}
@@ -233,7 +232,7 @@ func MenuKeybindings(event *tcell.EventKey) *tcell.EventKey {
 		}
 
 		MenuExit()
-		UI.Menu.Highlight(regions[index].ID)
+		UI.Menu.Highlight(regions[index])
 	}
 
 Event:
@@ -242,5 +241,5 @@ Event:
 
 // menuFormat returns the format for displaying menu names.
 func menuFormat(text, region, title string) string {
-	return fmt.Sprintf("%s [\"%s\"][::b]%s[\"\"][\"\"]", text, region, title)
+	return fmt.Sprintf("%s [\"%s\"][::b]%s[-:-:-][\"\"]", text, region, title)
 }
