@@ -10,8 +10,8 @@ import (
 	"strings"
 
 	"github.com/darkhz/invidtui/client"
+	"github.com/darkhz/invidtui/resolver"
 	"github.com/darkhz/invidtui/utils"
-	"github.com/goccy/go-json"
 )
 
 const playlistFields = "?fields=title,playlistId,author,description,videoCount,viewCount,videos&hl=en"
@@ -59,7 +59,7 @@ func Playlist(id string, auth bool, page int, ctx ...context.Context) (PlaylistD
 	}
 	defer res.Body.Close()
 
-	err = json.NewDecoder(res.Body).Decode(&data)
+	err = resolver.DecodeJSONReader(res.Body, &data)
 	if err != nil {
 		return PlaylistData{}, err
 	}
@@ -77,7 +77,7 @@ func UserPlaylists() ([]PlaylistData, error) {
 	}
 	defer res.Body.Close()
 
-	err = json.NewDecoder(res.Body).Decode(&data)
+	err = resolver.DecodeJSONReader(res.Body, &data)
 	if err != nil {
 		return nil, err
 	}

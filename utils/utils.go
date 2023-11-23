@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/darkhz/invidtui/resolver"
 	urlverify "github.com/davidmytton/url-verifier"
 )
 
@@ -227,7 +228,7 @@ func IsValidURL(uri string) (*url.URL, error) {
 func IsValidJSON(text string) bool {
 	var msg json.RawMessage
 
-	return json.Unmarshal([]byte(text), &msg) == nil
+	return resolver.DecodeJSONBytes([]byte(text), &msg) == nil
 }
 
 // GetDataFromURL parses specific url fields and returns their values.

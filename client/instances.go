@@ -6,7 +6,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/goccy/go-json"
+	"github.com/darkhz/invidtui/resolver"
 )
 
 // Instance returns the client's current instance.
@@ -28,7 +28,7 @@ func GetInstances() ([]string, error) {
 		return nil, err
 	}
 
-	err = json.NewDecoder(res.Body).Decode(&instances)
+	err = resolver.DecodeJSONReader(res.Body, &instances)
 	if err != nil {
 		return nil, err
 	}

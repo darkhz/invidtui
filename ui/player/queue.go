@@ -7,11 +7,11 @@ import (
 	"github.com/darkhz/invidtui/cmd"
 	inv "github.com/darkhz/invidtui/invidious"
 	mp "github.com/darkhz/invidtui/mediaplayer"
+	"github.com/darkhz/invidtui/resolver"
 	"github.com/darkhz/invidtui/ui/app"
 	"github.com/darkhz/invidtui/utils"
 	"github.com/darkhz/tview"
 	"github.com/gdamore/tcell/v2"
-	"github.com/goccy/go-json"
 	"golang.org/x/sync/semaphore"
 )
 
@@ -331,6 +331,10 @@ func (q *Queue) getData(row int, pldata map[string]interface{}, length ...int) (
 	var data QueueData
 	var filename string
 
+	if len(pldata) == 0 {
+		return QueueData{}, true
+	}
+
 	props := []string{"id", "filename", "current"}
 
 	if length != nil && row < length[0] {
@@ -463,7 +467,7 @@ func (q *Queue) getQueueData() []QueueData {
 		return []QueueData{}
 	}
 
-	err := json.Unmarshal([]byte(playlistJSON), &data)
+	err := resolver.DecodeJSONBytes([]byte(playlistJSON), &data)
 	if err != nil {
 		app.ShowError(fmt.Errorf("Queue: Error while parsing playlist data"))
 		return []QueueData{}

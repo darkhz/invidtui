@@ -11,9 +11,9 @@ import (
 
 	"github.com/darkhz/invidtui/client"
 	"github.com/darkhz/invidtui/cmd"
+	"github.com/darkhz/invidtui/resolver"
 	"github.com/darkhz/invidtui/utils"
 	"github.com/etherlabsio/go-m3u8/m3u8"
-	"github.com/goccy/go-json"
 )
 
 const videoFields = "?fields=title,videoId,author,hlsUrl,publishedText,lengthSeconds,formatStreams,adaptiveFormats,videoThumbnails,liveNow,viewCount,likeCount,subCountText,description&hl=en"
@@ -75,7 +75,7 @@ func Video(id string, ctx ...context.Context) (VideoData, error) {
 	}
 	defer res.Body.Close()
 
-	err = json.NewDecoder(res.Body).Decode(&data)
+	err = resolver.DecodeJSONReader(res.Body, &data)
 	if err != nil {
 		return VideoData{}, err
 	}

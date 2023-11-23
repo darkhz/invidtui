@@ -15,9 +15,9 @@ import (
 
 	"github.com/beefsack/go-rate"
 	"github.com/darkhz/invidtui/client"
+	"github.com/darkhz/invidtui/resolver"
 	"github.com/darkhz/invidtui/utils"
 	"github.com/darkhz/mpvipc"
-	"github.com/ugorji/go/codec"
 )
 
 // MPV describes the mpv player.
@@ -26,9 +26,6 @@ type MPV struct {
 	monitor map[int]string
 
 	lock sync.Mutex
-
-	decoder *codec.Decoder
-	encoder *codec.Encoder
 
 	*mpvipc.Connection
 }
@@ -45,9 +42,6 @@ func (m *MPV) Init(execpath, ytdlpath, numretries, useragent, socket string) err
 	}
 
 	m.monitor = make(map[int]string)
-
-	m.decoder = codec.NewDecoderBytes(nil, &codec.SimpleHandle{})
-	m.encoder = codec.NewEncoderBytes(nil, &codec.SimpleHandle{})
 
 	go m.eventListener()
 	go m.startMonitor()
@@ -648,11 +642,9 @@ func (m *MPV) playlistAddEntry(line string, renew *func(uri string, audio bool) 
 func (m *MPV) store(prop, apply interface{}) {
 	var data []byte
 
-	m.encoder.ResetBytes(&data)
-	err := m.encoder.Encode(prop)
+	err := resolver.EncodeSimpleBytes(&data, prop)
 	if err == nil {
-		m.decoder.ResetBytes(data)
-		m.decoder.Decode(apply)
+		resolver.DecodeSimpleBytes(data, apply)
 	}
 }
 

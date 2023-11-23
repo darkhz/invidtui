@@ -11,8 +11,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/darkhz/invidtui/resolver"
 	"github.com/darkhz/invidtui/utils"
-	"github.com/goccy/go-json"
 )
 
 const (
@@ -233,7 +233,7 @@ func checkStatusCode(res *http.Response, codes ...int) (*http.Response, error) {
 
 		message := "API request returned %d"
 
-		if err := json.NewDecoder(res.Body).Decode(&responseError); err == nil {
+		if err := resolver.DecodeJSONReader(res.Body, &responseError); err == nil {
 			message += ": " + responseError.Error
 		}
 

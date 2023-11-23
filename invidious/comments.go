@@ -2,7 +2,7 @@ package invidious
 
 import (
 	"github.com/darkhz/invidtui/client"
-	"github.com/goccy/go-json"
+	"github.com/darkhz/invidtui/resolver"
 )
 
 // CommentsData stores comments and its continuation data.
@@ -48,7 +48,7 @@ func Comments(id string, continuation ...string) (CommentsData, error) {
 	}
 	defer res.Body.Close()
 
-	err = json.NewDecoder(res.Body).Decode(&data)
+	err = resolver.DecodeJSONReader(res.Body, &data)
 	if err != nil {
 		return CommentsData{}, err
 	}

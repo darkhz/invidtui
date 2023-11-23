@@ -4,7 +4,7 @@ import (
 	"strconv"
 
 	"github.com/darkhz/invidtui/client"
-	"github.com/goccy/go-json"
+	"github.com/darkhz/invidtui/resolver"
 )
 
 // FeedData stores videos in the user's feed.
@@ -37,7 +37,7 @@ func Feed(page int) (FeedData, error) {
 	}
 	defer res.Body.Close()
 
-	err = json.NewDecoder(res.Body).Decode(&data)
+	err = resolver.DecodeJSONReader(res.Body, &data)
 	if err != nil {
 		return FeedData{}, err
 	}

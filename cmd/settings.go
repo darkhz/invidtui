@@ -2,14 +2,15 @@ package cmd
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
 	"strings"
 
 	"github.com/darkhz/invidtui/client"
+	"github.com/darkhz/invidtui/resolver"
 	"github.com/darkhz/invidtui/utils"
-	"github.com/goccy/go-json"
 )
 
 // SettingsData describes the format to store the application settings.
@@ -78,7 +79,7 @@ func getSettings() {
 	}
 	defer fd.Close()
 
-	err = json.NewDecoder(fd).Decode(&Settings)
+	err = resolver.DecodeJSONReader(fd, &Settings)
 	if err != nil && err != io.EOF {
 		printer.Error("Settings: Cannot parse values")
 	}
@@ -108,14 +109,12 @@ func getOldSettings() {
 			continue
 		}
 
-		decoder := json.NewDecoder(fd)
-
 		switch files.Type {
 		case "Auth":
-			err = decoder.Decode(&Settings.Credentials)
+			err = resolver.DecodeJSONReader(fd, &Settings.Credentials)
 
 		case "PlayHistory":
-			err = decoder.Decode(&Settings.PlayHistory)
+			err = resolver.DecodeJSONReader(fd, &Settings.PlayHistory)
 
 		case "Config", "State", "SearchHistory":
 			scanner := bufio.NewScanner(fd)
