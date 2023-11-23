@@ -65,6 +65,7 @@ type MediaEvents struct {
 	FileNumber, ErrorNumber chan int
 	ErrorEvent              chan string
 	FileLoadedEvent         chan struct{}
+	StartEvent              chan struct{}
 	DataEvent               chan []map[string]interface{}
 }
 
@@ -85,6 +86,7 @@ func Init(player, execpath, ytdlpath, numretries, useragent, socket string) erro
 	Events.ErrorEvent = make(chan string, 100)
 	Events.FileLoadedEvent = make(chan struct{}, 100)
 	Events.DataEvent = make(chan []map[string]interface{}, 10)
+	Events.StartEvent = make(chan struct{}, 1)
 
 	return players[player].Init(
 		execpath, ytdlpath,

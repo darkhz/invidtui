@@ -179,6 +179,7 @@ func Hide() {
 
 	playingStatus(false)
 	sendPlayingStatus(false)
+	app.UI.Status.InitializingTag(false)
 
 	app.UI.QueueUpdateDraw(func() {
 		app.UI.Layout.RemoveItem(player.flex)
@@ -781,6 +782,15 @@ func playerUpdateLoop(ctx context.Context, cancel context.CancelFunc) {
 func monitorMPVEvents() {
 	for {
 		select {
+		case _, ok := <-mp.Events.StartEvent:
+			if !ok {
+				return
+			}
+
+			if !player.status.Load() && player.setting.Load() {
+				app.UI.Status.InitializingTag(true)
+			}
+
 		case msg, ok := <-mp.Events.ErrorEvent:
 			if !ok {
 				return
@@ -793,6 +803,7 @@ func monitorMPVEvents() {
 				return
 			}
 
+			app.UI.Status.InitializingTag(false)
 			Show()
 		}
 	}

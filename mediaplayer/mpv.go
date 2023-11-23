@@ -708,6 +708,8 @@ func (m *MPV) eventListener() {
 				m.Set("pause", "yes")
 				m.Set("pause", "no")
 
+				Events.StartEvent <- struct{}{}
+
 				if len(event.ExtraData) > 0 {
 					var id float64
 
