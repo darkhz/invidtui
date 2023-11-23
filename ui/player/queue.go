@@ -255,7 +255,7 @@ func (q *Queue) selectorHandler(row, col int) {
 
 // render renders the player queue.
 func (q *Queue) render(data []map[string]interface{}) {
-	if len(data) == 0 {
+	if len(data) == 0 || !player.setting.Load() {
 		q.table.Clear()
 		q.data = nil
 		q.removeVideo(-1, struct{}{})

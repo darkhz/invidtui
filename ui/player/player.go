@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/darkhz/invidtui/client"
@@ -25,11 +26,10 @@ import (
 type Player struct {
 	queue Queue
 
-	infoID, thumbURI      string
-	init, playing, toggle bool
-	width                 int
-	states                []string
-	history               History
+	infoID, thumbURI string
+	init             bool
+	width            int
+	history          History
 
 	channel chan bool
 	events  chan struct{}
@@ -39,6 +39,11 @@ type Player struct {
 	info         *tview.TextView
 	quality      *tview.DropDown
 	title, desc  *tview.TextView
+
+	ctx    context.Context
+	cancel context.CancelFunc
+
+	status, setting, toggle atomic.Bool
 
 	lock, render          *semaphore.Weighted
 	infoCancel, imgCancel context.CancelFunc
@@ -123,11 +128,11 @@ func Stop() {
 
 // Show shows the player.
 func Show() {
-	if playingStatus() {
+	if player.status.Load() || !player.setting.Load() {
 		return
 	}
 
-	playingStatus(true)
+	player.status.Store(true)
 	sendPlayingStatus(true)
 
 	app.UI.QueueUpdateDraw(func() {
@@ -138,8 +143,8 @@ func Show() {
 
 // ToggleInfo toggle the player information view.
 func ToggleInfo(hide ...struct{}) {
-	if hide != nil || player.toggle {
-		player.toggle = false
+	if hide != nil || player.toggle.Load() {
+		player.toggle.Store(false)
 		player.infoID = ""
 
 		infoContext(true, struct{}{})
@@ -154,8 +159,8 @@ func ToggleInfo(hide ...struct{}) {
 		return
 	}
 
-	if !player.toggle && playingStatus() {
-		player.toggle = true
+	if !player.toggle.Load() && player.status.Load() {
+		player.toggle.Store(true)
 
 		box := tview.NewBox()
 		box.SetBackgroundColor(tcell.ColorDefault)
@@ -173,21 +178,38 @@ func ToggleInfo(hide ...struct{}) {
 
 // Hide hides the player.
 func Hide() {
-	if !playingStatus() {
+	if player.setting.Load() {
 		return
 	}
 
-	playingStatus(false)
+	Ctx(true)
+	player.queue.Ctx(true)
+
+	player.status.Store(false)
 	sendPlayingStatus(false)
 	app.UI.Status.InitializingTag(false)
 
 	app.UI.QueueUpdateDraw(func() {
-		app.UI.Layout.RemoveItem(player.flex)
+		ToggleInfo(struct{}{})
 		app.ResizeModal()
+		app.UI.Layout.RemoveItem(player.flex)
 	})
 
 	mp.Player().Stop()
 	mp.Player().QueueClear()
+}
+
+// Ctx cancels and/or returns the player's context.
+func Ctx(cancel bool) context.Context {
+	if cancel && player.ctx != nil {
+		player.cancel()
+	}
+
+	if player.ctx == nil || player.ctx.Err() == context.Canceled {
+		player.ctx, player.cancel = context.WithCancel(context.Background())
+	}
+
+	return player.ctx
 }
 
 // Resize resizes the player according to the screen width.
@@ -249,17 +271,19 @@ func Play(audio, current bool, mediaInfo ...inv.SearchData) {
 		return
 	}
 
+	player.setting.Store(true)
+
 	go loadSelected(info, audio, current)
 }
 
 // IsInfoShown returns whether the player information is shown.
 func IsInfoShown() bool {
-	return player.region != nil && player.toggle
+	return player.region != nil && player.toggle.Load()
 }
 
 // IsPlayerShown returns whether the player is shown.
 func IsPlayerShown() bool {
-	return playingStatus()
+	return player.status.Load()
 }
 
 // IsQueueFocused returns whether the queue is focused.
@@ -323,7 +347,8 @@ func playerKeybindings(event *tcell.EventKey) {
 
 	switch cmd.KeyOperation(event, cmd.KeyContextPlayer) {
 	case cmd.KeyPlayerStop:
-		sendPlayingStatus(false)
+		player.setting.Store(false)
+		go Hide()
 
 	case cmd.KeyPlayerSeekForward:
 		mp.Player().SeekForward()
@@ -562,7 +587,7 @@ func changeImageQuality(set ...struct{}) {
 		pos = len(options) - 1
 		player.thumbURI = video.Thumbnails[start-1].URL
 	}
-	if set != nil || !player.toggle || player.quality.HasFocus() {
+	if set != nil || !player.toggle.Load() || player.quality.HasFocus() {
 		return
 	}
 
@@ -636,7 +661,7 @@ func renderInfo(id, title string, force ...struct{}) {
 	}
 	defer player.render.Release(1)
 
-	if force == nil && (id == "" || id == player.infoID || !player.toggle) {
+	if force == nil && (id == "" || id == player.infoID || !player.toggle.Load()) {
 		return
 	}
 
@@ -731,25 +756,17 @@ func renderInfoImage(ctx context.Context, id, image string, change ...struct{}) 
 
 // playingStatusCheck monitors the playing status.
 func playingStatusCheck() {
-	var ctx context.Context
-	var cancel context.CancelFunc
-
 	for {
 		playing, ok := <-player.channel
 		if !ok {
-			cancel()
 			return
-		}
-
-		if ctx != nil && !playing {
-			cancel()
 		}
 		if !playing {
 			continue
 		}
 
-		ctx, cancel = context.WithCancel(context.Background())
-		go playerUpdateLoop(ctx, cancel)
+		Ctx(false)
+		go playerUpdateLoop(player.ctx, player.cancel)
 	}
 }
 
@@ -761,8 +778,6 @@ func playerUpdateLoop(ctx context.Context, cancel context.CancelFunc) {
 	for {
 		select {
 		case <-ctx.Done():
-			Hide()
-			ToggleInfo(struct{}{})
 			player.desc.SetText("")
 			player.title.SetText("")
 			return
@@ -813,21 +828,20 @@ func monitorMPVEvents() {
 func openPlaylist(file string) {
 	app.ShowInfo("Loading "+filepath.Base(file), true)
 
+	player.setting.Store(true)
+
 	err := mp.Player().LoadPlaylist(player.queue.Ctx(false), file, true, checkLiveURL)
+	app.ShowInfo("Loaded "+filepath.Base(file), false)
 	if err != nil {
 		app.ShowError(err)
 		return
 	}
-
-	Show()
 
 	app.UI.QueueUpdateDraw(func() {
 		player.queue.Show()
 	})
 
 	app.UI.FileBrowser.Hide()
-
-	app.ShowInfo("Loaded "+filepath.Base(file), false)
 }
 
 // checkLiveURL checks whether a live video URL is expired or not.
@@ -983,18 +997,6 @@ func sendPlayerEvents() {
 
 	default:
 	}
-}
-
-// playingStatus sets the current status of the player.
-func playingStatus(set ...bool) bool {
-	player.mutex.Lock()
-	defer player.mutex.Unlock()
-
-	if set != nil {
-		player.playing = set[0]
-	}
-
-	return player.playing
 }
 
 // infoContext returns a new context for loading the player information.
