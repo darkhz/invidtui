@@ -17,6 +17,7 @@ import (
 	"github.com/darkhz/invidtui/client"
 	"github.com/darkhz/invidtui/utils"
 	"github.com/darkhz/mpvipc"
+	"github.com/ugorji/go/codec"
 )
 
 // MPV describes the mpv player.
@@ -25,6 +26,9 @@ type MPV struct {
 	monitor map[int]string
 
 	lock sync.Mutex
+
+	decoder *codec.Decoder
+	encoder *codec.Encoder
 
 	*mpvipc.Connection
 }
@@ -41,6 +45,9 @@ func (m *MPV) Init(execpath, ytdlpath, numretries, useragent, socket string) err
 	}
 
 	m.monitor = make(map[int]string)
+
+	m.decoder = codec.NewDecoderBytes(nil, &codec.SimpleHandle{})
+	m.encoder = codec.NewEncoderBytes(nil, &codec.SimpleHandle{})
 
 	go m.eventListener()
 	go m.startMonitor()
@@ -166,13 +173,16 @@ func (m *MPV) LoadPlaylist(
 
 // Title returns the title of the track located at 'pos'.
 func (m *MPV) Title(pos int) string {
-	pltitle, _ := m.Call("get_property_string", "playlist/"+strconv.Itoa(pos)+"/filename")
+	var title string
 
+	pltitle, _ := m.Call("get_property_string", "playlist/"+strconv.Itoa(pos)+"/filename")
 	if pltitle == nil {
 		return "-"
 	}
 
-	return pltitle.(string)
+	m.store(pltitle, &title)
+
+	return title
 }
 
 // MediaType returns the mediatype of the currently playing track.
@@ -217,24 +227,32 @@ func (m *MPV) SeekBackward() {
 
 // Position returns the seek position.
 func (m *MPV) Position() int64 {
+	var position float64
+
 	timepos, err := m.Get("playback-time")
-	if err != nil {
-		return 0
+	if err == nil {
+		m.store(timepos, &position)
 	}
 
-	return int64(timepos.(float64))
+	return int64(position)
 }
 
 // Duration returns the total duration of the track.
 func (m *MPV) Duration() int64 {
-	duration, err := m.Get("duration")
+	var duration float64
+
+	dur, err := m.Get("duration")
 	if err != nil {
-		duration, err = m.Get("options/length")
+		var sdur string
+
+		dur, err = m.Get("options/length")
 		if err != nil {
 			return 0
 		}
 
-		time, err := strconv.ParseInt(duration.(string), 10, 64)
+		m.store(dur, &sdur)
+
+		time, err := strconv.ParseInt(sdur, 10, 64)
 		if err != nil {
 			return 0
 		}
@@ -242,17 +260,21 @@ func (m *MPV) Duration() int64 {
 		return time
 	}
 
-	return int64(duration.(float64))
+	m.store(dur, &duration)
+
+	return int64(duration)
 }
 
 // Paused returns whether playback is paused or not.
 func (m *MPV) Paused() bool {
-	paused, err := m.Get("pause")
-	if err != nil {
-		return false
+	var paused bool
+
+	pause, err := m.Get("pause")
+	if err == nil {
+		m.store(pause, &paused)
 	}
 
-	return paused.(bool)
+	return paused
 }
 
 // TogglePaused toggles pausing the playback.
@@ -266,12 +288,14 @@ func (m *MPV) TogglePaused() {
 
 // Shuffled returns whether tracks are shuffled.
 func (m *MPV) Shuffled() bool {
+	var shuffled bool
+
 	shuffle, err := m.Get("shuffle")
-	if err != nil {
-		return false
+	if err == nil {
+		m.store(shuffle, &shuffled)
 	}
 
-	return shuffle.(bool)
+	return shuffled
 }
 
 // ToggleShuffled toggles shuffling of tracks.
@@ -281,12 +305,14 @@ func (m *MPV) ToggleShuffled() {
 
 // Muted returns whether playback is muted.
 func (m *MPV) Muted() bool {
+	var muted bool
+
 	mute, err := m.Get("mute")
-	if err != nil {
-		return false
+	if err == nil {
+		m.store(mute, &muted)
 	}
 
-	return mute.(bool)
+	return muted
 }
 
 // ToggleMuted toggles muting of the playback.
@@ -337,42 +363,52 @@ func (m *MPV) ToggleLoopMode() {
 
 // Idle returns if the player is idle.
 func (m *MPV) Idle() bool {
-	idle, err := m.Get("core-idle")
-	if err != nil {
-		return false
+	var idle bool
+
+	ci, err := m.Get("core-idle")
+	if err == nil {
+		m.store(ci, &idle)
 	}
 
-	return idle.(bool)
+	return idle
 }
 
 // Finished returns if the playback has finished.
 func (m *MPV) Finished() bool {
+	var finished bool
+
 	eof, err := m.Get("eof-reached")
-	if err != nil {
-		return false
+	if err == nil {
+		m.store(eof, &finished)
 	}
 
-	return eof.(bool)
+	return finished
 }
 
 // Buffering returns if the player is buffering.
 func (m *MPV) Buffering() bool {
+	var buffering bool
+
 	buf, err := m.Get("paused-for-cache")
-	if err != nil {
-		return true
+	if err == nil {
+		m.store(buf, &buffering)
 	}
 
-	return buf.(bool)
+	return buffering
 }
 
 // Volume returns the volume.
 func (m *MPV) Volume() int {
+	var volume float64
+
 	vol, err := m.Get("volume")
 	if err != nil {
 		return -1
 	}
 
-	return int(vol.(float64))
+	m.store(vol, &volume)
+
+	return int(volume)
 }
 
 // VolumeIncrease increments the volume by 1.
@@ -397,22 +433,26 @@ func (m *MPV) VolumeDecrease() {
 
 // QueueCount returns the total number of tracks within the queue.
 func (m *MPV) QueueCount() int {
-	count, err := m.Get("playlist-count")
-	if err != nil {
-		return 0
+	var count float64
+
+	cnt, err := m.Get("playlist-count")
+	if err == nil {
+		m.store(cnt, &count)
 	}
 
-	return int(count.(float64))
+	return int(count)
 }
 
 // QueuePosition returns the position of the current track within the queue.
 func (m *MPV) QueuePosition() int {
+	var position float64
+
 	pos, err := m.Get("playlist-playing-pos")
-	if err != nil {
-		return 0
+	if err == nil {
+		m.store(pos, &position)
 	}
 
-	return int(pos.(float64))
+	return int(position)
 }
 
 // QueueDelete removes the track number from the queue.
@@ -432,12 +472,14 @@ func (m *MPV) QueueSwitchToTrack(number int) {
 
 // QueueData returns the current playlist data from MPV.
 func (m *MPV) QueueData() string {
+	var data string
+
 	list, err := m.Call("get_property_string", "playlist")
-	if err != nil {
-		return ""
+	if err == nil {
+		m.store(list, &data)
 	}
 
-	return list.(string)
+	return data
 }
 
 // QueuePlayLatest plays the latest track entry in the queue.
@@ -602,6 +644,18 @@ func (m *MPV) playlistAddEntry(line string, renew *func(uri string, audio bool) 
 	return err
 }
 
+// store applies the property value into the given data container.
+func (m *MPV) store(prop, apply interface{}) {
+	var data []byte
+
+	m.encoder.ResetBytes(&data)
+	err := m.encoder.Encode(prop)
+	if err == nil {
+		m.decoder.ResetBytes(data)
+		m.decoder.Decode(apply)
+	}
+}
+
 // eventListener listens for MPV events.
 //
 //gocyclo:ignore
@@ -626,9 +680,19 @@ func (m *MPV) eventListener() {
 					pldata := make([]map[string]interface{}, len(data))
 
 					for i, d := range data {
-						if p, ok := d.(map[string]interface{}); ok {
-							pldata[i] = p
+						dataIface, ok := d.(map[interface{}]interface{})
+						if !ok {
+							return
 						}
+
+						props := make(map[string]interface{})
+						for prop, val := range dataIface {
+							if p, ok := prop.(string); ok {
+								props[p] = val
+							}
+						}
+
+						pldata[i] = props
 					}
 
 					Events.DataEvent <- pldata
@@ -643,20 +707,23 @@ func (m *MPV) eventListener() {
 				m.Set("pause", "no")
 
 				if len(event.ExtraData) > 0 {
-					val := event.ExtraData["playlist_entry_id"]
+					var id float64
 
-					Events.FileNumber <- int(val.(float64))
+					m.store(event.ExtraData["playlist_entry_id"], &id)
+
+					Events.FileNumber <- int(id)
 				}
 
 			case "end-file":
 				if len(event.ExtraData) > 0 {
-					err := event.ExtraData["file_error"]
-					val := event.ExtraData["playlist_entry_id"]
+					var id float64
+					var errorText string
 
-					if err != nil && val != nil {
-						if err.(string) != "" {
-							Events.ErrorNumber <- int(val.(float64))
-						}
+					m.store(event.ExtraData["file_error"], &errorText)
+					m.store(event.ExtraData["playlist_entry_id"], &id)
+
+					if errorText != "" {
+						Events.ErrorNumber <- int(id)
 					}
 				}
 
