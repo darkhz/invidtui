@@ -802,7 +802,7 @@ func monitorMPVEvents() {
 func openPlaylist(file string) {
 	app.ShowInfo("Loading "+filepath.Base(file), true)
 
-	err := mp.Player().LoadPlaylist(file, true, checkLiveURL)
+	err := mp.Player().LoadPlaylist(player.queue.Ctx(false), file, true, checkLiveURL)
 	if err != nil {
 		app.ShowError(err)
 		return

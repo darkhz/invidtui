@@ -109,6 +109,7 @@ func (m *MPV) LoadFile(title string, duration int64, audio bool, files ...string
 //
 //gocyclo:ignore
 func (m *MPV) LoadPlaylist(
+	ctx context.Context,
 	plpath string,
 	replace bool,
 	renewLiveURL func(uri string, audio bool) bool,
@@ -136,7 +137,16 @@ func (m *MPV) LoadPlaylist(
 	// are blank. With this method, we can parse the URLs from the playlist
 	// directly, and pass the relevant options to mpv as well.
 	reader := bufio.NewReader(pl)
+
+Reader:
 	for {
+		select {
+		case <-ctx.Done():
+			break Reader
+
+		default:
+		}
+
 		line, err := reader.ReadString('\n')
 		if err != nil {
 			if err == io.EOF {

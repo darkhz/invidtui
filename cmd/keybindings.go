@@ -62,6 +62,7 @@ const (
 	KeyQueueAppend             Key = "QueueAppend"
 	KeyQueueDelete             Key = "QueueDelete"
 	KeyQueueMove               Key = "QueueMove"
+	KeyQueueCancel             Key = "QueueCancel"
 	KeyPlayerOpenPlaylist      Key = "PlayerOpenPlaylist"
 	KeyPlayerHistory           Key = "PlayerHistory"
 	KeyPlayerQueueAudio        Key = "PlayerQueueAudio"
@@ -300,6 +301,11 @@ var (
 			Title:   "Move",
 			Context: KeyContextQueue,
 			Kb:      Keybinding{tcell.KeyRune, 'M', tcell.ModNone},
+		},
+		KeyQueueCancel: {
+			Title:   "Cancel Loading",
+			Context: KeyContextQueue,
+			Kb:      Keybinding{tcell.KeyRune, 'x', tcell.ModNone},
 		},
 		KeyPlayerOpenPlaylist: {
 			Title:   "Open Playlist",

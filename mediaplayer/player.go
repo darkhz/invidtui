@@ -1,5 +1,7 @@
 package mediaplayer
 
+import "context"
+
 // MediaPlayer describes a media player.
 type MediaPlayer interface {
 	Init(execpath, ytdlpath, numretries, useragent, socket string) error
@@ -8,7 +10,7 @@ type MediaPlayer interface {
 	SendQuit(socket string)
 
 	LoadFile(title string, duration int64, liveaudio bool, files ...string) error
-	LoadPlaylist(plpath string, replace bool, renewLiveURL func(uri string, audio bool) bool) error
+	LoadPlaylist(ctx context.Context, plpath string, replace bool, renewLiveURL func(uri string, audio bool) bool) error
 
 	Title(pos int) string
 	MediaType() string

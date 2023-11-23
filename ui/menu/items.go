@@ -107,6 +107,7 @@ var Items = &app.MenuData{
 			cmd.KeyQueueAppend,
 			cmd.KeyQueueDelete,
 			cmd.KeyQueueMove,
+			cmd.KeyQueueCancel,
 			cmd.KeyClose,
 		},
 		cmd.KeyContextHistory: {

@@ -1,6 +1,7 @@
 package player
 
 import (
+	"context"
 	"fmt"
 	"path/filepath"
 
@@ -26,6 +27,9 @@ type Queue struct {
 
 	modal *app.Modal
 	table *tview.Table
+
+	ctx    context.Context
+	cancel context.CancelFunc
 
 	lock *semaphore.Weighted
 }
@@ -97,6 +101,19 @@ func (q *Queue) Hide() {
 	q.modal.Exit(false)
 }
 
+// Ctx cancels and/or returns the queue's context.
+func (q *Queue) Ctx(cancel bool) context.Context {
+	if cancel && q.ctx != nil {
+		q.cancel()
+	}
+
+	if q.ctx == nil || q.ctx.Err() == context.Canceled {
+		q.ctx, q.cancel = context.WithCancel(context.Background())
+	}
+
+	return q.ctx
+}
+
 // Keybindings define the keybindings for the queue.
 func (q *Queue) Keybindings(event *tcell.EventKey) *tcell.EventKey {
 	operation := cmd.KeyOperation(event, cmd.KeyContextQueue)
@@ -127,6 +144,9 @@ func (q *Queue) Keybindings(event *tcell.EventKey) *tcell.EventKey {
 
 	case cmd.KeyQueueMove:
 		q.move()
+
+	case cmd.KeyQueueCancel:
+		q.Ctx(true)
 
 	case cmd.KeyPlayerStop, cmd.KeyClose:
 		q.Hide()
@@ -446,7 +466,7 @@ func (q *Queue) appendFrom(file string) {
 		player.queue.Show()
 	})
 
-	err := mp.Player().LoadPlaylist(file, false, checkLiveURL)
+	err := mp.Player().LoadPlaylist(q.Ctx(false), file, false, checkLiveURL)
 	if err != nil {
 		app.ShowError(err)
 		return
