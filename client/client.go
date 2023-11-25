@@ -249,8 +249,6 @@ func netError(err error) error {
 		switch {
 		case err.Timeout():
 			return fmt.Errorf("Client: Connection has timed out")
-		case err.Temporary():
-			return fmt.Errorf("Client: Temporary failure in name resolution")
 		}
 	}
 
