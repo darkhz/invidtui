@@ -284,30 +284,36 @@ func (q *Queue) render(data []map[string]interface{}) {
 		)
 
 		q.table.SetCell(i, 2, tview.NewTableCell(" ").
+			SetMaxWidth(1).
 			SetSelectable(false),
 		)
 
 		q.table.SetCell(i, 3, tview.NewTableCell("[purple::b]"+tview.Escape(data.Author)).
-			SetMaxWidth(w/5).
+			SetExpansion(1).
+			SetMaxWidth(w/7).
 			SetSelectable(true).
+			SetAlign(tview.AlignRight).
 			SetSelectedStyle(app.UI.ColumnStyle),
 		)
 
 		q.table.SetCell(i, 4, tview.NewTableCell(" ").
+			SetMaxWidth(1).
 			SetSelectable(false),
 		)
 
 		q.table.SetCell(i, 5, tview.NewTableCell("[pink::b]"+tview.Escape(data.Type)).
-			SetMaxWidth(w/5).
+			SetMaxWidth(5).
 			SetSelectable(true).
 			SetSelectedStyle(app.UI.ColumnStyle),
 		)
 
 		q.table.SetCell(i, 6, tview.NewTableCell(" ").
+			SetMaxWidth(1).
 			SetSelectable(false),
 		)
 
 		q.table.SetCell(i, 7, tview.NewTableCell("[pink::b]"+data.Duration).
+			SetMaxWidth(10).
 			SetSelectable(true).
 			SetSelectedStyle(app.UI.ColumnStyle),
 		)
