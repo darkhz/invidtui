@@ -158,7 +158,7 @@ func (f *FileBrowser) Query(
 // SaveFile saves the generated entries into a file.
 func (f *FileBrowser) SaveFile(
 	file string,
-	entriesFunc func(appendToFile bool) (string, error),
+	entriesFunc func(flags int, appendToFile bool) (string, int, error),
 ) {
 	flags, appendToFile, confirm, exist := f.confirmOverwrite(file)
 	if exist && !confirm {
@@ -167,13 +167,13 @@ func (f *FileBrowser) SaveFile(
 
 	f.Hide()
 
-	entries, err := entriesFunc(appendToFile)
+	entries, newflags, err := entriesFunc(flags, appendToFile)
 	if err != nil {
 		ShowError(err)
 		return
 	}
 
-	saveFile, err := os.OpenFile(file, flags, 0664)
+	saveFile, err := os.OpenFile(file, newflags, 0664)
 	if err != nil {
 		ShowError(fmt.Errorf("FileBrowser: Unable to open file"))
 		return

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -16,12 +15,13 @@ import (
 	"github.com/etherlabsio/go-m3u8/m3u8"
 )
 
-const videoFields = "?fields=title,videoId,author,hlsUrl,publishedText,lengthSeconds,formatStreams,adaptiveFormats,videoThumbnails,liveNow,viewCount,likeCount,subCountText,description&hl=en"
+const videoFields = "?fields=title,videoId,author,authorId,hlsUrl,publishedText,lengthSeconds,formatStreams,adaptiveFormats,videoThumbnails,liveNow,viewCount,likeCount,subCountText,description&hl=en"
 
 // VideoData stores information about a video.
 type VideoData struct {
 	Title           string            `json:"title"`
 	Author          string            `json:"author"`
+	AuthorID        string            `json:"authorId"`
 	VideoID         string            `json:"videoId"`
 	HlsURL          string            `json:"hlsUrl"`
 	LengthSeconds   int64             `json:"lengthSeconds"`
@@ -98,7 +98,7 @@ func VideoThumbnail(ctx context.Context, id, image string) (*http.Response, erro
 func VideoLoadParams(id string, audio bool, ctx ...context.Context) (VideoData, []string, error) {
 	var err error
 	var urls []string
-	var mediatype, durationtext string
+	var mediatype string
 	var mediaURL, audioURL, videoURL string
 
 	video, err := Video(id, ctx...)
@@ -108,10 +108,8 @@ func VideoLoadParams(id string, audio bool, ctx ...context.Context) (VideoData, 
 
 	if video.LiveNow {
 		audio = false
-		durationtext = "Live"
 		videoURL, audioURL = getLiveVideo(video, audio)
 	} else {
-		durationtext = utils.FormatDuration(video.LengthSeconds)
 		videoURL, audioURL = getVideoByItag(video, audio)
 	}
 
@@ -132,12 +130,7 @@ func VideoLoadParams(id string, audio bool, ctx ...context.Context) (VideoData, 
 
 	video.MediaType = mediatype
 
-	murl, err := encodeVideoURI(mediaURL, durationtext, video)
-	if err != nil {
-		return VideoData{}, nil, err
-	}
-
-	urls = append([]string{murl.String()}, urls...)
+	urls = append([]string{mediaURL}, urls...)
 
 	return video, urls, nil
 }
@@ -200,7 +193,7 @@ func getLiveVideo(video VideoData, audio bool) (string, string) {
 		// resolution are equal.
 		if audio || (!audio && height == resolution) {
 			url, _ := utils.IsValidURL(p.URI)
-			videoURL = "https://manifest.googlevideo.com" + url.RequestURI() + "/?"
+			videoURL = "https://manifest.googlevideo.com" + url.RequestURI()
 
 			break
 		}
@@ -319,33 +312,4 @@ func getLatestURL(id, itag string) string {
 	}
 
 	return host + "/latest_version?" + idstr + itagstr + "&local=true"
-}
-
-// encodeVideoURI encodes a video URI with data.
-func encodeVideoURI(uri, duration string, video VideoData) (*url.URL, error) {
-	murl, err := url.Parse(uri)
-	if err != nil {
-		return nil, err
-	}
-
-	if video.MediaType == "" {
-		video.MediaType = "Audio"
-	}
-
-	mvalues := murl.Query()
-	for _, params := range [][]string{
-		{"id", video.VideoID},
-		{"title", video.Title},
-		{"mediatype", video.MediaType},
-		{"author", video.Author},
-
-		{"length", duration},
-	} {
-		if !mvalues.Has(params[0]) {
-			mvalues.Add(params[0], params[1])
-		}
-	}
-	murl.RawQuery = mvalues.Encode()
-
-	return murl, nil
 }

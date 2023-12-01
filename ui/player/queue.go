@@ -1,24 +1,23 @@
 package player
 
 import (
-	"bufio"
 	"context"
 	"fmt"
-	"io"
 	"math/rand"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
 	"sync/atomic"
 
-	"github.com/darkhz/invidtui/client"
 	"github.com/darkhz/invidtui/cmd"
 	inv "github.com/darkhz/invidtui/invidious"
 	mp "github.com/darkhz/invidtui/mediaplayer"
 	"github.com/darkhz/invidtui/ui/app"
 	"github.com/darkhz/invidtui/utils"
 	"github.com/darkhz/tview"
+	"github.com/etherlabsio/go-m3u8/m3u8"
 	"github.com/gammazero/deque"
 	"github.com/gdamore/tcell/v2"
 	"golang.org/x/sync/semaphore"
@@ -576,6 +575,8 @@ func (q *Queue) Context(cancel bool) context.Context {
 // LoadPlaylist loads the provided playlist into MPV.
 // If replace is true, the provided playlist will replace the current playing queue.
 // renewLiveURL is a function to check and renew expired liev URLs in the playlist.
+//
+//gocyclo:ignore
 func (q *Queue) LoadPlaylist(ctx context.Context, plpath string, replace bool) error {
 	var filesAdded int
 
@@ -589,44 +590,137 @@ func (q *Queue) LoadPlaylist(ctx context.Context, plpath string, replace bool) e
 	}
 	defer pl.Close()
 
-	// We implement a simple playlist parser instead of relying on
-	// the m3u8 package here, since that package deals with mainly
-	// HLS playlists, and it seems to panic when certain EXTINF fields
-	// are blank. With this method, we can parse the URLs from the playlist
-	// directly, and pass the relevant options to mpv as well.
-	reader := bufio.NewReader(pl)
+	playlist, err := m3u8.ReadFile(plpath)
+	if err != nil {
+		return err
+	}
 
-Reader:
-	for {
-		select {
-		case <-ctx.Done():
-			break Reader
+	uriMap := make(map[string]struct{}, len(playlist.Items))
 
-		default:
+ReadPlaylist:
+	for _, item := range playlist.Items {
+		var mediaURI string
+		var audio bool
+
+		video := inv.VideoData{
+			Title: "No title",
 		}
 
-		line, err := reader.ReadString('\n')
-		if err != nil {
-			if err == io.EOF {
-				break
+		switch v := item.(type) {
+		case *m3u8.SessionDataItem:
+			if v.URI == nil || v.Value == nil {
+				continue
+			}
+			if v.DataID == "" || !strings.HasPrefix(v.DataID, inv.PlaylistEntryPrefix) {
+				continue
 			}
 
-			return err
-		}
+			uri, err := utils.IsValidURL(*v.URI)
+			if err != nil {
+				return err
+			}
 
-		line = strings.TrimSpace(line)
-		if strings.HasPrefix(line, "#") || line == "" {
+			mediaURI = uri.String()
+			if _, ok := uriMap[mediaURI]; ok {
+				continue
+			}
+
+			uriMap[mediaURI] = struct{}{}
+
+			vmap := make(map[string]string)
+			if !utils.DecodeSessionData(*v.Value, func(prop, value string) {
+				vmap[prop] = value
+			}) {
+				continue
+			}
+			for _, prop := range []string{
+				"id",
+				"authorId",
+				"mediatype",
+			} {
+				if vmap[prop] == "" {
+					continue ReadPlaylist
+				}
+			}
+
+			audio = vmap["mediatype"] == "Audio"
+			title, _ := url.QueryUnescape(vmap["title"])
+			author, _ := url.QueryUnescape(vmap["author"])
+
+			length := vmap["length"]
+			if length == "Live" {
+				if renewed := checkLiveURL(mediaURI, audio); renewed {
+					continue ReadPlaylist
+				}
+			}
+
+			video.Title = title
+			video.Author = author
+			video.AuthorID = vmap["authorId"]
+			video.VideoID = vmap["id"]
+			video.MediaType = vmap["mediatype"]
+			video.LiveNow = length == "Live"
+			video.LengthSeconds = utils.ConvertDurationToSeconds(vmap["length"])
+
+		case *m3u8.SegmentItem:
+			var live bool
+
+			mediaURI = v.Segment
+			if strings.HasPrefix(mediaURI, "#") {
+				continue
+			}
+			if _, ok := uriMap[mediaURI]; ok {
+				continue
+			}
+
+			uri, err := utils.IsValidURL(mediaURI)
+			if err != nil {
+				return err
+			}
+
+			audio = true
+			uriMap[mediaURI] = struct{}{}
+
+			data := uri.Query()
+			if data.Get("id") == "" {
+				id, _ := inv.CheckLiveURL(mediaURI, audio)
+				if id == "" {
+					continue
+				}
+
+				data.Set("id", id)
+				live = true
+			}
+
+			if live {
+				if renewed := checkLiveURL(mediaURI, audio); renewed {
+					continue ReadPlaylist
+				}
+			}
+
+			if v.Comment != nil {
+				data.Set("title", *v.Comment)
+			}
+
+			for _, d := range []string{"title", "author"} {
+				if data.Get(d) == "" {
+					data.Set(d, "-")
+				}
+			}
+
+			video.VideoID = data.Get("id")
+			video.Title = data.Get("title")
+			video.Author = data.Get("author")
+			video.MediaType = "Audio"
+			video.LengthSeconds = int64(v.Duration)
+
+		default:
 			continue
 		}
 
-		if err := q.playlistAddEntry(line); err != nil {
-			return err
-		}
+		q.Add(video, []string{mediaURI}, audio)
 
 		filesAdded++
-	}
-	if filesAdded == 0 {
-		return fmt.Errorf("MPV: No files were added")
 	}
 
 	return nil
@@ -797,8 +891,8 @@ func (q *Queue) saveAs(file string) {
 		return
 	}
 
-	app.UI.FileBrowser.SaveFile(file, func(appendToFile bool) (string, error) {
-		return inv.GeneratePlaylist(file, videos, appendToFile)
+	app.UI.FileBrowser.SaveFile(file, func(flags int, appendToFile bool) (string, int, error) {
+		return inv.GeneratePlaylist(file, videos, flags, appendToFile)
 	})
 }
 

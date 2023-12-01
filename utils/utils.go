@@ -107,7 +107,12 @@ func ConvertDurationToSeconds(duration string) int64 {
 	}
 
 	dursplit := strings.Split(duration, ":")
-	if len(dursplit) == 2 {
+	length := len(dursplit)
+	switch {
+	case length <= 1:
+		return 0
+
+	case length == 2:
 		dursplit = append([]string{"00"}, dursplit...)
 	}
 
@@ -200,24 +205,23 @@ func Deduplicate(values []string) []string {
 	return dedup
 }
 
-// ReplaceOptions replaces the run and subprocess options from the options parameter.
-func ReplaceOptions(options string) string {
-	opts := strings.Split(options, ",")
-	newopts := opts[:0]
+// DecodeSessionData decodes session data from a playlist item.
+func DecodeSessionData(data string, apply func(prop, value string)) bool {
+	values := strings.Split(data, ",")
+	if len(values) == 0 {
+		return false
+	}
 
-	for _, o := range opts {
-		arg := strings.Split(o, "=")[0]
-
-		if arg != "run" && arg != "subprocess" {
-			newopts = append(newopts, o)
+	for _, value := range values {
+		prop := strings.Split(value, "=")
+		if len(prop) != 2 {
+			continue
 		}
+
+		apply(prop[0], prop[1])
 	}
 
-	if len(newopts) == 0 {
-		newopts = opts
-	}
-
-	return strings.Join(newopts, ",")
+	return true
 }
 
 // TrimPath cleans and returns a directory path.

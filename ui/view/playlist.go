@@ -181,8 +181,8 @@ func (p *PlaylistView) Save(id string, auth bool) {
 	app.ShowInfo("Playlist initialized", false)
 
 	app.UI.FileBrowser.Show("Save playlist to:", func(file string) {
-		app.UI.FileBrowser.SaveFile(file, func(appendToFile bool) (string, error) {
-			return Downloads.TransferPlaylist(id, file, result, auth, appendToFile)
+		app.UI.FileBrowser.SaveFile(file, func(flags int, appendToFile bool) (string, int, error) {
+			return Downloads.TransferPlaylist(id, file, result, flags, auth, appendToFile)
 		})
 	})
 }

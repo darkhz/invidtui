@@ -216,7 +216,7 @@ func (d *DownloadsView) TransferVideo(id, itag, filename string) {
 }
 
 // TransferPlaylist starts the download for the selected playlist.
-func (d *DownloadsView) TransferPlaylist(id, file string, data inv.PlaylistData, auth, appendToFile bool) (string, error) {
+func (d *DownloadsView) TransferPlaylist(id, file string, data inv.PlaylistData, flags int, auth, appendToFile bool) (string, int, error) {
 	var skipped int64
 	var progress DownloadProgress
 
@@ -245,7 +245,7 @@ func (d *DownloadsView) TransferPlaylist(id, file string, data inv.PlaylistData,
 	for idx < data.VideoCount-1 {
 		select {
 		case <-ctx.Done():
-			return "", nil
+			return "", flags, nil
 
 		default:
 		}
@@ -253,10 +253,10 @@ func (d *DownloadsView) TransferPlaylist(id, file string, data inv.PlaylistData,
 		playlist, err := inv.Playlist(id, auth, page, ctx)
 		if err != nil {
 			app.ShowError(err)
-			return "", err
+			return "", flags, err
 		}
 		if len(playlist.Videos) == 0 || skipped == int64(len(videoMap)) {
-			return "", fmt.Errorf("Playlist Downloader: No more videos")
+			return "", flags, fmt.Errorf("Playlist Downloader: No more videos")
 		}
 
 		for _, video := range playlist.Videos {
@@ -292,10 +292,11 @@ func (d *DownloadsView) TransferPlaylist(id, file string, data inv.PlaylistData,
 			Title:         video.Title,
 			LengthSeconds: video.LengthSeconds,
 			Author:        video.Author,
+			AuthorID:      video.AuthorID,
 		}
 	}
 
-	return inv.GeneratePlaylist(file, videos, appendToFile)
+	return inv.GeneratePlaylist(file, videos, flags, appendToFile)
 }
 
 // OptionKeybindings describes the keybindings for the download options popup.
