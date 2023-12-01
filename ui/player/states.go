@@ -7,6 +7,11 @@ import (
 	mp "github.com/darkhz/invidtui/mediaplayer"
 )
 
+var statesMap = map[string]int{
+	"loop-file":     int(mp.RepeatModeFile),
+	"loop-playlist": int(mp.RepeatModePlaylist),
+}
+
 // loadState loads the saved player states.
 func loadState() {
 	states := cmd.Settings.PlayerStates
@@ -20,11 +25,8 @@ func loadState() {
 			mp.Player().Set("volume", vol)
 		}
 
-		if strings.Contains(s, "loop") {
-			mp.Player().Set(s, "yes")
-			continue
+		if strings.Contains(s, "loop") || strings.Contains(s, "shuffle") {
+			player.queue.SetState(s)
 		}
-
-		mp.Player().Call("cycle", s)
 	}
 }

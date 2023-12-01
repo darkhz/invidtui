@@ -118,6 +118,14 @@ func playerQueue(menuType string) bool {
 	return !player.IsQueueEmpty() && !player.IsQueueFocused()
 }
 
+func queueMedia(menuType string) bool {
+	if menuType == "Queue" {
+		return player.IsQueueFocused()
+	}
+
+	return isVideo(menuType)
+}
+
 func infoShown(menuType string) bool {
 	return isPlaying(menuType) && player.IsInfoShown()
 }

@@ -1,13 +1,13 @@
 module github.com/darkhz/invidtui
 
-go 1.17
+go 1.18
 
 require (
-	github.com/beefsack/go-rate v0.0.0-20220214233405-116f4ca011a0
 	github.com/darkhz/mpvipc v0.0.0-20231124135332-eb73ba48ad46
 	github.com/darkhz/tview v0.0.0-20231120115226-060874cdab9f
 	github.com/davidmytton/url-verifier v1.0.0
 	github.com/etherlabsio/go-m3u8 v1.0.0
+	github.com/gammazero/deque v0.2.1
 	github.com/gdamore/tcell/v2 v2.6.0
 	github.com/hjson/hjson-go/v4 v4.3.1
 	github.com/knadh/koanf/parsers/hjson v0.1.0

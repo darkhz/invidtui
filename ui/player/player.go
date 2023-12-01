@@ -109,13 +109,13 @@ func setup() {
 // Start starts the player and loads its history and states.
 func Start() {
 	setup()
+	player.queue.Setup()
 
 	loadState()
 	loadHistory()
 
 	go playingStatusCheck()
 	go monitorMPVEvents()
-	go player.queue.Start()
 }
 
 // Stop stops the player.
@@ -173,6 +173,10 @@ func ToggleInfo(hide ...struct{}) {
 			AddItem(app.UI.Pages, 0, 1, true)
 
 		Resize(0, struct{}{})
+
+		if data, ok := player.queue.GetCurrent(); ok {
+			renderInfo(data.Reference)
+		}
 	}
 }
 
@@ -183,7 +187,7 @@ func Hide() {
 	}
 
 	Ctx(true)
-	player.queue.Ctx(true)
+	player.queue.Context(true)
 
 	player.status.Store(false)
 	sendPlayingStatus(false)
@@ -196,7 +200,7 @@ func Hide() {
 	})
 
 	mp.Player().Stop()
-	mp.Player().QueueClear()
+	player.queue.Clear()
 }
 
 // Ctx cancels and/or returns the player's context.
@@ -293,7 +297,7 @@ func IsQueueFocused() bool {
 
 // IsQueueEmpty returns whether the queue is empty.
 func IsQueueEmpty() bool {
-	return player.queue.table == nil || len(player.queue.data) == 0
+	return player.queue.table == nil || player.queue.Count() == 0
 }
 
 // IsHistoryInputFocused returns whether the history search bar is focused.
@@ -360,10 +364,10 @@ func playerKeybindings(event *tcell.EventKey) {
 		mp.Player().TogglePaused()
 
 	case cmd.KeyPlayerToggleLoop:
-		mp.Player().ToggleLoopMode()
+		player.queue.ToggleRepeatMode()
 
 	case cmd.KeyPlayerToggleShuffle:
-		mp.Player().ToggleShuffled()
+		player.queue.ToggleShuffle()
 
 	case cmd.KeyPlayerToggleMute:
 		mp.Player().ToggleMuted()
@@ -375,10 +379,10 @@ func playerKeybindings(event *tcell.EventKey) {
 		mp.Player().VolumeDecrease()
 
 	case cmd.KeyPlayerPrev:
-		mp.Player().Prev()
+		player.queue.Previous()
 
 	case cmd.KeyPlayerNext:
-		mp.Player().Next()
+		player.queue.Next()
 
 	default:
 		nokey = true
@@ -392,6 +396,13 @@ func playerKeybindings(event *tcell.EventKey) {
 // playSelected determines the media type according
 // to the key pressed, and plays the currently selected entry.
 func playSelected(r rune) {
+	if player.queue.IsOpen() {
+		kb := cmd.OperationData(key)
+		player.queue.Keybindings(tcell.NewEventKey(kb.Kb.Key, kb.Kb.Rune, kb.Kb.Mod))
+
+		return
+	}
+
 	audio := r == 'a' || r == 'A'
 	current := r == 'A' || r == 'V'
 
@@ -478,26 +489,19 @@ func loadSelected(info inv.SearchData, audio, current bool) {
 	app.ShowInfo("Added "+info.Title, false)
 
 	if current && info.Type == "video" {
-		mp.Player().QueuePlayLatest()
+		player.queue.SelectRecentEntry()
 	}
 }
 
 // loadVideo loads a video into the media player.
 func loadVideo(id string, audio bool, ctx ...context.Context) (string, error) {
-	video, urls, err := inv.VideoLoadParams(id, audio, ctx...)
+	video, uris, err := inv.VideoLoadParams(id, audio, ctx...)
 	if err != nil {
 		return "", err
 	}
 
-	player.queue.currentVideo(id, &video)
-
 	if ctx == nil {
-		mp.Player().LoadFile(
-			video.Title,
-			video.LengthSeconds,
-			audio && video.LiveNow,
-			urls...,
-		)
+		player.queue.Add(video, uris, audio)
 	}
 
 	return video.Title, nil
@@ -532,7 +536,7 @@ func renderPlayer(cancel context.CancelFunc) {
 	_, _, width, _ := player.desc.GetRect()
 	app.UI.RUnlock()
 
-	id, title, progress, states, err := updateProgressAndInfo(width)
+	progress, states, err := updateProgressAndInfo(width)
 	if err != nil {
 		cancel()
 		return
@@ -543,9 +547,8 @@ func renderPlayer(cancel context.CancelFunc) {
 	player.mutex.Unlock()
 
 	app.UI.QueueUpdateDraw(func() {
-		renderInfo(id, title)
 		player.desc.SetText(progress)
-		player.title.SetText("[::b]" + tview.Escape(title))
+		player.title.SetText("[::b]" + tview.Escape(player.queue.GetTitle()))
 	})
 }
 
@@ -557,10 +560,12 @@ func changeImageQuality(set ...struct{}) {
 	var prev string
 	var options []string
 
-	video := player.queue.currentVideo(player.infoID)
-	if video == nil {
+	data, ok := player.queue.GetCurrent()
+	if !ok {
 		return
 	}
+
+	video := data.Reference
 
 	start, pos := -1, -1
 	for i, thumb := range video.Thumbnails {
@@ -655,17 +660,19 @@ func changeImageQuality(set ...struct{}) {
 }
 
 // renderInfo renders the track information.
-func renderInfo(id, title string, force ...struct{}) {
+func renderInfo(video inv.VideoData, force ...struct{}) {
 	if !player.render.TryAcquire(1) {
 		return
 	}
 	defer player.render.Release(1)
 
-	if force == nil && (id == "" || id == player.infoID || !player.toggle.Load()) {
+	if force == nil && (video.VideoID == player.infoID || !player.toggle.Load()) {
 		return
 	}
 
-	player.infoID = id
+	infoContext(true, struct{}{})
+
+	player.infoID = video.VideoID
 	player.image.SetImage(nil)
 	if player.region.GetItemCount() > 2 {
 		player.region.RemoveItemIndex(1)
@@ -673,29 +680,24 @@ func renderInfo(id, title string, force ...struct{}) {
 
 	player.info.SetText("[::b]Loading information...")
 
-	video := player.queue.currentVideo(id)
-	if video == nil {
-		go func(ctx context.Context, id, title string) {
-			err := player.render.Acquire(ctx, 1)
+	if video.Thumbnails == nil {
+		go func(ctx context.Context, pos int, v inv.VideoData) {
+			video, err := inv.Video(v.VideoID, ctx)
 			if err != nil {
+				if ctx.Err() != context.Canceled {
+					app.UI.QueueUpdateDraw(func() {
+						player.info.SetText("[::b]No information for\n" + v.Title)
+					})
+				}
+
 				return
 			}
 
-			_, err = loadVideo(id, true, ctx)
-			player.render.Release(1)
-
+			player.queue.SetReference(pos, video, struct{}{})
 			app.UI.QueueUpdateDraw(func() {
-				if err != nil {
-					if ctx.Err() != context.Canceled {
-						player.info.SetText("[::b]No information for\n" + title)
-					}
-
-					return
-				}
-
-				renderInfo(id, title, struct{}{})
+				renderInfo(video, struct{}{})
 			})
-		}(infoContext(false), id, title)
+		}(infoContext(false), player.queue.Position(), video)
 
 		return
 	}
@@ -719,7 +721,7 @@ func renderInfo(id, title string, force ...struct{}) {
 	player.info.ScrollToBeginning()
 
 	changeImageQuality(struct{}{})
-	go renderInfoImage(infoContext(true), id, filepath.Base(player.thumbURI))
+	go renderInfoImage(infoContext(true), video.VideoID, filepath.Base(player.thumbURI))
 }
 
 // renderInfoImage renders the image for the track information display.
@@ -795,31 +797,29 @@ func playerUpdateLoop(ctx context.Context, cancel context.CancelFunc) {
 
 // monitorMPVEvents monitors events sent from MPV.
 func monitorMPVEvents() {
-	for {
-		select {
-		case _, ok := <-mp.Events.StartEvent:
-			if !ok {
-				return
-			}
-
+	for event := range mp.Event {
+		switch event {
+		case mp.EventStart:
+			player.queue.MarkPlayingEntry(false)
 			if !player.status.Load() && player.setting.Load() {
 				app.UI.Status.InitializingTag(true)
 			}
 
-		case msg, ok := <-mp.Events.ErrorEvent:
-			if !ok {
-				return
-			}
+		case mp.EventEnd:
+			player.queue.AutoPlay(false)
 
-			app.ShowError(fmt.Errorf("Player: Unable to play %s", msg))
-
-		case _, ok := <-mp.Events.FileLoadedEvent:
-			if !ok {
-				return
-			}
-
+		case mp.EventInProgress:
 			app.UI.Status.InitializingTag(false)
+			player.queue.MarkPlayingEntry(true)
+
 			Show()
+
+		case mp.EventError:
+			if data, ok := player.queue.GetCurrent(); !ok {
+				app.ShowError(fmt.Errorf("Player: Unable to play %q", data.Reference.Title))
+			}
+
+			player.queue.AutoPlay(true)
 		}
 	}
 }
@@ -830,8 +830,7 @@ func openPlaylist(file string) {
 
 	player.setting.Store(true)
 
-	err := mp.Player().LoadPlaylist(player.queue.Ctx(false), file, true, checkLiveURL)
-	app.ShowInfo("Loaded "+filepath.Base(file), false)
+	err := player.queue.LoadPlaylist(player.queue.Context(false), file, true)
 	if err != nil {
 		app.ShowError(err)
 		return
@@ -839,9 +838,10 @@ func openPlaylist(file string) {
 
 	app.UI.QueueUpdateDraw(func() {
 		player.queue.Show()
+		app.UI.FileBrowser.Hide()
 	})
 
-	app.UI.FileBrowser.Hide()
+	app.ShowInfo("Loaded "+filepath.Base(file), false)
 }
 
 // checkLiveURL checks whether a live video URL is expired or not.
@@ -862,22 +862,14 @@ func checkLiveURL(uri string, audio bool) bool {
 // of the currently playing track, and updates the track information.
 //
 //gocyclo:ignore
-func updateProgressAndInfo(width int) (string, string, string, []string, error) {
+func updateProgressAndInfo(width int) (string, []string, error) {
 	var lhs, rhs string
 	var states []string
-	var state, mtype, totaltime, vol string
 
-	ppos := mp.Player().QueuePosition()
-	if ppos == -1 {
-		return "", "", "", nil, fmt.Errorf("Player: Empty playlist")
-	}
-
-	title := mp.Player().Title(ppos)
 	eof := mp.Player().Finished()
 	paused := mp.Player().Paused()
 	buffering := mp.Player().Buffering()
-	shuffle := mp.Player().Shuffled()
-	loop := mp.Player().LoopMode()
+	shuffle := player.queue.GetShuffleMode()
 	mute := mp.Player().Muted()
 	volume := mp.Player().Volume()
 
@@ -885,10 +877,9 @@ func updateProgressAndInfo(width int) (string, string, string, []string, error) 
 	timepos := mp.Player().Position()
 	currtime := utils.FormatDuration(timepos)
 
-	if volume < 0 {
+	vol := strconv.Itoa(volume)
+	if vol == "" {
 		vol = "0"
-	} else {
-		vol = strconv.Itoa(volume)
 	}
 	states = append(states, "volume "+vol)
 	vol += "%"
@@ -905,29 +896,8 @@ func updateProgressAndInfo(width int) (string, string, string, []string, error) 
 		timepos = duration
 	}
 
-	data := utils.GetDataFromURL(title)
-	if data != nil {
-		if t := data.Get("title"); t != "" {
-			title = t
-		}
-
-		if l := data.Get("length"); l != "" {
-			totaltime = l
-		} else {
-			totaltime = utils.FormatDuration(duration)
-		}
-
-		if m := data.Get("mediatype"); m != "" {
-			mtype = m
-		} else {
-			mtype = mp.Player().MediaType()
-		}
-	} else {
-		totaltime = utils.FormatDuration(duration)
-		mtype = mp.Player().MediaType()
-	}
-
-	mtype = "(" + mtype + ")"
+	totaltime := utils.FormatDuration(duration)
+	mtype := "(" + player.queue.GetMediaType() + ")"
 
 	width /= 2
 	length := width * int(timepos) / int(duration)
@@ -947,27 +917,36 @@ func updateProgressAndInfo(width int) (string, string, string, []string, error) 
 		states = append(states, "mute")
 	}
 
+	loop, loopsetting := "", ""
+	switch player.queue.GetRepeatMode() {
+	case mp.RepeatModeOff:
+		loop = ""
+
+	case mp.RepeatModeFile:
+		loop = "R-F"
+		loopsetting = "loop-file"
+
+	case mp.RepeatModePlaylist:
+		loop = "R-P"
+		loopsetting = "loop-playlist"
+	}
 	if loop != "" {
-		states = append(states, loop)
-
-		switch loop {
-		case "loop-file":
-			loop = "R-F"
-
-		case "loop-playlist":
-			loop = "R-P"
-		}
+		states = append(states, loopsetting)
 	}
 
-	if paused {
+	state := ""
+	switch {
+	case paused:
 		if eof {
 			state = "[]"
 		} else {
 			state = "||"
 		}
-	} else if buffering {
+
+	case buffering:
 		state = "B"
-	} else {
+
+	default:
 		state = ">"
 	}
 
@@ -975,7 +954,7 @@ func updateProgressAndInfo(width int) (string, string, string, []string, error) 
 	lhs = loop + lhs + " " + state + " "
 	progress := currtime + " |" + strings.Repeat("█", length) + strings.Repeat(" ", endlength) + "| " + totaltime
 
-	return data.Get("id"), title, (lhs + progress + rhs), states, nil
+	return (lhs + progress + rhs), states, nil
 }
 
 // sendPlayingStatus sends status events to the player.

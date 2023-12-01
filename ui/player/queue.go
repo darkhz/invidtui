@@ -1,58 +1,89 @@
 package player
 
 import (
+	"bufio"
 	"context"
 	"fmt"
+	"io"
+	"math/rand"
+	"os"
 	"path/filepath"
+	"strings"
+	"sync"
+	"sync/atomic"
 
+	"github.com/darkhz/invidtui/client"
 	"github.com/darkhz/invidtui/cmd"
 	inv "github.com/darkhz/invidtui/invidious"
 	mp "github.com/darkhz/invidtui/mediaplayer"
-	"github.com/darkhz/invidtui/resolver"
 	"github.com/darkhz/invidtui/ui/app"
 	"github.com/darkhz/invidtui/utils"
 	"github.com/darkhz/tview"
+	"github.com/gammazero/deque"
 	"github.com/gdamore/tcell/v2"
 	"golang.org/x/sync/semaphore"
 )
 
-// Queue describes the layout of the player queue.
+// Queue describes the media queue.
 type Queue struct {
 	init, moveMode bool
 	prevrow        int
-	data           []map[string]interface{}
+	text           string
 	videos         map[string]*inv.VideoData
 
 	status chan struct{}
 
-	modal *app.Modal
-	table *tview.Table
+	modal  *app.Modal
+	table  *tview.Table
+	marker *tview.TableCell
+
+	lock *semaphore.Weighted
 
 	ctx    context.Context
 	cancel context.CancelFunc
 
-	lock *semaphore.Weighted
+	position, repeat atomic.Int32
+	shuffle, audio   atomic.Bool
+	title            atomic.Value
+
+	store      *deque.Deque[QueueData]
+	storeMutex sync.Mutex
+
+	tview.TableContentReadOnly
 }
 
-// QueueData stores data for the player queue.
+// QueueData describes the queue entry data.
 type QueueData struct {
-	ID       int    `json:"id"`
-	Filename string `json:"filename"`
-	Playing  bool   `json:"current"`
-
-	inv.SearchData
+	MediaURIs []string
+	Audio     bool
+	Columns   [QueueColumnSize]*tview.TableCell
+	Reference inv.VideoData
 }
 
-// setup sets up the player queue.
-func (q *Queue) setup() {
+const (
+	QueueColumnSize = 10
+
+	QueuePlayingMarker = QueueColumnSize - 2
+	QueueMediaMarker   = QueueColumnSize - 5
+
+	PlayerMarkerFormat = `[%s::b][%s[][-:-:-]`
+	MediaMarkerFormat  = `[pink::b]%s[-:-:-]`
+)
+
+// Setup sets up the queue.
+func (q *Queue) Setup() {
 	if q.init {
 		return
 	}
+
+	q.store = deque.New[QueueData](100)
 
 	q.status = make(chan struct{}, 100)
 	q.videos = make(map[string]*inv.VideoData)
 
 	q.table = tview.NewTable()
+	q.table.SetContent(q)
+	q.table.SetSelectable(true, false)
 	q.table.SetInputCapture(q.Keybindings)
 	q.table.SetBackgroundColor(tcell.ColorDefault)
 	q.table.SetSelectionChangedFunc(q.selectorHandler)
@@ -67,28 +98,9 @@ func (q *Queue) setup() {
 	q.init = true
 }
 
-// Start starts the player queue.
-func (q *Queue) Start() {
-	q.setup()
-
-	for {
-		select {
-		case data := <-mp.Events.DataEvent:
-			app.UI.QueueUpdateDraw(func() {
-				q.render(data)
-			})
-
-		case <-q.status:
-			app.UI.QueueUpdateDraw(func() {
-				q.render(q.data)
-			})
-		}
-	}
-}
-
 // Show shows the player queue.
 func (q *Queue) Show() {
-	if len(q.data) == 0 {
+	if q.Count() == 0 || !player.setting.Load() {
 		return
 	}
 
@@ -101,8 +113,455 @@ func (q *Queue) Hide() {
 	q.modal.Exit(false)
 }
 
-// Ctx cancels and/or returns the queue's context.
-func (q *Queue) Ctx(cancel bool) context.Context {
+// IsOpen returns whether the queue is open.
+func (q *Queue) IsOpen() bool {
+	return q.modal != nil && q.modal.Open
+}
+
+// Add adds an entry to the player queue.
+func (q *Queue) Add(video inv.VideoData, uris []string, audio bool) {
+	count := q.Count()
+	_, _, w, _ := q.GetRect()
+
+	media := "Audio"
+	if !audio {
+		media = "Video"
+	}
+
+	length := "Live"
+	if !video.LiveNow {
+		length = utils.FormatDuration(video.LengthSeconds)
+	}
+
+	q.SetData(count-1, QueueData{
+		Columns: [QueueColumnSize]*tview.TableCell{
+			tview.NewTableCell(" ").
+				SetMaxWidth(1).
+				SetSelectable(false),
+			tview.NewTableCell("[blue::b]" + tview.Escape(video.Title)).
+				SetExpansion(1).
+				SetMaxWidth(w / 7).
+				SetSelectable(true).
+				SetSelectedStyle(app.UI.ColumnStyle),
+			tview.NewTableCell(" ").
+				SetMaxWidth(1).
+				SetSelectable(false),
+			tview.NewTableCell("[purple::b]" + tview.Escape(video.Author)).
+				SetExpansion(1).
+				SetMaxWidth(w / 7).
+				SetSelectable(true).
+				SetAlign(tview.AlignRight).
+				SetSelectedStyle(app.UI.ColumnStyle),
+			tview.NewTableCell(" ").
+				SetMaxWidth(1).
+				SetSelectable(false),
+			tview.NewTableCell(fmt.Sprintf(MediaMarkerFormat, media)).
+				SetMaxWidth(5).
+				SetSelectable(true).
+				SetSelectedStyle(app.UI.ColumnStyle),
+			tview.NewTableCell(" ").
+				SetMaxWidth(1).
+				SetSelectable(false),
+			tview.NewTableCell("[pink::b]" + length).
+				SetMaxWidth(10).
+				SetSelectable(true).
+				SetSelectedStyle(app.UI.ColumnStyle),
+			tview.NewTableCell(" ").
+				SetMaxWidth(11).
+				SetSelectable(false),
+			tview.NewTableCell(" ").
+				SetMaxWidth(1).
+				SetSelectable(false),
+		},
+		MediaURIs: uris,
+		Audio:     audio,
+		Reference: video,
+	})
+
+	if count == 0 {
+		q.Play()
+
+		app.UI.QueueUpdateDraw(func() {
+			q.SelectCurrentRow()
+		})
+	}
+}
+
+// AutoPlay automatically selects what to play after
+// the current entry has finished playing.
+func (q *Queue) AutoPlay(force bool) {
+	count := q.Count()
+	position := int(q.position.Load())
+
+	if q.shuffle.Load() && count > 0 {
+		q.SwitchToPosition(rand.Intn(count))
+		return
+	}
+
+	if q.GetRepeatMode() == mp.RepeatModePlaylist || force {
+		if position == count-1 && !force {
+			q.SwitchToPosition(0)
+		} else {
+			q.Next()
+		}
+	}
+}
+
+// Play plays the entry at the current queue position.
+func (q *Queue) Play() {
+	go func() {
+		data, ok := q.Get(q.Position())
+		if !ok {
+			return
+		}
+
+		if err := mp.Player().LoadFile(
+			data.Reference.Title, data.Reference.LengthSeconds,
+			data.Audio,
+			data.MediaURIs...,
+		); err != nil {
+			app.ShowError(err)
+		}
+
+		mp.Player().Play()
+
+		q.title.Store(data.Reference.Title)
+		q.audio.Store(data.Audio)
+
+		app.UI.QueueUpdateDraw(func() {
+			renderInfo(data.Reference, struct{}{})
+		})
+	}()
+}
+
+// Delete removes a entry from the specified position within the queue.
+func (q *Queue) Delete(position int) {
+	q.storeMutex.Lock()
+	defer q.storeMutex.Unlock()
+
+	q.store.Remove(position)
+}
+
+// Move moves the position of the selected queue entry.
+func (q *Queue) Move(before, after int) {
+	q.storeMutex.Lock()
+	defer q.storeMutex.Unlock()
+
+	length := q.store.Len()
+	if (after < 0 || before < 0) ||
+		(after >= length || before >= length) {
+		return
+	}
+
+	if q.Position() == before {
+		q.SetPosition(after)
+	}
+
+	b := q.store.At(before)
+
+	q.store.Remove(before)
+	q.store.Insert(after, b)
+}
+
+// Count returns the number of items in the queue.
+func (q *Queue) Count() int {
+	q.storeMutex.Lock()
+	defer q.storeMutex.Unlock()
+
+	return q.store.Len()
+}
+
+// Position returns the current position within the queue.
+func (q *Queue) Position() int {
+	return int(q.position.Load())
+}
+
+func (q *Queue) SetPosition(position int) {
+	q.position.Store(int32(position))
+}
+
+// SwitchToPosition switches to the specified position within the queue.
+func (q *Queue) SwitchToPosition(position int) {
+	length := q.Count()
+	if position < 0 || position >= length {
+		return
+	}
+
+	q.SetPosition(position)
+	q.Play()
+}
+
+// SelectRecentEntry selects the recent-most entry in the queue.
+func (q *Queue) SelectRecentEntry() {
+	q.SwitchToPosition(q.Count() - 1)
+}
+
+// Previous selects the previous entry from the current position in the queue.
+func (q *Queue) Previous() {
+	length := q.Count()
+	if length == 0 {
+		return
+	}
+
+	position := q.Position()
+	if position-1 < 0 {
+		return
+	}
+
+	q.SetPosition(position - 1)
+	q.Play()
+}
+
+// Next selects the next entry from the current position in the queue.
+func (q *Queue) Next() {
+	length := q.Count()
+	if length == 0 {
+		return
+	}
+
+	position := q.Position()
+	if position+1 >= length {
+		return
+	}
+
+	q.SetPosition(position + 1)
+	q.Play()
+}
+
+// Get returns the entry data at the specified position from the queue.
+func (q *Queue) Get(position int, nolock ...struct{}) (QueueData, bool) {
+	if nolock == nil {
+		q.storeMutex.Lock()
+		defer q.storeMutex.Unlock()
+	}
+
+	length := q.store.Len()
+	if position < 0 || position >= length {
+		return QueueData{}, false
+	}
+
+	return q.store.At(position), true
+}
+
+// GetCurrent returns the entry data at the current position from the queue.
+func (q *Queue) GetCurrent() (QueueData, bool) {
+	return q.Get(q.Position())
+}
+
+// GetTitle returns the title for the currently playing entry.
+func (q *Queue) GetTitle(set ...string) string {
+	if set != nil {
+		q.title.Store(set[0])
+	}
+
+	return q.title.Load().(string)
+}
+
+// GetMediaType returns the media type for the currently playing entry.
+func (q *Queue) GetMediaType() string {
+	audio := q.audio.Load()
+	if audio {
+		return "Audio"
+	}
+
+	return "Video"
+}
+
+// GetRepeatMode returns the current repeat mode.
+func (q *Queue) GetRepeatMode() mp.RepeatMode {
+	return mp.RepeatMode(int(q.repeat.Load()))
+}
+
+// GetShuffleMode returns the current shuffle mode.
+func (q *Queue) GetShuffleMode() bool {
+	return q.shuffle.Load()
+}
+
+// GetCell returns a TableCell from the queue entry data at the specified row and column.
+func (q *Queue) GetCell(row, column int) *tview.TableCell {
+	data, ok := q.Get(row)
+	if !ok {
+		return nil
+	}
+
+	return data.Columns[column]
+}
+
+// GetRowCount returns the number of rows in the table.
+func (q *Queue) GetRowCount() int {
+	return q.Count()
+}
+
+// GetColumnCount returns the number of columns in the table.
+func (q *Queue) GetColumnCount() int {
+	return QueueColumnSize - 1
+}
+
+// SelectCurrentRow selects the specified row within the table.
+func (q *Queue) SelectCurrentRow(row ...int) {
+	var pos int
+
+	if row != nil {
+		pos = row[0]
+	} else {
+		pos, _ = q.table.GetSelection()
+	}
+
+	q.table.Select(pos, 0)
+}
+
+// GetRect returns the dimensions of the table.
+func (q *Queue) GetRect() (int, int, int, int) {
+	var x, y, w, h int
+
+	app.UI.QueueUpdate(func() {
+		x, y, w, h = q.table.GetRect()
+	})
+
+	return x, y, w, h
+}
+
+// MarkPlayingEntry marks the current queue entry as 'playing/loading'.
+func (q *Queue) MarkPlayingEntry(playing bool) {
+	app.UI.QueueUpdateDraw(func() {
+		if q.marker != nil && q.text != "" {
+			q.marker.SetText(q.text)
+		}
+
+		q.marker = q.GetCell(q.Position(), QueuePlayingMarker)
+		if q.marker == nil {
+			return
+		}
+
+		color := "white"
+		marker := "PLAYING"
+		if !playing {
+			color = "yellow"
+			marker = "LOADING"
+		}
+
+		q.text = q.marker.Text
+		q.marker.SetText(q.text + fmt.Sprintf(PlayerMarkerFormat, color, marker))
+	})
+}
+
+// MarkEntryMediaType marks the selected queue entry as 'Audio/Video'.
+func (q *Queue) MarkEntryMediaType(key cmd.Key) {
+	var media string
+
+	q.storeMutex.Lock()
+	defer q.storeMutex.Unlock()
+
+	switch key {
+	case cmd.KeyPlayerQueueAudio:
+		media = "Audio"
+
+	case cmd.KeyPlayerQueueVideo:
+		media = "Video"
+
+	default:
+		return
+	}
+
+	audio := media == "Audio"
+	pos, _ := q.table.GetSelection()
+
+	data, ok := q.Get(pos, struct{}{})
+	if !ok || data.Audio == audio {
+		return
+	}
+
+	data.Audio = audio
+	data.Columns[QueueMediaMarker].SetText(
+		fmt.Sprintf(MediaMarkerFormat, media),
+	)
+
+	q.SetData(pos, data, struct{}{})
+	if pos == q.Position() {
+		q.Play()
+	}
+}
+
+// SetData sets/adds entry data in the queue.
+func (q *Queue) SetData(row int, data QueueData, nolock ...struct{}) {
+	if nolock == nil {
+		q.storeMutex.Lock()
+		defer q.storeMutex.Unlock()
+	}
+
+	length := q.store.Len()
+	if length == 0 || row >= length-1 {
+		q.store.PushBack(data)
+		return
+	}
+
+	q.store.Set(row, data)
+}
+
+// SetReference sets the reference for the data at the specified row in the queue.
+func (q *Queue) SetReference(row int, video inv.VideoData, checkID ...struct{}) {
+	q.storeMutex.Lock()
+	defer q.storeMutex.Unlock()
+
+	data, ok := q.Get(row, struct{}{})
+	if !ok || checkID != nil && data.Reference.VideoID != video.VideoID {
+		return
+	}
+
+	data.Reference = video
+	q.SetData(row, data, struct{}{})
+}
+
+// SetState sets the player states (repeat/shuffle).
+func (q *Queue) SetState(state string) {
+	if state == "shuffle" {
+		q.shuffle.Store(true)
+		return
+	}
+
+	if strings.Contains(state, "loop") {
+		repeatMode := statesMap[state]
+		q.repeat.Store(int32(repeatMode))
+		mp.Player().SetLoopMode(mp.RepeatMode(repeatMode))
+	}
+}
+
+// Clear clears the queue.
+func (q *Queue) Clear() {
+	q.storeMutex.Lock()
+	defer q.storeMutex.Unlock()
+
+	q.store.Clear()
+	q.SetPosition(0)
+}
+
+// ToggleRepeatMode toggles the repeat mode.
+func (q *Queue) ToggleRepeatMode() {
+	repeatMode := mp.RepeatMode(int(q.repeat.Load()))
+
+	switch repeatMode {
+	case mp.RepeatModeOff:
+		repeatMode = mp.RepeatModeFile
+
+	case mp.RepeatModeFile:
+		repeatMode = mp.RepeatModePlaylist
+
+	case mp.RepeatModePlaylist:
+		repeatMode = mp.RepeatModeOff
+	}
+
+	q.repeat.Store(int32(repeatMode))
+	mp.Player().SetLoopMode(repeatMode)
+}
+
+// ToggleShuffle toggles the shuffle mode.
+func (q *Queue) ToggleShuffle() {
+	shuffle := q.shuffle.Load()
+	q.shuffle.Store(!shuffle)
+}
+
+// Context returns/cancels the queue's context.
+func (q *Queue) Context(cancel bool) context.Context {
 	if cancel && q.ctx != nil {
 		q.cancel()
 	}
@@ -112,6 +571,65 @@ func (q *Queue) Ctx(cancel bool) context.Context {
 	}
 
 	return q.ctx
+}
+
+// LoadPlaylist loads the provided playlist into MPV.
+// If replace is true, the provided playlist will replace the current playing queue.
+// renewLiveURL is a function to check and renew expired liev URLs in the playlist.
+func (q *Queue) LoadPlaylist(ctx context.Context, plpath string, replace bool) error {
+	var filesAdded int
+
+	if replace {
+		q.Clear()
+	}
+
+	pl, err := os.Open(plpath)
+	if err != nil {
+		return fmt.Errorf("MPV: Unable to open %s", plpath)
+	}
+	defer pl.Close()
+
+	// We implement a simple playlist parser instead of relying on
+	// the m3u8 package here, since that package deals with mainly
+	// HLS playlists, and it seems to panic when certain EXTINF fields
+	// are blank. With this method, we can parse the URLs from the playlist
+	// directly, and pass the relevant options to mpv as well.
+	reader := bufio.NewReader(pl)
+
+Reader:
+	for {
+		select {
+		case <-ctx.Done():
+			break Reader
+
+		default:
+		}
+
+		line, err := reader.ReadString('\n')
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+
+			return err
+		}
+
+		line = strings.TrimSpace(line)
+		if strings.HasPrefix(line, "#") || line == "" {
+			continue
+		}
+
+		if err := q.playlistAddEntry(line); err != nil {
+			return err
+		}
+
+		filesAdded++
+	}
+	if filesAdded == 0 {
+		return fmt.Errorf("MPV: No files were added")
+	}
+
+	return nil
 }
 
 // Keybindings define the keybindings for the queue.
@@ -146,7 +664,10 @@ func (q *Queue) Keybindings(event *tcell.EventKey) *tcell.EventKey {
 		q.move()
 
 	case cmd.KeyQueueCancel:
-		q.Ctx(true)
+		q.Context(true)
+
+	case cmd.KeyPlayerQueueAudio, cmd.KeyPlayerQueueVideo:
+		q.MarkEntryMediaType(operation)
 
 	case cmd.KeyPlayerStop, cmd.KeyClose:
 		q.Hide()
@@ -174,11 +695,7 @@ func (q *Queue) play() {
 
 	if q.moveMode {
 		selected := row
-		if row > q.prevrow {
-			row++
-		}
-
-		mp.Player().QueueMove(row, q.prevrow)
+		q.Move(q.prevrow, row)
 
 		q.moveMode = false
 		q.table.Select(selected, 0)
@@ -186,8 +703,7 @@ func (q *Queue) play() {
 		return
 	}
 
-	mp.Player().QueueSwitchToTrack(row)
-	mp.Player().Play()
+	q.SwitchToPosition(row)
 
 	sendPlayerEvents()
 }
@@ -198,22 +714,26 @@ func (q *Queue) remove() {
 	rows := q.table.GetRowCount()
 	row, _ := q.table.GetSelection()
 
-	switch {
-	case row >= rows-1:
-		if mp.Player().LoopMode() != "R-P" {
-			mp.Player().Prev()
-		}
-		q.table.Select(row-1, 0)
+	q.Delete(row)
+	rows--
 
-	case row < rows && row >= 0:
-		q.table.Select(row, 0)
+	switch {
+	case rows == 0:
+		player.setting.Store(false)
+
+		q.Hide()
+		go Hide()
+
+		return
+
+	case row >= rows:
+		row = rows - 1
 	}
 
-	q.removeVideo(row)
+	q.SelectCurrentRow(row)
+	q.SwitchToPosition(row)
 
-	mp.Player().QueueDelete(row)
-
-	pos := mp.Player().QueuePosition()
+	pos := q.Position()
 	if pos == row {
 		sendPlayerEvents()
 	}
@@ -253,184 +773,6 @@ func (q *Queue) selectorHandler(row, col int) {
 	}
 }
 
-// render renders the player queue.
-func (q *Queue) render(data []map[string]interface{}) {
-	if len(data) == 0 || !player.setting.Load() {
-		q.table.Clear()
-		q.data = nil
-		q.removeVideo(-1, struct{}{})
-
-		if q.table.HasFocus() {
-			q.Hide()
-		}
-
-		return
-	}
-
-	length := len(q.data)
-	_, _, w, _ := q.table.GetRect()
-	pos, _ := q.table.GetSelection()
-
-	q.table.SetSelectable(false, false)
-
-	for i, pldata := range data {
-		var marker string
-
-		data, skip := q.getData(i, pldata, length)
-		if skip {
-			continue
-		}
-
-		if data.Playing {
-			marker = " [white::b](playing)"
-		}
-
-		info := inv.SearchData{
-			Title:   data.Title,
-			Type:    "video",
-			Author:  data.Author,
-			VideoID: data.VideoID,
-		}
-
-		q.table.SetCell(i, 1, tview.NewTableCell("[blue::b]"+tview.Escape(data.Title)+marker).
-			SetExpansion(1).
-			SetMaxWidth(w/7).
-			SetReference(info).
-			SetSelectable(true).
-			SetSelectedStyle(app.UI.ColumnStyle),
-		)
-
-		q.table.SetCell(i, 2, tview.NewTableCell(" ").
-			SetMaxWidth(1).
-			SetSelectable(false),
-		)
-
-		q.table.SetCell(i, 3, tview.NewTableCell("[purple::b]"+tview.Escape(data.Author)).
-			SetExpansion(1).
-			SetMaxWidth(w/7).
-			SetSelectable(true).
-			SetAlign(tview.AlignRight).
-			SetSelectedStyle(app.UI.ColumnStyle),
-		)
-
-		q.table.SetCell(i, 4, tview.NewTableCell(" ").
-			SetMaxWidth(1).
-			SetSelectable(false),
-		)
-
-		q.table.SetCell(i, 5, tview.NewTableCell("[pink::b]"+tview.Escape(data.Type)).
-			SetMaxWidth(5).
-			SetSelectable(true).
-			SetSelectedStyle(app.UI.ColumnStyle),
-		)
-
-		q.table.SetCell(i, 6, tview.NewTableCell(" ").
-			SetMaxWidth(1).
-			SetSelectable(false),
-		)
-
-		q.table.SetCell(i, 7, tview.NewTableCell("[pink::b]"+data.Duration).
-			SetMaxWidth(10).
-			SetSelectable(true).
-			SetSelectedStyle(app.UI.ColumnStyle),
-		)
-	}
-
-	q.table.SetSelectable(true, false)
-	q.table.Select(pos, 0)
-
-	app.ResizeModal()
-
-	q.data = data
-}
-
-// getData organises and returns the queue data from the provided playlist data map.
-//
-//gocyclo:ignore
-func (q *Queue) getData(row int, pldata map[string]interface{}, length ...int) (QueueData, bool) {
-	var data QueueData
-	var filename string
-
-	if len(pldata) == 0 {
-		return QueueData{}, true
-	}
-
-	props := []string{"id", "filename", "current"}
-
-	if length != nil && row < length[0] {
-		var count int
-
-		if _, ok := pldata["current"]; !ok {
-			pldata["current"] = false
-		}
-
-		for _, prop := range props {
-			pdata, recent := pldata[prop]
-			qdata, existing := q.data[row][prop]
-			if (recent && existing) && (pdata == qdata) {
-				count++
-			}
-		}
-		if count == len(props) {
-			return (QueueData{}), true
-		}
-	}
-
-	for _, prop := range props {
-		value := pldata[prop]
-
-		switch prop {
-		case "id":
-			if v, ok := value.(int); ok {
-				data.ID = v
-			}
-
-		case "filename":
-			if v, ok := value.(string); ok {
-				filename = v
-			}
-
-		case "current":
-			if v, ok := value.(bool); ok {
-				data.Playing = v
-			}
-		}
-	}
-
-	urlData := utils.GetDataFromURL(filename)
-	if urlData == nil {
-		return (QueueData{}), true
-	}
-
-	for udata := range urlData {
-		key, value := udata, urlData.Get(udata)
-		if value != "" {
-			continue
-		}
-
-		switch key {
-		case "title":
-			value = mp.Player().Title(row)
-
-		default:
-			if key != "id" {
-				value = "-"
-			}
-		}
-
-		urlData.Set(key, value)
-	}
-
-	data.VideoID = urlData.Get("id")
-	data.Title = urlData.Get("title")
-	data.Author = urlData.Get("author")
-	data.Type = urlData.Get("mediatype")
-	data.Duration = urlData.Get("length")
-	data.LengthSeconds = utils.ConvertDurationToSeconds(data.Duration)
-
-	return data, false
-}
-
 // saveAs saves the current queue into a playlist M3U8 file.
 func (q *Queue) saveAs(file string) {
 	if !q.lock.TryAcquire(1) {
@@ -440,13 +782,16 @@ func (q *Queue) saveAs(file string) {
 
 	var videos []inv.VideoData
 
-	for _, v := range q.getQueueData() {
-		videos = append(videos, inv.VideoData{
-			VideoID:       v.VideoID,
-			Title:         v.Title,
-			LengthSeconds: v.LengthSeconds,
-			Author:        v.Author,
-		})
+	for i := 0; i < q.Count(); i++ {
+		data, ok := q.Get(i)
+		if !ok {
+			continue
+		}
+
+		v := data.Reference
+		if v.VideoID != "" {
+			videos = append(videos, v)
+		}
 	}
 	if len(videos) == 0 {
 		return
@@ -462,88 +807,18 @@ func (q *Queue) saveAs(file string) {
 func (q *Queue) appendFrom(file string) {
 	app.ShowInfo("Loading "+filepath.Base(file), true)
 
-	app.UI.QueueUpdateDraw(func() {
-		player.queue.Show()
-	})
-
-	err := mp.Player().LoadPlaylist(q.Ctx(false), file, false, checkLiveURL)
+	err := q.LoadPlaylist(q.Context(false), file, false)
 	if err != nil {
 		app.ShowError(err)
 		return
 	}
 
+	app.UI.QueueUpdateDraw(func() {
+		player.queue.Show()
+		app.UI.FileBrowser.Hide()
+	})
+
 	app.ShowInfo("Loaded "+filepath.Base(file), false)
-
-	app.UI.FileBrowser.Hide()
-}
-
-// getQueueData returns a list of queue items.
-func (q *Queue) getQueueData() []QueueData {
-	var data []QueueData
-
-	playlistJSON := mp.Player().QueueData()
-	if playlistJSON == "" {
-		app.ShowError(fmt.Errorf("Queue: Could not fetch playlist"))
-		return []QueueData{}
-	}
-
-	err := resolver.DecodeJSONBytes([]byte(playlistJSON), &data)
-	if err != nil {
-		app.ShowError(fmt.Errorf("Queue: Error while parsing playlist data"))
-		return []QueueData{}
-	}
-	if len(data) == 0 {
-		return []QueueData{}
-	}
-
-	for i := range data {
-		data[i], _ = q.getData(i, map[string]interface{}{
-			"id":       data[i].ID,
-			"playing":  data[i].Playing,
-			"filename": data[i].Filename,
-		})
-	}
-
-	return data
-}
-
-// currentVideo sets or returns the video to/from the store
-// according to the provided ID.
-func (q *Queue) currentVideo(id string, set ...*inv.VideoData) *inv.VideoData {
-	player.mutex.Lock()
-	defer player.mutex.Unlock()
-
-	if set != nil {
-		q.videos[id] = set[0]
-	}
-
-	video, ok := q.videos[id]
-	if !ok {
-		return nil
-	}
-
-	return video
-}
-
-// removeVideo removes a video from the store.
-func (q *Queue) removeVideo(pos int, reset ...struct{}) {
-	player.mutex.Lock()
-	defer player.mutex.Unlock()
-
-	if reset != nil && len(q.videos) > 0 {
-		q.videos = make(map[string]*inv.VideoData)
-		return
-	}
-
-	title := mp.Player().Title(pos)
-	data := utils.GetDataFromURL(title)
-
-	id := data.Get("id")
-	if id == "" {
-		return
-	}
-
-	delete(q.videos, id)
 }
 
 // sendStatus sends status events to the queue.

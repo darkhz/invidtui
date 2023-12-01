@@ -1,7 +1,5 @@
 package mediaplayer
 
-import "context"
-
 // MediaPlayer describes a media player.
 type MediaPlayer interface {
 	Init(execpath, ytdlpath, numretries, useragent, socket string) error
@@ -10,15 +8,9 @@ type MediaPlayer interface {
 	SendQuit(socket string)
 
 	LoadFile(title string, duration int64, liveaudio bool, files ...string) error
-	LoadPlaylist(ctx context.Context, plpath string, replace bool, renewLiveURL func(uri string, audio bool) bool) error
-
-	Title(pos int) string
-	MediaType() string
 
 	Play()
 	Stop()
-	Next()
-	Prev()
 	SeekForward()
 	SeekBackward()
 	Position() int64
@@ -27,14 +19,10 @@ type MediaPlayer interface {
 	Paused() bool
 	TogglePaused()
 
-	Shuffled() bool
-	ToggleShuffled()
-
 	Muted() bool
 	ToggleMuted()
 
-	LoopMode() string
-	ToggleLoopMode()
+	SetLoopMode(mode RepeatMode)
 
 	Idle() bool
 	Finished() bool
@@ -44,15 +32,6 @@ type MediaPlayer interface {
 	VolumeIncrease()
 	VolumeDecrease()
 
-	QueueCount() int
-	QueuePosition() int
-	QueueDelete(number int)
-	QueueMove(before, after int)
-	QueueSwitchToTrack(number int)
-	QueueData() string
-	QueuePlayLatest()
-	QueueClear()
-
 	WaitClosed()
 
 	Call(args ...interface{}) (interface{}, error)
@@ -60,18 +39,27 @@ type MediaPlayer interface {
 	Set(prop string, value interface{}) error
 }
 
-// MediaEvents describes the various media player related events.
-type MediaEvents struct {
-	FileNumber, ErrorNumber chan int
-	ErrorEvent              chan string
-	FileLoadedEvent         chan struct{}
-	StartEvent              chan struct{}
-	DataEvent               chan []map[string]interface{}
-}
+type MediaEvent int
+
+const (
+	EventNone MediaEvent = iota
+	EventEnd
+	EventStart
+	EventInProgress
+	EventError
+)
+
+type RepeatMode int
+
+const (
+	RepeatModeOff RepeatMode = iota
+	RepeatModeFile
+	RepeatModePlaylist
+)
 
 var (
 	current string
-	Events  MediaEvents
+	Event   chan MediaEvent
 
 	players = map[string]MediaPlayer{
 		"mpv": &mpv,
@@ -82,11 +70,7 @@ var (
 func Init(player, execpath, ytdlpath, numretries, useragent, socket string) error {
 	current = player
 
-	Events.FileNumber, Events.ErrorNumber = make(chan int, 100), make(chan int, 100)
-	Events.ErrorEvent = make(chan string, 100)
-	Events.FileLoadedEvent = make(chan struct{}, 100)
-	Events.DataEvent = make(chan []map[string]interface{}, 10)
-	Events.StartEvent = make(chan struct{}, 1)
+	Event = make(chan MediaEvent, 1000)
 
 	return players[player].Init(
 		execpath, ytdlpath,
