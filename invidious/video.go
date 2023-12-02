@@ -93,52 +93,27 @@ func VideoThumbnail(ctx context.Context, id, image string) (*http.Response, erro
 	return res, nil
 }
 
-// VideoLoadParams returns the appropriate parameters to load the video
-// into the media player.
-func VideoLoadParams(id string, audio bool, ctx ...context.Context) (VideoData, []string, error) {
-	var err error
-	var urls []string
-	var mediatype string
-	var mediaURL, audioURL, videoURL string
+// RenewVideoURI renews the video's media URIs.
+func RenewVideoURI(ctx context.Context, uri []string, video VideoData, audio bool) []string {
+	if uri != nil && video.LiveNow {
+		if _, renew := CheckLiveURL(uri[0], audio); !renew {
+			return uri
+		}
+	}
 
-	video, err := Video(id, ctx...)
+	v, err := getVideoURI(ctx, video, audio)
 	if err != nil {
-		return VideoData{}, nil, err
+		return uri
 	}
 
-	if video.LiveNow {
-		audio = false
-		videoURL, audioURL = getLiveVideo(video, audio)
-	} else {
-		videoURL, audioURL = getVideoByItag(video, audio)
-	}
-
-	if audio && audioURL == "" {
-		return VideoData{}, nil, err
-	} else if !audio && videoURL == "" {
-		return VideoData{}, nil, err
-	}
-
-	if audio {
-		mediatype = "Audio"
-		mediaURL = audioURL
-	} else {
-		mediatype = "Video"
-		mediaURL = videoURL
-		urls = append(urls, audioURL)
-	}
-
-	video.MediaType = mediatype
-
-	urls = append([]string{mediaURL}, urls...)
-
-	return video, urls, nil
+	return v
 }
 
 // CheckLiveURL returns whether the provided live video's URL has expired or not.
 func CheckLiveURL(uri string, audio bool) (string, bool) {
 	var id string
-	var expired bool
+
+	renew := true
 
 	// Split the uri parameters.
 	uriSplit := strings.Split(uri, "/")
@@ -147,7 +122,7 @@ func CheckLiveURL(uri string, audio bool) (string, bool) {
 			// Return if the uri is not expired.
 			exptime, err := strconv.ParseInt(uriSplit[i+1], 10, 64)
 			if err == nil && time.Now().Unix() < exptime {
-				expired = true
+				renew = false
 				continue
 			}
 		}
@@ -159,19 +134,50 @@ func CheckLiveURL(uri string, audio bool) (string, bool) {
 		}
 	}
 
-	return id, expired
+	return id, renew
+}
+
+// getVideoURI returns the video's media URIs.
+func getVideoURI(ctx context.Context, video VideoData, audio bool) ([]string, error) {
+	var uris []string
+	var mediaURL, audioURL, videoURL string
+
+	if video.LiveNow {
+		audio = false
+		videoURL, audioURL = getLiveVideo(ctx, video.VideoID, audio)
+	} else {
+		videoURL, audioURL = getVideoByItag(video, audio)
+	}
+
+	if audio && audioURL == "" {
+		return nil, fmt.Errorf("No audio URI")
+	} else if !audio && videoURL == "" {
+		return nil, fmt.Errorf("No video URI")
+	}
+
+	if audio {
+		mediaURL = audioURL
+	} else {
+		mediaURL = videoURL
+		uris = append(uris, audioURL)
+	}
+
+	uris = append([]string{mediaURL}, uris...)
+
+	return uris, nil
 }
 
 // getLiveVideo gets the hls playlist, parses and finds the appropriate live video stream.
-func getLiveVideo(video VideoData, audio bool) (string, string) {
+func getLiveVideo(ctx context.Context, id string, audio bool) (string, string) {
 	var videoURL, audioURL string
 
-	if video.HlsURL == "" {
+	video, err := Video(id, ctx)
+	if err != nil || video.HlsURL == "" {
 		return "", ""
 	}
 
 	url, _ := utils.IsValidURL(video.HlsURL)
-	res, err := client.Get(client.Ctx(), url.RequestURI())
+	res, err := client.Get(ctx, url.RequestURI())
 	if err != nil {
 		return "", ""
 	}
@@ -239,7 +245,7 @@ func getVideoByItag(video VideoData, audio bool) (string, string) {
 	var videoURL, audioURL string
 
 	videoURL, audioURL = loopFormats(
-		audio, video,
+		"itag", audio, video,
 		func(v VideoData, f VideoFormat) string {
 			return getLatestURL(v.VideoID, f.Itag)
 		},
@@ -254,14 +260,14 @@ func getVideoByItag(video VideoData, audio bool) (string, string) {
 // loopFormats loops over a video's AdaptiveFormats data and gets the
 // audio/video URL according to the values returned by afunc/vfunc.
 func loopFormats(
-	audio bool, video VideoData,
+	urlType string, audio bool, video VideoData,
 	afunc, vfunc func(video VideoData, format VideoFormat) string,
 ) (string, string) {
 	var ftype, videoURL, audioURL string
 
 	// For videos, we loop through FormatStreams first and get the videoURL.
 	// This works mainly for 720p, 360p and 144p video streams.
-	if !audio {
+	if !audio && urlType != "itag" {
 		for _, format := range video.FormatStreams {
 			if format.Resolution == cmd.GetOptionValue("video-res") {
 				videoURL = format.URL

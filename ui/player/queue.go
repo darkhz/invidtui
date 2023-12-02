@@ -53,7 +53,7 @@ type Queue struct {
 
 // QueueData describes the queue entry data.
 type QueueData struct {
-	MediaURIs []string
+	URI       []string
 	Audio     bool
 	Columns   [QueueColumnSize]*tview.TableCell
 	Reference inv.VideoData
@@ -118,7 +118,7 @@ func (q *Queue) IsOpen() bool {
 }
 
 // Add adds an entry to the player queue.
-func (q *Queue) Add(video inv.VideoData, uris []string, audio bool) {
+func (q *Queue) Add(video inv.VideoData, audio bool, uri ...string) {
 	count := q.Count()
 	_, _, w, _ := q.GetRect()
 
@@ -132,7 +132,9 @@ func (q *Queue) Add(video inv.VideoData, uris []string, audio bool) {
 		length = utils.FormatDuration(video.LengthSeconds)
 	}
 
-	q.SetData(count-1, QueueData{
+	video.MediaType = media
+
+	q.SetData(count, QueueData{
 		Columns: [QueueColumnSize]*tview.TableCell{
 			tview.NewTableCell(" ").
 				SetMaxWidth(1).
@@ -172,9 +174,9 @@ func (q *Queue) Add(video inv.VideoData, uris []string, audio bool) {
 				SetMaxWidth(1).
 				SetSelectable(false),
 		},
-		MediaURIs: uris,
 		Audio:     audio,
 		Reference: video,
+		URI:       uri,
 	})
 
 	if count == 0 {
@@ -208,24 +210,47 @@ func (q *Queue) AutoPlay(force bool) {
 
 // Play plays the entry at the current queue position.
 func (q *Queue) Play() {
+	var ctx context.Context
+	var cancel context.CancelFunc
+
 	go func() {
-		data, ok := q.Get(q.Position())
+		if cancel != nil {
+			cancel()
+		}
+		if ctx == nil || ctx.Err() == context.Canceled {
+			ctx, cancel = context.WithCancel(context.Background())
+		}
+
+		data, ok := q.GetCurrent()
 		if !ok {
+			app.ShowError(fmt.Errorf("Player: Cannot get media data for %s", data.Reference.Title))
+			return
+		}
+
+		mp.Player().Stop()
+
+		q.audio.Store(data.Audio)
+		q.title.Store(data.Reference.Title)
+		player.queue.MarkPlayingEntry(false)
+
+		uri := inv.RenewVideoURI(ctx, data.URI, data.Reference, data.Audio)
+		if uri == nil {
+			if ctx != nil && ctx.Err() != context.Canceled {
+				app.ShowError(fmt.Errorf("Player: Cannot get media URI for %s", data.Reference.Title))
+			}
+
 			return
 		}
 
 		if err := mp.Player().LoadFile(
 			data.Reference.Title, data.Reference.LengthSeconds,
 			data.Audio,
-			data.MediaURIs...,
+			uri...,
 		); err != nil {
 			app.ShowError(err)
 		}
 
 		mp.Player().Play()
-
-		q.title.Store(data.Reference.Title)
-		q.audio.Store(data.Audio)
 
 		app.UI.QueueUpdateDraw(func() {
 			renderInfo(data.Reference, struct{}{})
@@ -489,7 +514,7 @@ func (q *Queue) SetData(row int, data QueueData, nolock ...struct{}) {
 	}
 
 	length := q.store.Len()
-	if length == 0 || row >= length-1 {
+	if length == 0 || row >= length {
 		q.store.PushBack(data)
 		return
 	}
@@ -648,11 +673,6 @@ ReadPlaylist:
 			author, _ := url.QueryUnescape(vmap["author"])
 
 			length := vmap["length"]
-			if length == "Live" {
-				if renewed := checkLiveURL(mediaURI, audio); renewed {
-					continue ReadPlaylist
-				}
-			}
 
 			video.Title = title
 			video.Author = author
@@ -692,12 +712,6 @@ ReadPlaylist:
 				live = true
 			}
 
-			if live {
-				if renewed := checkLiveURL(mediaURI, audio); renewed {
-					continue ReadPlaylist
-				}
-			}
-
 			if v.Comment != nil {
 				data.Set("title", *v.Comment)
 			}
@@ -711,14 +725,18 @@ ReadPlaylist:
 			video.VideoID = data.Get("id")
 			video.Title = data.Get("title")
 			video.Author = data.Get("author")
+			video.LiveNow = live
 			video.MediaType = "Audio"
 			video.LengthSeconds = int64(v.Duration)
 
 		default:
 			continue
 		}
+		if video.LiveNow {
+			video.HlsURL = mediaURI
+		}
 
-		q.Add(video, []string{mediaURI}, audio)
+		q.Add(video, audio, mediaURI)
 
 		filesAdded++
 	}

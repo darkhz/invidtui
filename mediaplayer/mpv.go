@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/darkhz/invidtui/resolver"
@@ -63,22 +64,29 @@ func (m *MPV) SendQuit(socket string) {
 // LoadFile loads the provided files into MPV. When more than one file is provided,
 // the first file is treated as a video stream and the second file is attached as an audio stream.
 func (m *MPV) LoadFile(title string, duration int64, audio bool, files ...string) error {
-	options := "force-media-title=%" + strconv.Itoa(len(title)) + "%" + title
-	if duration > 0 {
-		options += ",length=" + strconv.FormatInt(duration, 10)
+	if files == nil {
+		return fmt.Errorf("MPV: Unable to load empty fileset")
 	}
 
 	if audio {
-		options += ",vid=no"
+		m.Call("set_property", "video", "0")
 	}
 
+	options := []string{}
+	if duration > 0 {
+		options = append(options, "length="+strconv.FormatInt(duration, 10))
+	}
 	if len(files) == 2 {
-		options += ",audio-file=" + files[1]
+		options = append(options, "audio-file="+files[1])
 	}
 
-	_, err := m.Call("loadfile", files[0], "replace", options)
+	_, err := m.Call("loadfile", files[0], "replace", strings.Join(options, ","))
 	if err != nil {
 		return fmt.Errorf("MPV: Unable to load %s", title)
+	}
+
+	if !audio {
+		m.Call("set_property", "video", "1")
 	}
 
 	return nil

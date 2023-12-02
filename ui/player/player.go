@@ -495,13 +495,13 @@ func loadSelected(info inv.SearchData, audio, current bool) {
 
 // loadVideo loads a video into the media player.
 func loadVideo(id string, audio bool, ctx ...context.Context) (string, error) {
-	video, uris, err := inv.VideoLoadParams(id, audio, ctx...)
+	video, err := inv.Video(id, ctx...)
 	if err != nil {
 		return "", err
 	}
 
 	if ctx == nil {
-		player.queue.Add(video, uris, audio)
+		player.queue.Add(video, audio)
 	}
 
 	return video.Title, nil
@@ -800,7 +800,6 @@ func monitorMPVEvents() {
 	for event := range mp.Event {
 		switch event {
 		case mp.EventStart:
-			player.queue.MarkPlayingEntry(false)
 			if !player.status.Load() && player.setting.Load() {
 				app.UI.Status.InitializingTag(true)
 			}
@@ -842,20 +841,6 @@ func openPlaylist(file string) {
 	})
 
 	app.ShowInfo("Loaded "+filepath.Base(file), false)
-}
-
-// checkLiveURL checks whether a live video URL is expired or not.
-// If it is expired, the video information is renewed.
-func checkLiveURL(uri string, audio bool) bool {
-	id, expired := inv.CheckLiveURL(uri, audio)
-
-	if expired {
-		if _, err := loadVideo(id, audio); err != nil {
-			app.ShowError(fmt.Errorf("Player: Unable to renew live URL for video %s", id))
-		}
-	}
-
-	return expired
 }
 
 // updateProgressAndInfo returns the progress bar and information
