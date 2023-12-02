@@ -309,7 +309,9 @@ func IsHistoryInputFocused() bool {
 func Keybindings(event *tcell.EventKey) *tcell.EventKey {
 	playerKeybindings(event)
 
-	switch cmd.KeyOperation(event, cmd.KeyContextQueue) {
+	operation := cmd.KeyOperation(event, cmd.KeyContextQueue)
+
+	switch operation {
 	case cmd.KeyPlayerOpenPlaylist:
 		app.UI.FileBrowser.Show("Open playlist:", openPlaylist)
 
@@ -331,7 +333,7 @@ func Keybindings(event *tcell.EventKey) *tcell.EventKey {
 		changeImageQuality()
 
 	case cmd.KeyPlayerQueueAudio, cmd.KeyPlayerQueueVideo, cmd.KeyPlayerPlayAudio, cmd.KeyPlayerPlayVideo:
-		playSelected(event.Rune())
+		playSelected(operation)
 
 	case cmd.KeyQueue:
 		player.queue.Show()
@@ -395,7 +397,7 @@ func playerKeybindings(event *tcell.EventKey) {
 
 // playSelected determines the media type according
 // to the key pressed, and plays the currently selected entry.
-func playSelected(r rune) {
+func playSelected(key cmd.Key) {
 	if player.queue.IsOpen() {
 		kb := cmd.OperationData(key)
 		player.queue.Keybindings(tcell.NewEventKey(kb.Kb.Key, kb.Kb.Rune, kb.Kb.Mod))
@@ -403,8 +405,8 @@ func playSelected(r rune) {
 		return
 	}
 
-	audio := r == 'a' || r == 'A'
-	current := r == 'A' || r == 'V'
+	audio := key == cmd.KeyPlayerQueueAudio || key == cmd.KeyPlayerPlayAudio
+	current := key == cmd.KeyPlayerPlayAudio || key == cmd.KeyPlayerPlayVideo
 
 	Play(audio, current)
 
