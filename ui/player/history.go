@@ -121,7 +121,8 @@ func showHistory() {
 
 Render:
 	player.history.modal.Show(true)
-	player.history.input.SetText("")
+
+	historyFilter("")
 }
 
 // historyTableKeybindings defines the keybindings for the history popup.
