@@ -775,9 +775,6 @@ func (q *Queue) Keybindings(event *tcell.EventKey) *tcell.EventKey {
 	case cmd.KeyQueueMove:
 		q.move()
 
-	case cmd.KeyQueueCancel:
-		q.Context(true)
-
 	case cmd.KeyPlayerQueueAudio, cmd.KeyPlayerQueueVideo:
 		q.MarkEntryMediaType(operation)
 

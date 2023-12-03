@@ -307,7 +307,7 @@ var (
 		KeyQueueCancel: {
 			Title:   "Cancel Loading",
 			Context: KeyContextQueue,
-			Kb:      Keybinding{tcell.KeyRune, 'x', tcell.ModNone},
+			Kb:      Keybinding{tcell.KeyRune, 'X', tcell.ModNone},
 		},
 		KeyPlayerOpenPlaylist: {
 			Title:   "Open Playlist",

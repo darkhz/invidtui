@@ -11,7 +11,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/darkhz/invidtui/client"
 	"github.com/darkhz/invidtui/cmd"
 	inv "github.com/darkhz/invidtui/invidious"
 	mp "github.com/darkhz/invidtui/mediaplayer"
@@ -186,7 +185,7 @@ func Hide() {
 		return
 	}
 
-	Ctx(true)
+	Context(true)
 	player.queue.Context(true)
 
 	player.status.Store(false)
@@ -203,8 +202,8 @@ func Hide() {
 	player.queue.Clear()
 }
 
-// Ctx cancels and/or returns the player's context.
-func Ctx(cancel bool) context.Context {
+// Context cancels and/or returns the player's context.
+func Context(cancel bool) context.Context {
 	if cancel && player.ctx != nil {
 		player.cancel()
 	}
@@ -338,6 +337,9 @@ func Keybindings(event *tcell.EventKey) *tcell.EventKey {
 	case cmd.KeyQueue:
 		player.queue.Show()
 
+	case cmd.KeyQueueCancel:
+		player.queue.Context(true)
+
 	case cmd.KeyAudioURL, cmd.KeyVideoURL:
 		playInputURL(event.Rune() == 'b')
 		return nil
@@ -465,14 +467,16 @@ func loadSelected(info inv.SearchData, audio, current bool) {
 	}
 	defer player.lock.Release(1)
 
+	ctx := player.queue.Context(false)
+
 	app.ShowInfo("Adding "+info.Type+" "+info.Title, true)
 
 	switch info.Type {
 	case "playlist":
-		title, err = loadPlaylist(info.PlaylistID, audio)
+		title, err = loadPlaylist(ctx, info.PlaylistID, audio)
 
 	case "video":
-		title, err = loadVideo(info.VideoID, audio)
+		title, err = loadVideo(ctx, info.VideoID, audio)
 
 	default:
 		return
@@ -496,37 +500,30 @@ func loadSelected(info inv.SearchData, audio, current bool) {
 }
 
 // loadVideo loads a video into the media player.
-func loadVideo(id string, audio bool, ctx ...context.Context) (string, error) {
-	video, err := inv.Video(id, ctx...)
+func loadVideo(ctx context.Context, id string, audio bool) (string, error) {
+	video, err := inv.Video(id, ctx)
 	if err != nil {
 		return "", err
 	}
 
-	if ctx == nil {
-		player.queue.Add(video, audio)
-	}
+	player.queue.Add(video, audio)
 
 	return video.Title, nil
 }
 
 // loadPlaylist loads all the entries in the playlist into the media player.
-func loadPlaylist(plid string, audio bool) (string, error) {
+func loadPlaylist(ctx context.Context, plid string, audio bool) (string, error) {
 	var err error
 
-	playlist, err := inv.Playlist(plid, false, 1)
+	playlist, err := inv.Playlist(plid, false, 1, ctx)
 	if err != nil {
 		return "", err
 	}
 
 	for _, p := range playlist.Videos {
-		select {
-		case <-client.Ctx().Done():
-			return "", client.Ctx().Err()
-
-		default:
+		if _, err := loadVideo(ctx, p.VideoID, audio); err != nil {
+			return "", err
 		}
-
-		loadVideo(p.VideoID, audio)
 	}
 
 	return playlist.Title, nil
@@ -769,7 +766,7 @@ func playingStatusCheck() {
 			continue
 		}
 
-		Ctx(false)
+		Context(false)
 		go playerUpdateLoop(player.ctx, player.cancel)
 	}
 }
