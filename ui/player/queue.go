@@ -209,7 +209,7 @@ func (q *Queue) AutoPlay(force bool) {
 }
 
 // Play plays the entry at the current queue position.
-func (q *Queue) Play() {
+func (q *Queue) Play(norender ...struct{}) {
 	var ctx context.Context
 	var cancel context.CancelFunc
 
@@ -252,6 +252,9 @@ func (q *Queue) Play() {
 
 		mp.Player().Play()
 
+		if norender != nil {
+			return
+		}
 		app.UI.QueueUpdateDraw(func() {
 			renderInfo(data.Reference, struct{}{})
 		})
@@ -502,7 +505,7 @@ func (q *Queue) MarkEntryMediaType(key cmd.Key) {
 
 	q.SetData(pos, data, struct{}{})
 	if pos == q.Position() {
-		q.Play()
+		q.Play(struct{}{})
 	}
 }
 
