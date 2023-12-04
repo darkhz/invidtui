@@ -42,6 +42,8 @@ func (m *MPV) Init(execpath, ytdlpath, numretries, useragent, socket string) err
 // Exit tells MPV to exit.
 func (m *MPV) Exit() {
 	m.Call("quit")
+	m.Connection.Close()
+
 	os.Remove(m.socket)
 }
 
@@ -361,7 +363,6 @@ func (m *MPV) store(prop, apply interface{}) {
 func (m *MPV) eventListener() {
 	events, stopListening := m.Connection.NewEventListener()
 
-	defer m.Connection.Close()
 	defer func() { stopListening <- struct{}{} }()
 
 	for event := range events {

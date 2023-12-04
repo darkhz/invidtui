@@ -29,6 +29,7 @@ type Player struct {
 	init             bool
 	width            int
 	history          History
+	states           []string
 
 	channel chan bool
 	events  chan struct{}
@@ -120,6 +121,10 @@ func Start() {
 // Stop stops the player.
 func Stop() {
 	sendPlayingStatus(false)
+
+	player.mutex.Lock()
+	cmd.Settings.PlayerStates = player.states
+	player.mutex.Unlock()
 
 	mp.Player().Stop()
 	mp.Player().Exit()
@@ -542,7 +547,7 @@ func renderPlayer(cancel context.CancelFunc) {
 	}
 
 	player.mutex.Lock()
-	cmd.Settings.PlayerStates = states
+	player.states = states
 	player.mutex.Unlock()
 
 	app.UI.QueueUpdateDraw(func() {

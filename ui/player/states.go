@@ -20,13 +20,29 @@ func loadState() {
 	}
 
 	for _, s := range states {
-		if strings.Contains(s, "volume") {
-			vol := strings.Split(s, " ")[1]
-			mp.Player().Set("volume", vol)
-		}
+		for _, state := range []string{
+			"volume",
+			"mute",
+			"loop",
+			"shuffle",
+		} {
 
-		if strings.Contains(s, "loop") || strings.Contains(s, "shuffle") {
-			player.queue.SetState(s)
+			if !strings.Contains(s, state) {
+				continue
+			}
+
+			switch state {
+			case "volume":
+				vol := strings.Split(s, " ")[1]
+				mp.Player().Set("volume", vol)
+
+			case "mute":
+				mp.Player().ToggleMuted()
+
+			case "loop", "shuffle":
+				player.queue.SetState(s)
+			}
+
 		}
 	}
 }
