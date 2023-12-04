@@ -329,7 +329,9 @@ func (s *SearchView) Keybindings(event *tcell.EventKey) *tcell.EventKey {
 
 // inputFunc describes the keybindings for the search input box.
 func (s *SearchView) inputFunc(e *tcell.EventKey) *tcell.EventKey {
-	switch cmd.KeyOperation(e, cmd.KeyContextSearch) {
+	operation := cmd.KeyOperation(e, cmd.KeyContextSearch)
+
+	switch operation {
 	case cmd.KeySearchStart:
 		s.currentType = s.tab
 
@@ -367,25 +369,20 @@ func (s *SearchView) inputFunc(e *tcell.EventKey) *tcell.EventKey {
 	case cmd.KeySearchParameters:
 		go s.Parameters()
 
-	case cmd.KeySearchSuggestionReverse:
-		s.suggestBox.Table.InputHandler()(tcell.NewEventKey(tcell.KeyUp, ' ', tcell.ModNone), nil)
+	case cmd.KeySearchSuggestionReverse, cmd.KeySearchSuggestionForward:
+		s.suggestionHandler(operation)
 
-	case cmd.KeySearchSuggestionForward:
-		s.suggestBox.Table.InputHandler()(tcell.NewEventKey(tcell.KeyDown, ' ', tcell.ModNone), nil)
-
-	case cmd.KeySearchHistoryReverse:
-		if t := s.historyReverse(); t != "" {
+	case cmd.KeySearchHistoryReverse, cmd.KeySearchHistoryForward:
+		if t := s.historyEntry(operation); t != "" {
 			app.UI.Status.SetText(t)
 		}
 
-	case cmd.KeySearchHistoryForward:
-		if t := s.historyForward(); t != "" {
-			app.UI.Status.SetText(t)
-		}
+	default:
+		return e
 	}
 
 Event:
-	return e
+	return nil
 }
 
 // setupHistory reads the history file and loads the search history.
@@ -410,37 +407,36 @@ func (s *SearchView) addToHistory(text string) {
 	cmd.Settings.SearchHistory = s.entries
 }
 
-// historyForward moves a step forward in the history.entries buffer, and returns a text.
-func (s *SearchView) historyForward() string {
-	if s.pos+1 >= len(s.entries) {
-		var entry string
+// historyEntry returns the search history entry.
+func (s *SearchView) historyEntry(key cmd.Key) string {
+	switch key {
+	case cmd.KeySearchHistoryReverse:
+		if s.pos-1 < 0 || s.pos-1 >= len(s.entries) {
+			var entry string
 
-		if s.entries != nil {
-			entry = s.entries[len(s.entries)-1]
+			if s.entries != nil {
+				entry = s.entries[0]
+			}
 
+			return entry
 		}
 
-		return entry
-	}
+		s.pos--
 
-	s.pos++
+	case cmd.KeySearchHistoryForward:
+		if s.pos+1 >= len(s.entries) {
+			var entry string
 
-	return s.entries[s.pos]
-}
+			if s.entries != nil {
+				entry = s.entries[len(s.entries)-1]
 
-// historyReverse moves a step back in the s.entries buffer, and returns a text.
-func (s *SearchView) historyReverse() string {
-	if s.pos-1 < 0 || s.pos-1 >= len(s.entries) {
-		var entry string
+			}
 
-		if s.entries != nil {
-			entry = s.entries[0]
+			return entry
 		}
 
-		return entry
+		s.pos++
 	}
-
-	s.pos--
 
 	return s.entries[s.pos]
 }
@@ -448,6 +444,21 @@ func (s *SearchView) historyReverse() string {
 // historyReset resets the position in the s.entries buffer.
 func (s *SearchView) historyReset() {
 	s.pos = len(s.entries)
+}
+
+// suggestionHandler handles suggestion popup key events.
+func (s *SearchView) suggestionHandler(key cmd.Key) {
+	var eventKey tcell.Key
+
+	switch key {
+	case cmd.KeySearchSuggestionReverse:
+		eventKey = tcell.KeyUp
+
+	case cmd.KeySearchSuggestionForward:
+		eventKey = tcell.KeyDown
+	}
+
+	s.suggestBox.Table.InputHandler()(tcell.NewEventKey(eventKey, ' ', tcell.ModNone), nil)
 }
 
 // getParametersForm renders and returns a form to

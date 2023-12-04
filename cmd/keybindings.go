@@ -157,12 +157,6 @@ var (
 			Kb:      Keybinding{tcell.KeyRune, 'Q', tcell.ModNone},
 			Global:  true,
 		},
-		KeyClose: {
-			Title:   "Close page",
-			Context: KeyContextApp,
-			Kb:      Keybinding{tcell.KeyEscape, ' ', tcell.ModNone},
-			Global:  true,
-		},
 		KeySearchStart: {
 			Title:   "Start Search",
 			Context: KeyContextSearch,
@@ -227,12 +221,12 @@ var (
 		KeyFilebrowserDirForward: {
 			Title:   "Go forward",
 			Context: KeyContextFiles,
-			Kb:      Keybinding{tcell.KeyRight, ' ', tcell.ModNone},
+			Kb:      Keybinding{tcell.KeyUp, ' ', tcell.ModCtrl},
 		},
 		KeyFilebrowserDirBack: {
 			Title:   "Go back",
 			Context: KeyContextFiles,
-			Kb:      Keybinding{tcell.KeyLeft, ' ', tcell.ModNone},
+			Kb:      Keybinding{tcell.KeyDown, ' ', tcell.ModCtrl},
 		},
 		KeyFilebrowserToggleHidden: {
 			Title:   "Toggle hidden",
@@ -491,6 +485,11 @@ var (
 			Title:   "Load more",
 			Context: KeyContextCommon,
 			Kb:      Keybinding{tcell.KeyEnter, ' ', tcell.ModNone},
+		},
+		KeyClose: {
+			Title:   "Close page",
+			Context: KeyContextCommon,
+			Kb:      Keybinding{tcell.KeyEscape, ' ', tcell.ModNone},
 		},
 	}
 

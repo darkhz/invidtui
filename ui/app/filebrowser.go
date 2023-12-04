@@ -64,7 +64,7 @@ func (f *FileBrowser) setup() {
 	f.input.SetBackgroundColor(tcell.ColorDefault)
 	f.input.SetFieldBackgroundColor(tcell.ColorDefault)
 	f.input.SetFocusFunc(func() {
-		SetContextMenu("Files", f.input)
+		SetContextMenu(cmd.KeyContextFiles, f.input)
 	})
 
 	f.flex = tview.NewFlex().
@@ -195,7 +195,7 @@ func (f *FileBrowser) SaveFile(
 
 // Keybindings define the keybindings for the file browser.
 func (f *FileBrowser) Keybindings(event *tcell.EventKey) *tcell.EventKey {
-	switch cmd.KeyOperation(event, "Files") {
+	switch cmd.KeyOperation(event, cmd.KeyContextFiles) {
 	case cmd.KeyFilebrowserDirForward:
 		sel, _ := f.table.GetSelection()
 		cell := f.table.GetCell(sel, 0)
@@ -223,7 +223,7 @@ func (f *FileBrowser) Keybindings(event *tcell.EventKey) *tcell.EventKey {
 func (f *FileBrowser) inputFunc(e *tcell.EventKey) *tcell.EventKey {
 	var toggle bool
 
-	switch cmd.KeyOperation(e, "Files") {
+	switch cmd.KeyOperation(e, cmd.KeyContextFiles) {
 	case cmd.KeyFilebrowserToggleHidden:
 		toggle = true
 
