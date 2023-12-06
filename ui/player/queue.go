@@ -28,7 +28,6 @@ import (
 type Queue struct {
 	init, moveMode bool
 	prevrow        int
-	text           string
 	videos         map[string]*inv.VideoData
 
 	status chan struct{}
@@ -61,6 +60,16 @@ type QueueData struct {
 	Columns        [QueueColumnSize]*tview.TableCell
 	Audio, Playing bool
 }
+
+// QueueEntryStatus describes the status of a queue entry.
+type QueueEntryStatus string
+
+const (
+	EntryFetching QueueEntryStatus = "Fetching"
+	EntryLoading  QueueEntryStatus = "Loading"
+	EntryPlaying  QueueEntryStatus = "Playing"
+	EntryStopped  QueueEntryStatus = "Stopped"
+)
 
 const (
 	QueueColumnSize = 10
@@ -229,13 +238,14 @@ func (q *Queue) Play(norender ...struct{}) {
 
 		mp.Player().Stop()
 
-		q.MarkPlayingEntry(false)
+		q.MarkPlayingEntry(EntryFetching)
 		q.audio.Store(data.Audio)
 		q.title.Store(data.Reference.Title)
 
 		video, uri, err := inv.RenewVideoURI(q.playctx, data.URI, data.Reference, data.Audio)
 		if err != nil {
 			if !errors.Is(err, context.Canceled) {
+				q.MarkPlayingEntry(EntryStopped)
 				app.ShowError(fmt.Errorf("Player: Cannot get media URI for %s", data.Reference.Title))
 			}
 
@@ -243,6 +253,7 @@ func (q *Queue) Play(norender ...struct{}) {
 		}
 
 		q.SetReference(q.Position(), video, struct{}{})
+		q.MarkPlayingEntry(EntryLoading)
 
 		if err := mp.Player().LoadFile(
 			data.Reference.Title, data.Reference.LengthSeconds,
@@ -482,10 +493,10 @@ func (q *Queue) GetRect() (int, int, int, int) {
 }
 
 // MarkPlayingEntry marks the current queue entry as 'playing/loading'.
-func (q *Queue) MarkPlayingEntry(playing bool) {
+func (q *Queue) MarkPlayingEntry(status QueueEntryStatus) {
 	app.UI.QueueUpdateDraw(func() {
-		if q.marker != nil && q.text != "" {
-			q.marker.SetText(q.text)
+		if q.marker != nil {
+			q.marker.SetText("")
 		}
 
 		pos := q.GetPlayingIndex()
@@ -499,14 +510,16 @@ func (q *Queue) MarkPlayingEntry(playing bool) {
 		}
 
 		color := "white"
-		marker := "PLAYING"
-		if !playing {
+		switch status {
+		case EntryFetching, EntryLoading:
 			color = "yellow"
-			marker = "LOADING"
+
+		case EntryStopped:
+			color = "red"
 		}
 
-		q.text = q.marker.Text
-		q.marker.SetText(q.text + fmt.Sprintf(PlayerMarkerFormat, color, marker))
+		marker := string(status)
+		q.marker.SetText(fmt.Sprintf(PlayerMarkerFormat, color, marker))
 	})
 }
 

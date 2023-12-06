@@ -810,8 +810,8 @@ func monitorMPVEvents() {
 			player.queue.AutoPlay(false)
 
 		case mp.EventInProgress:
+			player.queue.MarkPlayingEntry(EntryPlaying)
 			app.UI.Status.InitializingTag(false)
-			player.queue.MarkPlayingEntry(true)
 
 			Show()
 
