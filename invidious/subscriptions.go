@@ -5,6 +5,8 @@ import (
 	"github.com/darkhz/invidtui/resolver"
 )
 
+const subFields = "?fields=author,authorId,error"
+
 // SubscriptionData stores information about the user's subscriptions.
 type SubscriptionData []struct {
 	Author   string `json:"author"`
@@ -15,7 +17,7 @@ type SubscriptionData []struct {
 func Subscriptions() (SubscriptionData, error) {
 	var data SubscriptionData
 
-	res, err := client.Fetch(client.Ctx(), "auth/subscriptions", client.Token())
+	res, err := client.Fetch(client.Ctx(), "auth/subscriptions"+subFields, client.Token())
 	if err != nil {
 		return SubscriptionData{}, err
 	}

@@ -15,7 +15,11 @@ import (
 	"github.com/etherlabsio/go-m3u8/m3u8"
 )
 
-const videoFields = "?fields=title,videoId,author,authorId,hlsUrl,publishedText,lengthSeconds,formatStreams,adaptiveFormats,videoThumbnails,liveNow,viewCount,likeCount,subCountText,description&hl=en"
+const (
+	videoFields       = "?fields=title,videoId,author,authorId,hlsUrl,publishedText,lengthSeconds,formatStreams,adaptiveFormats,videoThumbnails,liveNow,viewCount,likeCount,subCountText,description,error&hl=en"
+	videoFormatFields = "?fields=formatStreams,adaptiveFormats,error"
+	videoHlsFields    = "?fields=hlsUrl,error"
+)
 
 // VideoData stores information about a video.
 type VideoData struct {
@@ -63,24 +67,11 @@ type VideoThumbnails struct {
 
 // Video retrieves a video.
 func Video(id string, ctx ...context.Context) (VideoData, error) {
-	var data VideoData
-
 	if ctx == nil {
 		ctx = append(ctx, client.Ctx())
 	}
 
-	res, err := client.Fetch(ctx[0], "videos/"+id+videoFields)
-	if err != nil {
-		return VideoData{}, err
-	}
-	defer res.Body.Close()
-
-	err = resolver.DecodeJSONReader(res.Body, &data)
-	if err != nil {
-		return VideoData{}, err
-	}
-
-	return data, nil
+	return getVideo(ctx[0], id, videoFields)
 }
 
 // VideoThumbnail returns data to parse a video thumbnail.
@@ -137,18 +128,37 @@ func CheckLiveURL(uri string, audio bool) (string, bool) {
 	return id, renew
 }
 
+// getVideo queries for and returns a video according to the provided parameters.
+func getVideo(ctx context.Context, id, param string) (VideoData, error) {
+	var data VideoData
+
+	res, err := client.Fetch(ctx, "videos/"+id+param)
+	if err != nil {
+		return VideoData{}, err
+	}
+	defer res.Body.Close()
+
+	err = resolver.DecodeJSONReader(res.Body, &data)
+	if err != nil {
+		return VideoData{}, err
+	}
+
+	return data, nil
+}
+
 // getVideoURI returns the video's media URIs.
 func getVideoURI(ctx context.Context, video VideoData, audio bool) (VideoData, []string, error) {
 	var uris []string
 	var mediaURL, audioURL, videoURL string
 
 	if video.FormatStreams == nil || video.AdaptiveFormats == nil {
-		v, err := Video(video.VideoID, ctx)
+		v, err := getVideo(ctx, video.VideoID, videoFormatFields)
 		if err != nil {
 			return VideoData{}, nil, err
 		}
 
-		video = v
+		video.AdaptiveFormats = v.AdaptiveFormats
+		video.FormatStreams = v.FormatStreams
 	}
 
 	if video.LiveNow {
@@ -180,7 +190,7 @@ func getVideoURI(ctx context.Context, video VideoData, audio bool) (VideoData, [
 func getLiveVideo(ctx context.Context, id string, audio bool) (string, string) {
 	var videoURL, audioURL string
 
-	video, err := Video(id, ctx)
+	video, err := getVideo(ctx, id, videoHlsFields)
 	if err != nil || video.HlsURL == "" {
 		return "", ""
 	}

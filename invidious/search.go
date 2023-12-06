@@ -8,7 +8,7 @@ import (
 	"github.com/darkhz/invidtui/resolver"
 )
 
-const searchField = "&fields=type,title,videoId,playlistId,author,authorId,publishedText,description,videoCount,subCount,lengthSeconds,videos,liveNow&hl=en"
+const searchField = "&fields=type,title,videoId,playlistId,author,authorId,publishedText,description,videoCount,subCount,lengthSeconds,videos,liveNow,error&hl=en"
 
 // SearchData stores information about a search result.
 type SearchData struct {

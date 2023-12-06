@@ -17,7 +17,8 @@ import (
 const (
 	PlaylistEntryPrefix = "invidtui.video."
 
-	playlistFields = "?fields=title,playlistId,author,description,videoCount,viewCount,videos&hl=en"
+	playlistFields      = "?fields=title,playlistId,author,description,videoCount,viewCount,videos,error&hl=en"
+	playlistVideoFields = "?fields=videoCount,videos,error"
 )
 
 // PlaylistData stores information about a playlist.
@@ -43,21 +44,16 @@ type PlaylistVideo struct {
 	LengthSeconds int64  `json:"lengthSeconds"`
 }
 
-// Playlist retrieves a playlist and its videos.
-func Playlist(id string, auth bool, page int, ctx ...context.Context) (PlaylistData, error) {
+// getPlaylist queries for and returns a playlist according to the provided parameters.
+func getPlaylist(ctx context.Context, id, param string, page int, auth bool) (PlaylistData, error) {
 	var data PlaylistData
 
-	query := "playlists/" + id + "?page=" + strconv.Itoa(page)
+	query := "playlists/" + id + param + "&page=" + strconv.Itoa(page)
 	if auth {
 		query = "auth/" + query
 	}
 
-	fetchCtx := client.Ctx()
-	if ctx != nil {
-		fetchCtx = ctx[0]
-	}
-
-	res, err := client.Fetch(fetchCtx, query, client.Token())
+	res, err := client.Fetch(ctx, query, client.Token())
 	if err != nil {
 		return PlaylistData{}, err
 	}
@@ -69,6 +65,20 @@ func Playlist(id string, auth bool, page int, ctx ...context.Context) (PlaylistD
 	}
 
 	return data, nil
+}
+
+// Playlist retrieves a playlist and its videos.
+func Playlist(id string, auth bool, page int, ctx ...context.Context) (PlaylistData, error) {
+	if ctx == nil {
+		ctx = append(ctx, client.Ctx())
+	}
+
+	return getPlaylist(ctx[0], id, playlistFields, page, auth)
+}
+
+// PlaylistVideos retrieves a playlist's videos only.
+func PlaylistVideos(ctx context.Context, id string, page int, auth bool) (PlaylistData, error) {
+	return getPlaylist(ctx, id, playlistVideoFields, page, auth)
 }
 
 // UserPlaylists retrieves the user's playlists.

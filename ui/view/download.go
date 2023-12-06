@@ -250,7 +250,7 @@ func (d *DownloadsView) TransferPlaylist(id, file string, data inv.PlaylistData,
 		default:
 		}
 
-		playlist, err := inv.Playlist(id, auth, page, ctx)
+		playlist, err := inv.PlaylistVideos(ctx, id, page, auth)
 		if err != nil {
 			app.ShowError(err)
 			return "", flags, err

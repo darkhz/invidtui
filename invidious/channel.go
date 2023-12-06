@@ -5,7 +5,7 @@ import (
 	"github.com/darkhz/invidtui/resolver"
 )
 
-const channelFields = "?fields=title,authorId,author,description,viewCount&hl=en"
+const channelFields = "?fields=title,authorId,author,description,viewCount,error&hl=en"
 
 // ChannelData stores channel related data.
 type ChannelData struct {
@@ -58,7 +58,7 @@ GetData:
 
 // ChannelVideos retrieves video information from a channel.
 func ChannelVideos(id, continuation string) (ChannelData, error) {
-	params := "?fields=videos,continuation"
+	params := "?fields=videos,continuation,error"
 	if continuation != "" {
 		params += "&continuation=" + continuation
 	}
@@ -68,7 +68,7 @@ func ChannelVideos(id, continuation string) (ChannelData, error) {
 
 // ChannelPlaylists loads only the playlists present in the channel.
 func ChannelPlaylists(id, continuation string) (ChannelData, error) {
-	params := "?fields=playlists,continuation"
+	params := "?fields=playlists,continuation,error"
 	if continuation != "" {
 		params += "&continuation=" + continuation
 	}
