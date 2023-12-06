@@ -94,19 +94,19 @@ func VideoThumbnail(ctx context.Context, id, image string) (*http.Response, erro
 }
 
 // RenewVideoURI renews the video's media URIs.
-func RenewVideoURI(ctx context.Context, uri []string, video VideoData, audio bool) []string {
+func RenewVideoURI(ctx context.Context, uri []string, video VideoData, audio bool) (VideoData, []string, error) {
 	if uri != nil && video.LiveNow {
 		if _, renew := CheckLiveURL(uri[0], audio); !renew {
-			return uri
+			return video, uri, nil
 		}
 	}
 
-	v, err := getVideoURI(ctx, video, audio)
+	v, uris, err := getVideoURI(ctx, video, audio)
 	if err != nil {
-		return uri
+		return VideoData{}, uri, err
 	}
 
-	return v
+	return v, uris, nil
 }
 
 // CheckLiveURL returns whether the provided live video's URL has expired or not.
@@ -138,9 +138,18 @@ func CheckLiveURL(uri string, audio bool) (string, bool) {
 }
 
 // getVideoURI returns the video's media URIs.
-func getVideoURI(ctx context.Context, video VideoData, audio bool) ([]string, error) {
+func getVideoURI(ctx context.Context, video VideoData, audio bool) (VideoData, []string, error) {
 	var uris []string
 	var mediaURL, audioURL, videoURL string
+
+	if video.FormatStreams == nil || video.AdaptiveFormats == nil {
+		v, err := Video(video.VideoID, ctx)
+		if err != nil {
+			return VideoData{}, nil, err
+		}
+
+		video = v
+	}
 
 	if video.LiveNow {
 		audio = false
@@ -150,9 +159,9 @@ func getVideoURI(ctx context.Context, video VideoData, audio bool) ([]string, er
 	}
 
 	if audio && audioURL == "" {
-		return nil, fmt.Errorf("No audio URI")
+		return VideoData{}, nil, fmt.Errorf("No audio URI")
 	} else if !audio && videoURL == "" {
-		return nil, fmt.Errorf("No video URI")
+		return VideoData{}, nil, fmt.Errorf("No video URI")
 	}
 
 	if audio {
@@ -164,7 +173,7 @@ func getVideoURI(ctx context.Context, video VideoData, audio bool) ([]string, er
 
 	uris = append([]string{mediaURL}, uris...)
 
-	return uris, nil
+	return video, uris, nil
 }
 
 // getLiveVideo gets the hls playlist, parses and finds the appropriate live video stream.
@@ -247,7 +256,9 @@ func getVideoByItag(video VideoData, audio bool) (string, string) {
 	videoURL, audioURL = loopFormats(
 		"itag", audio, video,
 		func(v VideoData, f VideoFormat) string {
-			return getLatestURL(v.VideoID, f.Itag)
+			video := getLatestURL(v.VideoID, f.Itag)
+
+			return video
 		},
 		func(v VideoData, f VideoFormat) string {
 			return matchVideoResolution(v, "itag")

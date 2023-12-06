@@ -2,6 +2,7 @@ package player
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math/rand"
 	"net/url"
@@ -38,25 +39,27 @@ type Queue struct {
 
 	lock *semaphore.Weighted
 
-	ctx    context.Context
-	cancel context.CancelFunc
+	ctx, playctx       context.Context
+	cancel, playcancel context.CancelFunc
 
 	position, repeat atomic.Int32
 	shuffle, audio   atomic.Bool
 	title            atomic.Value
 
-	store      *deque.Deque[QueueData]
+	store      *deque.Deque[*QueueData]
 	storeMutex sync.Mutex
+
+	current *QueueData
 
 	tview.TableContentReadOnly
 }
 
 // QueueData describes the queue entry data.
 type QueueData struct {
-	URI       []string
-	Audio     bool
-	Columns   [QueueColumnSize]*tview.TableCell
-	Reference inv.VideoData
+	URI            []string
+	Reference      inv.VideoData
+	Columns        [QueueColumnSize]*tview.TableCell
+	Audio, Playing bool
 }
 
 const (
@@ -75,7 +78,7 @@ func (q *Queue) Setup() {
 		return
 	}
 
-	q.store = deque.New[QueueData](100)
+	q.store = deque.New[*QueueData](100)
 
 	q.status = make(chan struct{}, 100)
 	q.videos = make(map[string]*inv.VideoData)
@@ -99,7 +102,7 @@ func (q *Queue) Setup() {
 
 // Show shows the player queue.
 func (q *Queue) Show() {
-	if q.Count() == 0 || !player.setting.Load() {
+	if q.IsOpen() || q.Count() == 0 || !player.setting.Load() {
 		return
 	}
 
@@ -180,7 +183,7 @@ func (q *Queue) Add(video inv.VideoData, audio bool, uri ...string) {
 	})
 
 	if count == 0 {
-		q.Play()
+		q.SwitchToPosition(count)
 
 		app.UI.QueueUpdateDraw(func() {
 			q.SelectCurrentRow()
@@ -192,7 +195,7 @@ func (q *Queue) Add(video inv.VideoData, audio bool, uri ...string) {
 // the current entry has finished playing.
 func (q *Queue) AutoPlay(force bool) {
 	count := q.Count()
-	position := int(q.position.Load())
+	position := q.Position()
 
 	if q.shuffle.Load() && count > 0 {
 		q.SwitchToPosition(rand.Intn(count))
@@ -210,15 +213,12 @@ func (q *Queue) AutoPlay(force bool) {
 
 // Play plays the entry at the current queue position.
 func (q *Queue) Play(norender ...struct{}) {
-	var ctx context.Context
-	var cancel context.CancelFunc
-
 	go func() {
-		if cancel != nil {
-			cancel()
+		if q.playcancel != nil {
+			q.playcancel()
 		}
-		if ctx == nil || ctx.Err() == context.Canceled {
-			ctx, cancel = context.WithCancel(context.Background())
+		if q.playctx == nil || q.playctx.Err() == context.Canceled {
+			q.playctx, q.playcancel = context.WithCancel(context.Background())
 		}
 
 		data, ok := q.GetCurrent()
@@ -229,18 +229,20 @@ func (q *Queue) Play(norender ...struct{}) {
 
 		mp.Player().Stop()
 
+		q.MarkPlayingEntry(false)
 		q.audio.Store(data.Audio)
 		q.title.Store(data.Reference.Title)
-		player.queue.MarkPlayingEntry(false)
 
-		uri := inv.RenewVideoURI(ctx, data.URI, data.Reference, data.Audio)
-		if uri == nil {
-			if ctx != nil && ctx.Err() != context.Canceled {
+		video, uri, err := inv.RenewVideoURI(q.playctx, data.URI, data.Reference, data.Audio)
+		if err != nil {
+			if !errors.Is(err, context.Canceled) {
 				app.ShowError(fmt.Errorf("Player: Cannot get media URI for %s", data.Reference.Title))
 			}
 
 			return
 		}
+
+		q.SetReference(q.Position(), video, struct{}{})
 
 		if err := mp.Player().LoadFile(
 			data.Reference.Title, data.Reference.LengthSeconds,
@@ -248,6 +250,7 @@ func (q *Queue) Play(norender ...struct{}) {
 			uri...,
 		); err != nil {
 			app.ShowError(err)
+			return
 		}
 
 		mp.Player().Play()
@@ -255,9 +258,8 @@ func (q *Queue) Play(norender ...struct{}) {
 		if norender != nil {
 			return
 		}
-		app.UI.QueueUpdateDraw(func() {
-			renderInfo(data.Reference, struct{}{})
-		})
+
+		renderInfo(data.Reference, struct{}{})
 	}()
 }
 
@@ -303,16 +305,27 @@ func (q *Queue) Position() int {
 	return int(q.position.Load())
 }
 
+// SetPosition sets the current position within the queue.
 func (q *Queue) SetPosition(position int) {
 	q.position.Store(int32(position))
 }
 
 // SwitchToPosition switches to the specified position within the queue.
 func (q *Queue) SwitchToPosition(position int) {
-	length := q.Count()
-	if position < 0 || position >= length {
+	q.storeMutex.Lock()
+	defer q.storeMutex.Unlock()
+
+	data, ok := q.GetEntryPointer(position)
+	if !ok {
 		return
 	}
+
+	if q.current != nil {
+		q.current.Playing = false
+	}
+
+	data.Playing = true
+	q.current = data
 
 	q.SetPosition(position)
 	q.Play()
@@ -356,18 +369,36 @@ func (q *Queue) Next() {
 }
 
 // Get returns the entry data at the specified position from the queue.
-func (q *Queue) Get(position int, nolock ...struct{}) (QueueData, bool) {
-	if nolock == nil {
-		q.storeMutex.Lock()
-		defer q.storeMutex.Unlock()
-	}
+func (q *Queue) Get(position int) (QueueData, bool) {
+	q.storeMutex.Lock()
+	defer q.storeMutex.Unlock()
 
-	length := q.store.Len()
-	if position < 0 || position >= length {
+	data, ok := q.GetEntryPointer(position)
+	if !ok {
 		return QueueData{}, false
 	}
 
+	return *data, true
+}
+
+// GetEntryPointer returns a pointer to the entry data at the specified position from the queue.
+func (q *Queue) GetEntryPointer(position int) (*QueueData, bool) {
+	length := q.store.Len()
+	if position < 0 || position >= length {
+		return nil, false
+	}
+
 	return q.store.At(position), true
+}
+
+// GetPlayingIndex returns the index of the currently playing entry.
+func (q *Queue) GetPlayingIndex() int {
+	q.storeMutex.Lock()
+	defer q.storeMutex.Unlock()
+
+	return q.store.Index(func(d *QueueData) bool {
+		return d.Playing
+	})
 }
 
 // GetCurrent returns the entry data at the current position from the queue.
@@ -376,12 +407,14 @@ func (q *Queue) GetCurrent() (QueueData, bool) {
 }
 
 // GetTitle returns the title for the currently playing entry.
-func (q *Queue) GetTitle(set ...string) string {
-	if set != nil {
-		q.title.Store(set[0])
+func (q *Queue) GetTitle() string {
+	var title string
+
+	if t, ok := q.title.Load().(string); ok {
+		title = t
 	}
 
-	return q.title.Load().(string)
+	return title
 }
 
 // GetMediaType returns the media type for the currently playing entry.
@@ -455,7 +488,12 @@ func (q *Queue) MarkPlayingEntry(playing bool) {
 			q.marker.SetText(q.text)
 		}
 
-		q.marker = q.GetCell(q.Position(), QueuePlayingMarker)
+		pos := q.GetPlayingIndex()
+		if pos < 0 {
+			return
+		}
+
+		q.marker = q.GetCell(pos, QueuePlayingMarker)
 		if q.marker == nil {
 			return
 		}
@@ -493,7 +531,7 @@ func (q *Queue) MarkEntryMediaType(key cmd.Key) {
 	audio := media == "Audio"
 	pos, _ := q.table.GetSelection()
 
-	data, ok := q.Get(pos, struct{}{})
+	data, ok := q.GetEntryPointer(pos)
 	if !ok || data.Audio == audio {
 		return
 	}
@@ -503,26 +541,23 @@ func (q *Queue) MarkEntryMediaType(key cmd.Key) {
 		fmt.Sprintf(MediaMarkerFormat, media),
 	)
 
-	q.SetData(pos, data, struct{}{})
 	if pos == q.Position() {
 		q.Play(struct{}{})
 	}
 }
 
 // SetData sets/adds entry data in the queue.
-func (q *Queue) SetData(row int, data QueueData, nolock ...struct{}) {
-	if nolock == nil {
-		q.storeMutex.Lock()
-		defer q.storeMutex.Unlock()
-	}
+func (q *Queue) SetData(row int, data QueueData) {
+	q.storeMutex.Lock()
+	defer q.storeMutex.Unlock()
 
 	length := q.store.Len()
 	if length == 0 || row >= length {
-		q.store.PushBack(data)
+		q.store.PushBack(&data)
 		return
 	}
 
-	q.store.Set(row, data)
+	q.store.Set(row, &data)
 }
 
 // SetReference sets the reference for the data at the specified row in the queue.
@@ -530,13 +565,12 @@ func (q *Queue) SetReference(row int, video inv.VideoData, checkID ...struct{}) 
 	q.storeMutex.Lock()
 	defer q.storeMutex.Unlock()
 
-	data, ok := q.Get(row, struct{}{})
+	data, ok := q.GetEntryPointer(row)
 	if !ok || checkID != nil && data.Reference.VideoID != video.VideoID {
 		return
 	}
 
 	data.Reference = video
-	q.SetData(row, data, struct{}{})
 }
 
 // SetState sets the player states (repeat/shuffle).
@@ -754,7 +788,6 @@ func (q *Queue) Keybindings(event *tcell.EventKey) *tcell.EventKey {
 	for _, op := range []cmd.Key{
 		cmd.KeyClose,
 		cmd.KeyQueueSave,
-		cmd.KeyQueueAppend,
 	} {
 		if operation == op {
 			q.Hide()
@@ -823,16 +856,16 @@ func (q *Queue) play() {
 // remove handles the 'd' key within the queue.
 // It deletes the currently selected queue item.
 func (q *Queue) remove() {
-	rows := q.table.GetRowCount()
+	rows := q.table.GetRowCount() - 1
 	row, _ := q.table.GetSelection()
 
 	q.Delete(row)
-	rows--
 
 	switch {
-	case rows == 0:
+	case rows <= 0:
 		player.setting.Store(false)
 
+		q.Clear()
 		q.Hide()
 		go Hide()
 
@@ -843,9 +876,18 @@ func (q *Queue) remove() {
 	}
 
 	q.SelectCurrentRow(row)
-	q.SwitchToPosition(row)
 
-	pos := q.Position()
+	pos := q.GetPlayingIndex()
+	if pos < 0 {
+		if row > rows {
+			return
+		}
+
+		pos = row
+		q.SwitchToPosition(row)
+	}
+
+	q.SetPosition(pos)
 	if pos == row {
 		sendPlayerEvents()
 	}

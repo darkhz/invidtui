@@ -179,7 +179,7 @@ func ToggleInfo(hide ...struct{}) {
 		Resize(0, struct{}{})
 
 		if data, ok := player.queue.GetCurrent(); ok {
-			renderInfo(data.Reference)
+			go renderInfo(data.Reference)
 		}
 	}
 }
@@ -535,25 +535,20 @@ func loadPlaylist(ctx context.Context, plid string, audio bool) (string, error) 
 }
 
 // renderPlayer renders the media player within the app.
-func renderPlayer(cancel context.CancelFunc) {
+func renderPlayer() {
 	app.UI.RLock()
 	_, _, width, _ := player.desc.GetRect()
 	app.UI.RUnlock()
 
-	progress, states, err := updateProgressAndInfo(width)
-	if err != nil {
-		cancel()
-		return
-	}
-
-	player.mutex.Lock()
-	player.states = states
-	player.mutex.Unlock()
-
+	progress, states := updateProgressAndInfo(width)
 	app.UI.QueueUpdateDraw(func() {
 		player.desc.SetText(progress)
 		player.title.SetText("[::b]" + tview.Escape(player.queue.GetTitle()))
 	})
+
+	player.mutex.Lock()
+	player.states = states
+	player.mutex.Unlock()
 }
 
 // changeImageQuality sets or displays options to change the quality of the image
@@ -676,17 +671,14 @@ func renderInfo(video inv.VideoData, force ...struct{}) {
 
 	infoContext(true, struct{}{})
 
-	player.infoID = video.VideoID
-	player.image.SetImage(nil)
-	if player.region.GetItemCount() > 2 {
-		player.region.RemoveItemIndex(1)
-	}
-
-	player.info.SetText("[::b]Loading information...")
+	app.UI.QueueUpdateDraw(func() {
+		player.info.SetText("[::b]Loading information...")
+		player.image.SetImage(nil)
+	})
 
 	if video.Thumbnails == nil {
 		go func(ctx context.Context, pos int, v inv.VideoData) {
-			video, err := inv.Video(v.VideoID, ctx)
+			v, err := inv.Video(v.VideoID, ctx)
 			if err != nil {
 				if ctx.Err() != context.Canceled {
 					app.UI.QueueUpdateDraw(func() {
@@ -697,34 +689,40 @@ func renderInfo(video inv.VideoData, force ...struct{}) {
 				return
 			}
 
-			player.queue.SetReference(pos, video, struct{}{})
-			app.UI.QueueUpdateDraw(func() {
-				renderInfo(video, struct{}{})
-			})
+			player.queue.SetReference(pos, v, struct{}{})
+			renderInfo(v, struct{}{})
 		}(infoContext(false), player.queue.Position(), video)
 
 		return
 	}
 
-	text := "\n"
-	if video.Author != "" {
-		text += fmt.Sprintf("[::bu]%s[-:-:-]\n\n", video.Author)
-	}
-	if video.PublishedText != "" {
-		text += fmt.Sprintf("[lightpink::b]Uploaded %s[-:-:-]\n", video.PublishedText)
-	}
-	text += fmt.Sprintf(
-		"[aqua::b]%s views[-:-:-] / [red::b]%s likes[-:-:-] / [purple::b]%s subscribers[-:-:-]\n\n",
-		utils.FormatNumber(video.ViewCount),
-		utils.FormatNumber(video.LikeCount),
-		video.SubCountText,
-	)
-	text += "[::b]" + tview.Escape(video.Description)
+	app.UI.QueueUpdateDraw(func() {
+		player.infoID = video.VideoID
+		if player.region.GetItemCount() > 2 {
+			player.region.RemoveItemIndex(1)
+		}
 
-	player.info.SetText(text)
-	player.info.ScrollToBeginning()
+		text := "\n"
+		if video.Author != "" {
+			text += fmt.Sprintf("[::bu]%s[-:-:-]\n\n", video.Author)
+		}
+		if video.PublishedText != "" {
+			text += fmt.Sprintf("[lightpink::b]Uploaded %s[-:-:-]\n", video.PublishedText)
+		}
+		text += fmt.Sprintf(
+			"[aqua::b]%s views[-:-:-] / [red::b]%s likes[-:-:-] / [purple::b]%s subscribers[-:-:-]\n\n",
+			utils.FormatNumber(video.ViewCount),
+			utils.FormatNumber(video.LikeCount),
+			video.SubCountText,
+		)
+		text += "[::b]" + tview.Escape(video.Description)
 
-	changeImageQuality(struct{}{})
+		player.info.SetText(text)
+		player.info.ScrollToBeginning()
+
+		changeImageQuality(struct{}{})
+	})
+
 	go renderInfoImage(infoContext(true), video.VideoID, filepath.Base(player.thumbURI))
 }
 
@@ -789,12 +787,12 @@ func playerUpdateLoop(ctx context.Context, cancel context.CancelFunc) {
 			return
 
 		case <-player.events:
-			renderPlayer(cancel)
+			renderPlayer()
 			t.Reset(1 * time.Second)
 			continue
 
 		case <-t.C:
-			renderPlayer(cancel)
+			renderPlayer()
 		}
 	}
 }
@@ -851,7 +849,7 @@ func openPlaylist(file string) {
 // of the currently playing track, and updates the track information.
 //
 //gocyclo:ignore
-func updateProgressAndInfo(width int) (string, []string, error) {
+func updateProgressAndInfo(width int) (string, []string) {
 	var lhs, rhs string
 	var states []string
 
@@ -943,7 +941,7 @@ func updateProgressAndInfo(width int) (string, []string, error) {
 	lhs = loop + lhs + " " + state + " "
 	progress := currtime + " |" + strings.Repeat("█", length) + strings.Repeat(" ", endlength) + "| " + totaltime
 
-	return (lhs + progress + rhs), states, nil
+	return (lhs + progress + rhs), states
 }
 
 // sendPlayingStatus sends status events to the player.

@@ -365,8 +365,16 @@ func (m *MPV) eventListener() {
 
 	defer func() { stopListening <- struct{}{} }()
 
+	m.Call("observe_property", 1, "eof-reached")
+
 	for event := range events {
 		mediaEvent := EventNone
+
+		if event.ID == 1 {
+			if eof, ok := event.Data.(bool); ok && eof {
+				mediaEvent = EventEnd
+			}
+		}
 
 		switch event.Name {
 		case "start-file":
