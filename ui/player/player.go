@@ -40,14 +40,13 @@ type Player struct {
 	quality      *tview.DropDown
 	title, desc  *tview.TextView
 
-	ctx    context.Context
-	cancel context.CancelFunc
+	ctx                           context.Context
+	cancel, infoCancel, imgCancel context.CancelFunc
 
 	status, setting, toggle atomic.Bool
 
-	lock, render          *semaphore.Weighted
-	infoCancel, imgCancel context.CancelFunc
-	mutex                 sync.Mutex
+	lock  *semaphore.Weighted
+	mutex sync.Mutex
 }
 
 var player Player
@@ -103,7 +102,6 @@ func setup() {
 	player.region.SetBackgroundColor(tcell.ColorDefault)
 
 	player.lock = semaphore.NewWeighted(10)
-	player.render = semaphore.NewWeighted(1)
 }
 
 // Start starts the player and loads its history and states.
@@ -114,8 +112,9 @@ func Start() {
 	loadState()
 	loadHistory()
 
+	mp.SetEventHandler(mediaEventHandler)
+
 	go playingStatusCheck()
-	go monitorMPVEvents()
 }
 
 // Stop stops the player.
@@ -195,7 +194,6 @@ func Hide() {
 
 	player.status.Store(false)
 	sendPlayingStatus(false)
-	app.UI.Status.InitializingTag(false)
 
 	app.UI.QueueUpdateDraw(func() {
 		ToggleInfo(struct{}{})
@@ -536,14 +534,16 @@ func loadPlaylist(ctx context.Context, plid string, audio bool) (string, error) 
 
 // renderPlayer renders the media player within the app.
 func renderPlayer() {
-	app.UI.RLock()
-	_, _, width, _ := player.desc.GetRect()
-	app.UI.RUnlock()
+	var width int
 
-	progress, states := updateProgressAndInfo(width)
 	app.UI.QueueUpdateDraw(func() {
-		player.desc.SetText(progress)
+		_, _, width, _ = player.desc.GetRect()
+	})
+
+	progress, states := updateProgressAndInfo(width - 10)
+	app.UI.QueueUpdateDraw(func() {
 		player.title.SetText("[::b]" + tview.Escape(player.queue.GetTitle()))
+		player.desc.SetText(progress)
 	})
 
 	player.mutex.Lock()
@@ -660,11 +660,6 @@ func changeImageQuality(set ...struct{}) {
 
 // renderInfo renders the track information.
 func renderInfo(video inv.VideoData, force ...struct{}) {
-	if !player.render.TryAcquire(1) {
-		return
-	}
-	defer player.render.Release(1)
-
 	if force == nil && (video.VideoID == player.infoID || !player.toggle.Load()) {
 		return
 	}
@@ -782,13 +777,12 @@ func playerUpdateLoop(ctx context.Context, cancel context.CancelFunc) {
 	for {
 		select {
 		case <-ctx.Done():
-			player.desc.SetText("")
-			player.title.SetText("")
+			player.desc.Clear()
+			player.title.Clear()
 			return
 
 		case <-player.events:
 			renderPlayer()
-			t.Reset(1 * time.Second)
 			continue
 
 		case <-t.C:
@@ -797,31 +791,22 @@ func playerUpdateLoop(ctx context.Context, cancel context.CancelFunc) {
 	}
 }
 
-// monitorMPVEvents monitors events sent from MPV.
-func monitorMPVEvents() {
-	for event := range mp.Event {
-		switch event {
-		case mp.EventStart:
-			if !player.status.Load() && player.setting.Load() {
-				app.UI.Status.InitializingTag(true)
-			}
+// mediaEventHandler monitors events sent from MPV.
+func mediaEventHandler(event mp.MediaEvent) {
+	switch event {
+	case mp.EventInProgress:
+		player.queue.MarkPlayingEntry(EntryPlaying)
 
-		case mp.EventEnd:
-			player.queue.AutoPlay(false)
+	case mp.EventEnd:
+		player.queue.MarkPlayingEntry(EntryStopped)
+		player.queue.AutoPlay(false)
 
-		case mp.EventInProgress:
-			player.queue.MarkPlayingEntry(EntryPlaying)
-			app.UI.Status.InitializingTag(false)
-
-			Show()
-
-		case mp.EventError:
-			if data, ok := player.queue.GetCurrent(); !ok {
-				app.ShowError(fmt.Errorf("Player: Unable to play %q", data.Reference.Title))
-			}
-
-			player.queue.AutoPlay(true)
+	case mp.EventError:
+		if data, ok := player.queue.GetCurrent(); !ok {
+			app.ShowError(fmt.Errorf("Player: Unable to play %q", data.Reference.Title))
 		}
+
+		player.queue.AutoPlay(true)
 	}
 }
 
@@ -874,11 +859,9 @@ func updateProgressAndInfo(width int) (string, []string) {
 	if timepos < 0 {
 		timepos = 0
 	}
-
-	if duration <= 0 {
-		duration = 1
+	if duration < 0 {
+		duration = 0
 	}
-
 	if timepos > duration {
 		timepos = duration
 	}
@@ -887,7 +870,10 @@ func updateProgressAndInfo(width int) (string, []string) {
 	mtype := "(" + player.queue.GetMediaType() + ")"
 
 	width /= 2
-	length := width * int(timepos) / int(duration)
+	length := width * int(timepos)
+	if duration > 0 {
+		length /= int(duration)
+	}
 
 	endlength := width - length
 	if endlength < 0 {
@@ -898,7 +884,6 @@ func updateProgressAndInfo(width int) (string, []string) {
 		lhs += " S"
 		states = append(states, "shuffle")
 	}
-
 	if mute {
 		lhs += " M"
 		states = append(states, "mute")

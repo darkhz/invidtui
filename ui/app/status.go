@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"strings"
-	"sync/atomic"
 	"time"
 
 	"github.com/darkhz/tview"
@@ -24,9 +23,6 @@ type Status struct {
 	ctx     context.Context
 	Cancel  context.CancelFunc
 	msgchan chan message
-	tag     chan struct{}
-
-	buffering atomic.Bool
 
 	*tview.Pages
 	*tview.InputField
@@ -79,7 +75,6 @@ func (s *Status) Setup() {
 	s.Pages.AddPage("messages", s.Message, true, true)
 
 	s.msgchan = make(chan message, 10)
-	s.tag = make(chan struct{})
 	s.defaultIFunc = s.InputField.GetInputCapture()
 	s.ctx, s.Cancel = context.WithCancel(context.Background())
 
@@ -161,18 +156,6 @@ func (s *Status) SetFocusFunc(focus ...func()) {
 	s.InputField.SetFocusFunc(focus[0])
 }
 
-// InitializingTag sets the buffering tag within the status bar.
-func (s *Status) InitializingTag(set ...bool) (string, bool) {
-	tag := `["buffering"][black:yellow:b] Initializing [-:-:-][""]`
-
-	if set != nil {
-		s.buffering.Store(set[0])
-		s.tag <- struct{}{}
-	}
-
-	return tag, s.buffering.Load()
-}
-
 // startStatus starts the message event loop
 func (s *Status) startStatus() {
 	var tag, text, message string
@@ -207,23 +190,6 @@ func (s *Status) startStatus() {
 
 			UI.QueueUpdateDraw(func() {
 				s.Message.SetText(tag + message)
-			})
-
-		case <-s.tag:
-			t, set := s.InitializingTag()
-			if !set {
-				tag = ""
-			} else {
-				tag = t + " "
-			}
-
-			m := message
-			if text != "" {
-				m = text
-			}
-
-			UI.QueueUpdateDraw(func() {
-				s.Message.SetText(tag + m)
 			})
 
 		case <-t.C:

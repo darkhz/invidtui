@@ -371,8 +371,11 @@ func (m *MPV) eventListener() {
 		mediaEvent := EventNone
 
 		if event.ID == 1 {
-			if eof, ok := event.Data.(bool); ok && eof {
+			if eof, ok := event.Data.(bool); ok {
 				mediaEvent = EventEnd
+				if !eof {
+					mediaEvent = EventInProgress
+				}
 			}
 		}
 
@@ -403,9 +406,6 @@ func (m *MPV) eventListener() {
 
 		}
 
-		select {
-		case Event <- mediaEvent:
-		default:
-		}
+		EventHandler(mediaEvent)
 	}
 }

@@ -242,6 +242,9 @@ func (q *Queue) Play(norender ...struct{}) {
 		q.audio.Store(data.Audio)
 		q.title.Store(data.Reference.Title)
 
+		sendPlayerEvents()
+		Show()
+
 		video, uri, err := inv.RenewVideoURI(q.playctx, data.URI, data.Reference, data.Audio)
 		if err != nil {
 			if !errors.Is(err, context.Canceled) {
@@ -266,11 +269,9 @@ func (q *Queue) Play(norender ...struct{}) {
 
 		mp.Player().Play()
 
-		if norender != nil {
-			return
+		if norender == nil {
+			renderInfo(data.Reference, struct{}{})
 		}
-
-		renderInfo(data.Reference, struct{}{})
 	}()
 }
 
@@ -862,8 +863,6 @@ func (q *Queue) play() {
 	}
 
 	q.SwitchToPosition(row)
-
-	sendPlayerEvents()
 }
 
 // remove handles the 'd' key within the queue.
