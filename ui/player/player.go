@@ -543,7 +543,7 @@ func renderPlayer() {
 	progress, states := updateProgressAndInfo(width - 10)
 	app.UI.QueueUpdateDraw(func() {
 		player.title.SetText("[::b]" + tview.Escape(player.queue.GetTitle()))
-		player.desc.SetText(progress)
+		player.desc.SetText(progress + " " + player.queue.marker.Text)
 	})
 
 	player.mutex.Lock()
