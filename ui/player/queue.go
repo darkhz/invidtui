@@ -55,10 +55,10 @@ type Queue struct {
 
 // QueueData describes the queue entry data.
 type QueueData struct {
-	URI            []string
-	Reference      inv.VideoData
-	Columns        [QueueColumnSize]*tview.TableCell
-	Audio, Playing bool
+	URI                       []string
+	Reference                 inv.VideoData
+	Columns                   [QueueColumnSize]*tview.TableCell
+	Audio, Playing, HasPlayed bool
 }
 
 // QueueEntryStatus describes the status of a queue entry.
@@ -203,21 +203,18 @@ func (q *Queue) Add(video inv.VideoData, audio bool, uri ...string) {
 // AutoPlay automatically selects what to play after
 // the current entry has finished playing.
 func (q *Queue) AutoPlay(force bool) {
-	count := q.Count()
-	position := q.Position()
-
-	if q.shuffle.Load() && count > 0 {
-		q.SwitchToPosition(rand.Intn(count))
+	switch q.GetRepeatMode() {
+	case mp.RepeatModeFile:
 		return
-	}
 
-	if q.GetRepeatMode() == mp.RepeatModePlaylist || force {
-		if position == count-1 && !force {
+	case mp.RepeatModePlaylist:
+		if !q.shuffle.Load() && q.Position() == q.Count()-1 {
 			q.SwitchToPosition(0)
-		} else {
-			q.Next()
+			return
 		}
 	}
+
+	q.Next()
 }
 
 // Play plays the entry at the current queue position.
@@ -331,12 +328,13 @@ func (q *Queue) SwitchToPosition(position int) {
 	if !ok {
 		return
 	}
-
 	if q.current != nil {
 		q.current.Playing = false
 	}
 
 	data.Playing = true
+	data.HasPlayed = true
+
 	q.current = data
 
 	q.SetPosition(position)
@@ -349,35 +347,82 @@ func (q *Queue) SelectRecentEntry() {
 }
 
 // Previous selects the previous entry from the current position in the queue.
-func (q *Queue) Previous() {
+func (q *Queue) Previous(force ...struct{}) {
 	length := q.Count()
 	if length == 0 {
 		return
 	}
 
 	position := q.Position()
-	if position-1 < 0 {
+	if q.Shuffle(position, length, force...) || position-1 < 0 {
 		return
 	}
 
-	q.SetPosition(position - 1)
-	q.Play()
+	q.SwitchToPosition(position - 1)
 }
 
 // Next selects the next entry from the current position in the queue.
-func (q *Queue) Next() {
+func (q *Queue) Next(force ...struct{}) {
 	length := q.Count()
 	if length == 0 {
 		return
 	}
 
 	position := q.Position()
-	if position+1 >= length {
+	if q.Shuffle(position, length, force...) || position+1 >= length {
 		return
 	}
 
-	q.SetPosition(position + 1)
-	q.Play()
+	q.SwitchToPosition(position + 1)
+}
+
+// Shuffle chooses and plays a random entry.
+func (q *Queue) Shuffle(position, count int, force ...struct{}) bool {
+	if !q.shuffle.Load() {
+		return false
+	}
+
+	skipped := 0
+	pos := -1
+
+	q.storeMutex.Lock()
+	for skipped < count {
+		for {
+			pos = rand.Intn(count)
+			if pos != position {
+				break
+			}
+		}
+
+		data, ok := q.GetEntryPointer(pos)
+		if !ok {
+			continue
+		}
+		if !data.HasPlayed {
+			break
+		}
+
+		skipped++
+	}
+	q.storeMutex.Unlock()
+
+	if skipped >= count {
+		q.storeMutex.Lock()
+		q.store.Index(func(data *QueueData) bool {
+			data.HasPlayed = false
+
+			return false
+		})
+		q.storeMutex.Unlock()
+
+		if mode := q.GetRepeatMode(); mode == mp.RepeatModePlaylist || force != nil {
+			q.Shuffle(position, count)
+		}
+	} else {
+		q.SwitchToPosition(pos)
+	}
+
+	return true
 }
 
 // Get returns the entry data at the specified position from the queue.
@@ -495,20 +540,22 @@ func (q *Queue) GetRect() (int, int, int, int) {
 
 // MarkPlayingEntry marks the current queue entry as 'playing/loading'.
 func (q *Queue) MarkPlayingEntry(status QueueEntryStatus) {
+	pos := q.GetPlayingIndex()
+	if pos < 0 {
+		return
+	}
+
+	cell := q.GetCell(pos, QueuePlayingMarker)
+	if cell == nil {
+		return
+	}
+
 	app.UI.QueueUpdateDraw(func() {
 		if q.marker != nil {
 			q.marker.SetText("")
 		}
 
-		pos := q.GetPlayingIndex()
-		if pos < 0 {
-			return
-		}
-
-		q.marker = q.GetCell(pos, QueuePlayingMarker)
-		if q.marker == nil {
-			return
-		}
+		q.marker = cell
 
 		color := "white"
 		switch status {

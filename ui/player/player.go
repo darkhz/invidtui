@@ -386,10 +386,10 @@ func playerKeybindings(event *tcell.EventKey) {
 		mp.Player().VolumeDecrease()
 
 	case cmd.KeyPlayerPrev:
-		player.queue.Previous()
+		player.queue.Previous(struct{}{})
 
 	case cmd.KeyPlayerNext:
-		player.queue.Next()
+		player.queue.Next(struct{}{})
 
 	default:
 		nokey = true
