@@ -158,21 +158,22 @@ func (s *SearchView) Primitive() tview.Primitive {
 // Start shows the search view and fetches results for
 // the search query.
 func (s *SearchView) Start(text string) {
-	if !s.lock.TryAcquire(1) {
-		app.ShowInfo("Still loading Search results", false)
-		return
-	}
-	defer s.lock.Release(1)
-
 	if text == "" {
+		if !s.lock.TryAcquire(1) {
+			app.ShowInfo("Still loading Search results", false)
+			return
+		}
+		defer s.lock.Release(1)
+
 		text = s.savedText
 		goto StartSearch
 	} else {
+		client.Cancel()
+
 		s.page = 0
 		s.savedText = text
 	}
 
-	client.Cancel()
 	s.addToHistory(text)
 
 	app.UI.QueueUpdateDraw(func() {
