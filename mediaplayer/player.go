@@ -28,7 +28,9 @@ type MediaPlayer interface {
 
 	Idle() bool
 	Finished() bool
+
 	Buffering() bool
+	BufferPercentage() int
 
 	Volume() int
 	VolumeIncrease()

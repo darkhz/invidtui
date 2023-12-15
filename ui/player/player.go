@@ -917,6 +917,9 @@ func updateProgressAndInfo(width int) (string, []string) {
 
 	case buffering:
 		state = "B"
+		if pct := mp.Player().BufferPercentage(); pct >= 0 {
+			state += "(" + strconv.Itoa(pct) + "%)"
+		}
 
 	default:
 		state = ">"

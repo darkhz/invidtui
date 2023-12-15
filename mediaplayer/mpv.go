@@ -245,6 +245,22 @@ func (m *MPV) Buffering() bool {
 	return buffering
 }
 
+// BufferPercentage returns the cache buffered percentage.
+func (m *MPV) BufferPercentage() int {
+	var bufpercent int
+
+	if !m.Buffering() {
+		return -1
+	}
+
+	pct, err := m.Get("cache-buffering-state")
+	if err == nil {
+		m.store(pct, &bufpercent)
+	}
+
+	return bufpercent
+}
+
 // Volume returns the volume.
 func (m *MPV) Volume() int {
 	var volume float64
