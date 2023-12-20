@@ -24,6 +24,8 @@ type Status struct {
 	Cancel  context.CancelFunc
 	msgchan chan message
 
+	tag chan string
+
 	*tview.Pages
 	*tview.InputField
 }
@@ -74,6 +76,7 @@ func (s *Status) Setup() {
 	s.Pages.AddPage("input", s.InputField, true, true)
 	s.Pages.AddPage("messages", s.Message, true, true)
 
+	s.tag = make(chan string, 1)
 	s.msgchan = make(chan message, 10)
 	s.defaultIFunc = s.InputField.GetInputCapture()
 	s.ctx, s.Cancel = context.WithCancel(context.Background())
@@ -156,6 +159,16 @@ func (s *Status) SetFocusFunc(focus ...func()) {
 	s.InputField.SetFocusFunc(focus[0])
 }
 
+// Tag sets a tag to the status bar.
+func (s *Status) Tag(tag string) {
+	select {
+	case s.tag <- tag:
+		return
+
+	default:
+	}
+}
+
 // startStatus starts the message event loop
 func (s *Status) startStatus() {
 	var tag, text, message string
@@ -190,6 +203,25 @@ func (s *Status) startStatus() {
 
 			UI.QueueUpdateDraw(func() {
 				s.Message.SetText(tag + message)
+			})
+
+		case t, ok := <-s.tag:
+			if !ok {
+				return
+			}
+
+			tag = t
+			if tag != "" {
+				tag += " "
+			}
+
+			m := message
+			if text != "" {
+				m = text
+			}
+
+			UI.QueueUpdateDraw(func() {
+				s.Message.SetText(tag + m)
 			})
 
 		case <-t.C:
