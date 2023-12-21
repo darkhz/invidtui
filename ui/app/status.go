@@ -178,6 +178,8 @@ func (s *Status) startStatus() {
 	defer t.Stop()
 
 	for {
+		msgtext := ""
+
 		select {
 		case <-s.ctx.Done():
 			return
@@ -201,9 +203,7 @@ func (s *Status) startStatus() {
 				text = ""
 			}
 
-			UI.QueueUpdateDraw(func() {
-				s.Message.SetText(tag + message)
-			})
+			msgtext = tag + message
 
 		case t, ok := <-s.tag:
 			if !ok {
@@ -220,9 +220,7 @@ func (s *Status) startStatus() {
 				m = text
 			}
 
-			UI.QueueUpdateDraw(func() {
-				s.Message.SetText(tag + m)
-			})
+			msgtext = tag + m
 
 		case <-t.C:
 			message = ""
@@ -233,10 +231,12 @@ func (s *Status) startStatus() {
 
 			cleared = true
 
-			UI.QueueUpdateDraw(func() {
-				s.Message.SetText(tag + text)
-			})
+			msgtext = tag + text
 		}
+
+		go UI.QueueUpdateDraw(func() {
+			s.Message.SetText(msgtext)
+		})
 	}
 }
 

@@ -244,11 +244,6 @@ func (p *PlaylistView) renderPlaylist(result inv.PlaylistData, id string) {
 			pos = (rows + i) - skipped
 		}
 
-		if v.LengthSeconds == 0 {
-			skipped++
-			continue
-		}
-
 		if !prevDashboard {
 			_, ok := p.idmap[v.VideoID]
 			if ok {

@@ -25,16 +25,15 @@ func SetView(viewIface View, noappend ...struct{}) {
 		return
 	}
 
+	app.SetTab(viewIface.Tabs())
+	app.UI.Pages.AddAndSwitchToPage(viewIface.Name(), viewIface.Primitive(), true)
+	app.SetPrimaryFocus()
+
 	for _, iface := range views {
 		if iface == viewIface && noappend == nil {
 			return
 		}
 	}
-
-	app.SetTab(viewIface.Tabs())
-	app.UI.Pages.AddAndSwitchToPage(viewIface.Name(), viewIface.Primitive(), true)
-	app.SetPrimaryFocus()
-
 	if noappend != nil {
 		return
 	}

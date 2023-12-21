@@ -8,14 +8,14 @@ import (
 
 func add(menuType string) bool {
 	switch menuType {
-	case "Channel":
-		return isVideoOrPlaylist(menuType)
+	case "Channel", "Dashboard":
+		return isVideo(menuType)
 
 	case "Playlist":
 		return playlistAddTo(menuType)
 	}
 
-	return isVideo(menuType)
+	return isVideoOrChannel(menuType)
 }
 
 func remove(menuType string) bool {
@@ -96,7 +96,7 @@ func isDashboardPlaylist(menuType string) bool {
 }
 
 func createPlaylist(menuType string) bool {
-	return isDashboardFocused(menuType) && view.Dashboard.CurrentPage(menuType) == "playlists"
+	return isDashboardFocused(menuType) && view.Dashboard.CurrentPage() == "playlists"
 }
 
 func editPlaylist(menuType string) bool {

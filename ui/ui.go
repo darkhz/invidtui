@@ -109,7 +109,7 @@ func detectPlayerClose() {
 	mp.Player().Exit()
 
 	select {
-	case <-app.UI.Closed:
+	case <-app.UI.Closed.Done():
 		return
 
 	default:

@@ -233,7 +233,7 @@ func checkStatusCode(res *http.Response, codes ...int) (*http.Response, error) {
 
 		message := "API request returned %d"
 
-		if err := resolver.DecodeJSONReader(res.Body, &responseError); err == nil {
+		if err := resolver.DecodeJSONReader(res.Body, &responseError); err == nil && responseError.Error != "" {
 			message += ": " + responseError.Error
 		}
 

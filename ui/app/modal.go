@@ -172,6 +172,7 @@ func ResizeModal() {
 
 	for _, modal := range modals {
 		_, _, pageWidth, pageHeight := UI.Region.GetInnerRect()
+		_, _, _, mh := UI.MenuLayout.GetRect()
 
 		if modal == nil || !modal.Open ||
 			(modal.pageHeight == pageHeight && modal.pageWidth == pageWidth) {
@@ -182,7 +183,7 @@ func ResizeModal() {
 		modal.pageWidth = pageWidth
 
 		if modal.attach {
-			pageHeight /= 4
+			pageHeight /= 2
 		}
 
 		height := modal.Height
@@ -204,7 +205,7 @@ func ResizeModal() {
 				modal.y.RemoveItemIndex(modal.y.GetItemCount() - 1)
 			}
 
-			modal.y.ResizeItem(modal.Flex, 16, 0)
+			modal.y.ResizeItem(modal.Flex, pageHeight, 0)
 			modal.x.ResizeItem(modal.y, pageWidth, 0)
 
 		default:
@@ -214,7 +215,7 @@ func ResizeModal() {
 				x, y = modal.regionX, modal.regionY
 			} else {
 				x = (pageWidth - modal.Width) / 2
-				y = (pageHeight - modal.Height) / 2
+				y = mh + 1
 			}
 
 			modal.y.ResizeItem(modal.Flex, height, 0)

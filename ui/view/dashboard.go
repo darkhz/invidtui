@@ -661,7 +661,7 @@ func (d *DashboardView) addVideo(info, playlist inv.SearchData, lock *semaphore.
 		return
 	}
 
-	app.ShowInfo("Added "+info.Title+" to "+playlist.Title, true)
+	app.ShowInfo("Added "+info.Title+" to "+playlist.Title, false)
 }
 
 // loadFeed loads and renders the user feed.

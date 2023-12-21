@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"sync"
 
 	"github.com/darkhz/invidtui/platform"
@@ -24,7 +25,8 @@ type Application struct {
 	ColumnStyle   tcell.Style
 
 	Suspend bool
-	Closed  chan struct{}
+	Closed  context.Context
+	Exit    context.CancelFunc
 
 	resize func(screen tcell.Screen)
 
@@ -97,7 +99,7 @@ func Setup() {
 		MenuExit()
 	})
 
-	UI.Closed = make(chan struct{})
+	UI.Closed, UI.Exit = context.WithCancel(context.Background())
 
 	UI.Application = tview.NewApplication()
 	UI.SetAfterDrawFunc(func(screen tcell.Screen) {
@@ -137,7 +139,7 @@ func Stop(skip ...struct{}) {
 	defer UI.lock.Unlock()
 
 	if skip == nil {
-		close(UI.Closed)
+		UI.Exit()
 	}
 
 	UI.Status.Cancel()

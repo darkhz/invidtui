@@ -113,7 +113,7 @@ func showHistory() {
 
 	player.history.flex = tview.NewFlex().
 		SetDirection(tview.FlexRow).
-		AddItem(player.history.table, 10, 0, true).
+		AddItem(player.history.table, 0, 10, true).
 		AddItem(app.HorizontalLine(), 1, 0, false).
 		AddItem(player.history.input, 1, 0, false)
 

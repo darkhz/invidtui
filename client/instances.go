@@ -63,7 +63,7 @@ func CheckInstance(host string) (string, error) {
 	return "", fmt.Errorf("Client: Cannot select instance")
 }
 
-// GetBestInstance determines and returns the best instan
+// GetBestInstance determines and returns the best instance.
 func GetBestInstance(custom string) (string, error) {
 	var bestInstance string
 

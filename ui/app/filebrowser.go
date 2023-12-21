@@ -406,7 +406,7 @@ func (f *FileBrowser) confirmOverwrite(file string) (int, bool, bool, bool) {
 		return flags, false, false, false
 	}
 
-	reply := f.Query("Overwrite file (y/n/a)?", f.validate, 1)
+	reply := f.Query("Overwrite file (y/n/a)?", f.validateConfirm, 1)
 	switch reply {
 	case "y":
 		flags |= os.O_TRUNC
@@ -427,7 +427,7 @@ func (f *FileBrowser) confirmOverwrite(file string) (int, bool, bool, bool) {
 
 // newFolder prompts for a name and creates a directory.
 func (f *FileBrowser) newFolder() {
-	name := f.Query("[::b]Folder name:", f.validate)
+	name := f.Query("[::b]Folder name:", f.validateText)
 	if name == "" {
 		return
 	}
@@ -442,7 +442,7 @@ func (f *FileBrowser) newFolder() {
 
 // renameItem prompts for a name and renames the currently selected entry.
 func (f *FileBrowser) renameItem() {
-	name := f.Query("[::b]Rename to:", f.validate)
+	name := f.Query("[::b]Rename to:", f.validateText)
 	if name == "" {
 		return
 	}
@@ -458,8 +458,8 @@ func (f *FileBrowser) renameItem() {
 	go f.cd("", false, false)
 }
 
-// validate validates the overwrite confirmation reply.
-func (f *FileBrowser) validate(text string, reply chan string) {
+// validateConfirm validates the overwrite confirmation reply.
+func (f *FileBrowser) validateConfirm(text string, reply chan string) {
 	for _, option := range []string{"y", "n", "a"} {
 		if text == option {
 			select {
@@ -469,6 +469,17 @@ func (f *FileBrowser) validate(text string, reply chan string) {
 			}
 
 			break
+		}
+	}
+}
+
+// validateText validates whether the text is empty or not.
+func (f *FileBrowser) validateText(text string, reply chan string) {
+	if text != "" {
+		select {
+		case reply <- text:
+
+		default:
 		}
 	}
 }
