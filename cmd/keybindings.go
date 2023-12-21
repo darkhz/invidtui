@@ -65,6 +65,12 @@ const (
 	KeyQueueDelete             Key = "QueueDelete"
 	KeyQueueMove               Key = "QueueMove"
 	KeyQueueCancel             Key = "QueueCancel"
+	KeyFetcher                 Key = "Fetcher"
+	KeyFetcherReload           Key = "FetcherReload"
+	KeyFetcherCancel           Key = "FetcherCancel"
+	KeyFetcherReloadAll        Key = "FetcherReloadAll"
+	KeyFetcherCancelAll        Key = "FetcherCancelAll"
+	KeyFetcherClearCompleted   Key = "FetcherClearCompleted"
 	KeyPlayerOpenPlaylist      Key = "PlayerOpenPlaylist"
 	KeyPlayerHistory           Key = "PlayerHistory"
 	KeyPlayerQueueAudio        Key = "PlayerQueueAudio"
@@ -117,6 +123,7 @@ const (
 	KeyContextFiles     KeyContext = "Files"
 	KeyContextDownloads KeyContext = "Downloads"
 	KeyContextQueue     KeyContext = "Queue"
+	KeyContextFetcher   KeyContext = "Fetcher"
 	KeyContextComments  KeyContext = "Comments"
 	KeyContextStart     KeyContext = "Start"
 	KeyContextPlaylist  KeyContext = "Playlist"
@@ -302,6 +309,36 @@ var (
 			Title:   "Cancel Loading",
 			Context: KeyContextQueue,
 			Kb:      Keybinding{tcell.KeyRune, 'X', tcell.ModNone},
+		},
+		KeyFetcher: {
+			Title:   "Show Media Fetcher",
+			Context: KeyContextFetcher,
+			Kb:      Keybinding{tcell.KeyRune, 'f', tcell.ModNone},
+		},
+		KeyFetcherReload: {
+			Title:   "Reload",
+			Context: KeyContextFetcher,
+			Kb:      Keybinding{tcell.KeyRune, 'e', tcell.ModNone},
+		},
+		KeyFetcherCancel: {
+			Title:   "Cancel",
+			Context: KeyContextFetcher,
+			Kb:      Keybinding{tcell.KeyRune, 'x', tcell.ModNone},
+		},
+		KeyFetcherReloadAll: {
+			Title:   "Reload All",
+			Context: KeyContextFetcher,
+			Kb:      Keybinding{tcell.KeyRune, 'E', tcell.ModNone},
+		},
+		KeyFetcherCancelAll: {
+			Title:   "Cancel All",
+			Context: KeyContextFetcher,
+			Kb:      Keybinding{tcell.KeyRune, 'X', tcell.ModNone},
+		},
+		KeyFetcherClearCompleted: {
+			Title:   "Clear",
+			Context: KeyContextFetcher,
+			Kb:      Keybinding{tcell.KeyRune, 'c', tcell.ModNone},
 		},
 		KeyPlayerOpenPlaylist: {
 			Title:   "Open Playlist",

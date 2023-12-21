@@ -23,7 +23,8 @@ import (
 
 // Player stores the layout for the player.
 type Player struct {
-	queue Queue
+	queue   Queue
+	fetcher Fetcher
 
 	infoID, thumbURI string
 	init             bool
@@ -108,6 +109,7 @@ func setup() {
 func Start() {
 	setup()
 	player.queue.Setup()
+	player.fetcher.Setup()
 
 	loadState()
 	loadHistory()
@@ -202,7 +204,9 @@ func Hide() {
 	})
 
 	mp.Player().Stop()
+
 	player.queue.Clear()
+	player.fetcher.CancelAll(true)
 }
 
 // Context cancels and/or returns the player's context.
@@ -311,7 +315,7 @@ func IsHistoryInputFocused() bool {
 func Keybindings(event *tcell.EventKey) *tcell.EventKey {
 	playerKeybindings(event)
 
-	operation := cmd.KeyOperation(event, cmd.KeyContextQueue)
+	operation := cmd.KeyOperation(event, cmd.KeyContextQueue, cmd.KeyContextFetcher)
 
 	switch operation {
 	case cmd.KeyPlayerOpenPlaylist:
@@ -336,6 +340,9 @@ func Keybindings(event *tcell.EventKey) *tcell.EventKey {
 
 	case cmd.KeyPlayerQueueAudio, cmd.KeyPlayerQueueVideo, cmd.KeyPlayerPlayAudio, cmd.KeyPlayerPlayVideo:
 		playSelected(operation)
+
+	case cmd.KeyFetcher:
+		player.fetcher.Show()
 
 	case cmd.KeyQueue:
 		player.queue.Show()
@@ -462,74 +469,22 @@ func playFromURL(text string, audio bool) {
 
 // loadSelected loads the provided entry according to its type (video/playlist).
 func loadSelected(info inv.SearchData, audio, current bool) {
-	var title string
+	var err error
 
-	err := player.lock.Acquire(context.Background(), 1)
+	if info.Type != "video" && info.Type != "playlist" {
+		return
+	}
+
+	info, err = player.fetcher.Fetch(info, audio)
 	if err != nil {
 		return
 	}
-	defer player.lock.Release(1)
 
-	ctx := player.queue.Context(false)
-
-	app.ShowInfo("Adding "+info.Type+" "+info.Title, true)
-
-	switch info.Type {
-	case "playlist":
-		title, err = loadPlaylist(ctx, info.PlaylistID, audio)
-
-	case "video":
-		title, err = loadVideo(ctx, info.VideoID, audio)
-
-	default:
-		return
-	}
-	if err != nil {
-		if err.Error() != "Rate-limit exceeded" {
-			app.ShowError(err)
-		}
-
-		return
-	}
-
-	info.Title = title
-	go addToHistory(info)
-
-	app.ShowInfo("Added "+info.Title, false)
+	addToHistory(info)
 
 	if current && info.Type == "video" {
 		player.queue.SelectRecentEntry()
 	}
-}
-
-// loadVideo loads a video into the media player.
-func loadVideo(ctx context.Context, id string, audio bool) (string, error) {
-	video, err := inv.Video(id, ctx)
-	if err != nil {
-		return "", err
-	}
-
-	player.queue.Add(video, audio)
-
-	return video.Title, nil
-}
-
-// loadPlaylist loads all the entries in the playlist into the media player.
-func loadPlaylist(ctx context.Context, plid string, audio bool) (string, error) {
-	var err error
-
-	playlist, err := inv.Playlist(plid, false, 1, ctx)
-	if err != nil {
-		return "", err
-	}
-
-	for _, p := range playlist.Videos {
-		if _, err := loadVideo(ctx, p.VideoID, audio); err != nil {
-			return "", err
-		}
-	}
-
-	return playlist.Title, nil
 }
 
 // renderPlayer renders the media player within the app.

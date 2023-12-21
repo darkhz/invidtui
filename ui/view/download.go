@@ -6,7 +6,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -216,13 +215,10 @@ func (d *DownloadsView) TransferVideo(id, itag, filename string) {
 }
 
 // TransferPlaylist starts the download for the selected playlist.
-func (d *DownloadsView) TransferPlaylist(id, file string, data inv.PlaylistData, flags int, auth, appendToFile bool) (string, int, error) {
-	var skipped int64
+func (d *DownloadsView) TransferPlaylist(id, file string, flags int, auth, appendToFile bool) (string, int, error) {
 	var progress DownloadProgress
 
-	page := 2
 	filename := filepath.Base(file)
-	idx := int64(data.Videos[len(data.Videos)-1].Index)
 
 	d.Init()
 
@@ -231,69 +227,21 @@ func (d *DownloadsView) TransferPlaylist(id, file string, data inv.PlaylistData,
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	progress.renderBar(filename, data.VideoCount, cancel, false)
-	progress.bar.Add64(idx)
+	progress.renderBar(filename, 0, cancel, false)
 	defer app.UI.QueueUpdateDraw(func() {
 		progress.remove()
 	})
 
-	videoMap := make(map[int32]inv.PlaylistVideo, data.VideoCount)
-	for _, video := range data.Videos {
-		videoMap[video.Index] = video
-	}
-
-	for idx < data.VideoCount-1 {
-		select {
-		case <-ctx.Done():
-			return "", flags, nil
-
-		default:
+	videos, err := inv.PlaylistVideos(ctx, id, auth, func(stats [3]int64) {
+		if progress.bar.GetMax() <= 0 {
+			progress.bar.ChangeMax64(stats[2])
+			progress.bar.Reset()
 		}
 
-		playlist, err := inv.PlaylistVideos(ctx, id, page, auth)
-		if err != nil {
-			app.ShowError(err)
-			return "", flags, err
-		}
-		if len(playlist.Videos) == 0 || skipped == int64(len(videoMap)) {
-			return "", flags, fmt.Errorf("Playlist Downloader: No more videos")
-		}
-
-		for _, video := range playlist.Videos {
-			if _, ok := videoMap[video.Index]; ok {
-				continue
-			}
-
-			videoMap[video.Index] = video
-			progress.bar.Add64(1)
-		}
-
-		idx = int64(playlist.Videos[len(playlist.Videos)-1].Index)
-		page++
-	}
-
-	idx = 0
-
-	indexKeys := make([]int32, len(videoMap))
-	for index := range videoMap {
-		indexKeys[idx] = index
-		idx++
-	}
-	sort.Slice(indexKeys, func(i, j int) bool {
-		return indexKeys[i] < indexKeys[j]
+		progress.bar.Set64(stats[1])
 	})
-
-	videos := make([]inv.VideoData, len(videoMap))
-	for _, key := range indexKeys {
-		video := videoMap[key]
-
-		videos[key] = inv.VideoData{
-			VideoID:       video.VideoID,
-			Title:         video.Title,
-			LengthSeconds: video.LengthSeconds,
-			Author:        video.Author,
-			AuthorID:      video.AuthorID,
-		}
+	if err != nil {
+		return "", flags, err
 	}
 
 	return inv.GeneratePlaylist(file, videos, flags, appendToFile)

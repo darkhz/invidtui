@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -44,29 +45,6 @@ type PlaylistVideo struct {
 	LengthSeconds int64  `json:"lengthSeconds"`
 }
 
-// getPlaylist queries for and returns a playlist according to the provided parameters.
-func getPlaylist(ctx context.Context, id, param string, page int, auth bool) (PlaylistData, error) {
-	var data PlaylistData
-
-	query := "playlists/" + id + param + "&page=" + strconv.Itoa(page)
-	if auth {
-		query = "auth/" + query
-	}
-
-	res, err := client.Fetch(ctx, query, client.Token())
-	if err != nil {
-		return PlaylistData{}, err
-	}
-	defer res.Body.Close()
-
-	err = resolver.DecodeJSONReader(res.Body, &data)
-	if err != nil {
-		return PlaylistData{}, err
-	}
-
-	return data, nil
-}
-
 // Playlist retrieves a playlist and its videos.
 func Playlist(id string, auth bool, page int, ctx ...context.Context) (PlaylistData, error) {
 	if ctx == nil {
@@ -77,8 +55,76 @@ func Playlist(id string, auth bool, page int, ctx ...context.Context) (PlaylistD
 }
 
 // PlaylistVideos retrieves a playlist's videos only.
-func PlaylistVideos(ctx context.Context, id string, page int, auth bool) (PlaylistData, error) {
-	return getPlaylist(ctx, id, playlistVideoFields, page, auth)
+func PlaylistVideos(ctx context.Context, id string, auth bool, add func(stats [3]int64)) ([]VideoData, error) {
+	var idx, skipped int64
+
+	page := 1
+	videoCount := int64(2)
+	stats := [3]int64{int64(page), 0, 0}
+
+	videoMap := make(map[int32]PlaylistVideo)
+
+	for idx < videoCount-1 {
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+
+		default:
+		}
+
+		playlist, err := getPlaylist(ctx, id, playlistVideoFields, page, auth)
+		if err != nil {
+			return nil, err
+		}
+		if len(playlist.Videos) == 0 || (len(videoMap) > 0 && skipped == int64(len(videoMap))) {
+			return nil, fmt.Errorf("No more videos")
+		}
+
+		videoCount = playlist.VideoCount
+		stats[2] = videoCount
+
+		for _, video := range playlist.Videos {
+			if _, ok := videoMap[video.Index]; ok {
+				continue
+			}
+
+			videoMap[video.Index] = video
+			stats[1] += 1
+		}
+
+		idx = int64(playlist.Videos[len(playlist.Videos)-1].Index)
+
+		page++
+		stats[0] = int64(page)
+
+		add(stats)
+	}
+
+	idx = 0
+
+	indexKeys := make([]int32, len(videoMap))
+	for index := range videoMap {
+		indexKeys[idx] = index
+		idx++
+	}
+	sort.Slice(indexKeys, func(i, j int) bool {
+		return indexKeys[i] < indexKeys[j]
+	})
+
+	videos := make([]VideoData, len(videoMap))
+	for _, key := range indexKeys {
+		video := videoMap[key]
+
+		videos[key] = VideoData{
+			VideoID:       video.VideoID,
+			Title:         video.Title,
+			LengthSeconds: video.LengthSeconds,
+			Author:        video.Author,
+			AuthorID:      video.AuthorID,
+		}
+	}
+
+	return videos, nil
 }
 
 // UserPlaylists retrieves the user's playlists.
@@ -292,4 +338,27 @@ func GeneratePlaylist(file string, list []VideoData, flags int, appendToFile boo
 	}
 
 	return playlist.String(), flags, nil
+}
+
+// getPlaylist queries for and returns a playlist according to the provided parameters.
+func getPlaylist(ctx context.Context, id, param string, page int, auth bool) (PlaylistData, error) {
+	var data PlaylistData
+
+	query := "playlists/" + id + param + "&page=" + strconv.Itoa(page)
+	if auth {
+		query = "auth/" + query
+	}
+
+	res, err := client.Fetch(ctx, query, client.Token())
+	if err != nil {
+		return PlaylistData{}, err
+	}
+	defer res.Body.Close()
+
+	err = resolver.DecodeJSONReader(res.Body, &data)
+	if err != nil {
+		return PlaylistData{}, err
+	}
+
+	return data, nil
 }

@@ -166,23 +166,9 @@ func (p *PlaylistView) Load(id string, loadMore ...struct{}) {
 
 // Save downloads and saves the playlist to a file.
 func (p *PlaylistView) Save(id string, auth bool) {
-	app.ShowInfo("Initializing playlist", true)
-
-	result, err := inv.Playlist(id, auth, 1)
-	if err != nil {
-		app.ShowError(err)
-		return
-	}
-	if len(result.Videos) == 0 {
-		app.ShowError(fmt.Errorf("Playlist: Save: No videos found"))
-		return
-	}
-
-	app.ShowInfo("Playlist initialized", false)
-
 	app.UI.FileBrowser.Show("Save playlist to:", func(file string) {
 		app.UI.FileBrowser.SaveFile(file, func(flags int, appendToFile bool) (string, int, error) {
-			return Downloads.TransferPlaylist(id, file, result, flags, auth, appendToFile)
+			return Downloads.TransferPlaylist(id, file, flags, auth, appendToFile)
 		})
 	})
 }

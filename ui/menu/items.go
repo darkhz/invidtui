@@ -91,6 +91,7 @@ var Items = &app.MenuData{
 		cmd.KeyContextPlayer: {
 			cmd.KeyPlayerOpenPlaylist,
 			cmd.KeyQueue,
+			cmd.KeyFetcher,
 			cmd.KeyPlayerHistory,
 			cmd.KeyPlayerInfo,
 			cmd.KeyPlayerInfoChangeQuality,
@@ -111,6 +112,13 @@ var Items = &app.MenuData{
 			cmd.KeyQueueMove,
 			cmd.KeyQueueCancel,
 			cmd.KeyClose,
+		},
+		cmd.KeyContextFetcher: {
+			cmd.KeyFetcherReload,
+			cmd.KeyFetcherCancel,
+			cmd.KeyFetcherReloadAll,
+			cmd.KeyFetcherCancelAll,
+			cmd.KeyFetcherClearCompleted,
 		},
 		cmd.KeyContextHistory: {
 			cmd.KeyQuery,
