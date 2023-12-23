@@ -1,7 +1,7 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/darkhz/invidtui)](https://goreportcard.com/report/github.com/darkhz/invidtui)
 # invidtui
 
-[![youtube](https://img.youtube.com/vi/SwPyPYukuRQ/1.jpg)](https://youtube.com/watch?v=SwPyPYukuRQ)
+[![youtube](https://img.youtube.com/vi/Zw7JDcu92FE/3.jpg)](https://youtube.com/watch?v=Zw7JDcu92FE)
 
 invidtui is an invidious client, which fetches data from invidious instances and displays a user interface in the terminal(TUI), and allows for selecting and playing Youtube audio and video.
 
