@@ -9,7 +9,7 @@ type MediaPlayer interface {
 	Exited() bool
 	SendQuit(socket string)
 
-	LoadFile(title string, duration int64, liveaudio bool, files ...string) error
+	LoadFile(title string, duration int64, liveaudio bool, files [2]string) error
 
 	Play()
 	Stop()

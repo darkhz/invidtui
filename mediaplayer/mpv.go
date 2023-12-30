@@ -65,8 +65,8 @@ func (m *MPV) SendQuit(socket string) {
 
 // LoadFile loads the provided files into MPV. When more than one file is provided,
 // the first file is treated as a video stream and the second file is attached as an audio stream.
-func (m *MPV) LoadFile(title string, duration int64, audio bool, files ...string) error {
-	if files == nil {
+func (m *MPV) LoadFile(title string, duration int64, audio bool, files [2]string) error {
+	if files[0] == "" {
 		return fmt.Errorf("MPV: Unable to load empty fileset")
 	}
 

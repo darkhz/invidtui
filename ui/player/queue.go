@@ -55,7 +55,7 @@ type Queue struct {
 
 // QueueData describes the queue entry data.
 type QueueData struct {
-	URI                       []string
+	URI                       [2]string
 	Reference                 inv.VideoData
 	Columns                   [QueueColumnSize]*tview.TableCell
 	Audio, Playing, HasPlayed bool
@@ -130,7 +130,7 @@ func (q *Queue) IsOpen() bool {
 }
 
 // Add adds an entry to the player queue.
-func (q *Queue) Add(video inv.VideoData, audio bool, uri ...string) {
+func (q *Queue) Add(video inv.VideoData, audio bool, uri ...[2]string) {
 	count := q.Count()
 	_, _, w, _ := q.GetRect()
 
@@ -142,6 +142,11 @@ func (q *Queue) Add(video inv.VideoData, audio bool, uri ...string) {
 	length := "Live"
 	if !video.LiveNow {
 		length = utils.FormatDuration(video.LengthSeconds)
+	}
+
+	uris := [2]string{}
+	if uri != nil {
+		uris = uri[0]
 	}
 
 	video.MediaType = media
@@ -188,7 +193,7 @@ func (q *Queue) Add(video inv.VideoData, audio bool, uri ...string) {
 		},
 		Audio:     audio,
 		Reference: video,
-		URI:       uri,
+		URI:       uris,
 	})
 
 	if count == 0 {
@@ -258,7 +263,7 @@ func (q *Queue) Play(norender ...struct{}) {
 		if err := mp.Player().LoadFile(
 			data.Reference.Title, data.Reference.LengthSeconds,
 			data.Audio,
-			uri...,
+			uri,
 		); err != nil {
 			app.ShowError(err)
 			return
@@ -834,7 +839,7 @@ ReadPlaylist:
 			video.HlsURL = mediaURI
 		}
 
-		q.Add(video, audio, mediaURI)
+		q.Add(video, audio, [2]string{mediaURI})
 
 		filesAdded++
 	}

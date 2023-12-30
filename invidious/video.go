@@ -85,8 +85,8 @@ func VideoThumbnail(ctx context.Context, id, image string) (*http.Response, erro
 }
 
 // RenewVideoURI renews the video's media URIs.
-func RenewVideoURI(ctx context.Context, uri []string, video VideoData, audio bool) (VideoData, []string, error) {
-	if uri != nil && video.LiveNow {
+func RenewVideoURI(ctx context.Context, uri [2]string, video VideoData, audio bool) (VideoData, [2]string, error) {
+	if uri[0] != "" && video.LiveNow {
 		if _, renew := CheckLiveURL(uri[0], audio); !renew {
 			return video, uri, nil
 		}
@@ -147,14 +147,14 @@ func getVideo(ctx context.Context, id, param string) (VideoData, error) {
 }
 
 // getVideoURI returns the video's media URIs.
-func getVideoURI(ctx context.Context, video VideoData, audio bool) (VideoData, []string, error) {
-	var uris []string
-	var mediaURL, audioURL, videoURL string
+func getVideoURI(ctx context.Context, video VideoData, audio bool) (VideoData, [2]string, error) {
+	var uris [2]string
+	var audioURL, videoURL string
 
 	if video.FormatStreams == nil || video.AdaptiveFormats == nil {
 		v, err := getVideo(ctx, video.VideoID, videoFormatFields)
 		if err != nil {
-			return VideoData{}, nil, err
+			return VideoData{}, uris, err
 		}
 
 		video.AdaptiveFormats = v.AdaptiveFormats
@@ -169,19 +169,16 @@ func getVideoURI(ctx context.Context, video VideoData, audio bool) (VideoData, [
 	}
 
 	if audio && audioURL == "" {
-		return VideoData{}, nil, fmt.Errorf("No audio URI")
+		return VideoData{}, uris, fmt.Errorf("No audio URI")
 	} else if !audio && videoURL == "" {
-		return VideoData{}, nil, fmt.Errorf("No video URI")
+		return VideoData{}, uris, fmt.Errorf("No video URI")
 	}
 
 	if audio {
-		mediaURL = audioURL
+		uris[0] = audioURL
 	} else {
-		mediaURL = videoURL
-		uris = append(uris, audioURL)
+		uris[0], uris[1] = videoURL, audioURL
 	}
-
-	uris = append([]string{mediaURL}, uris...)
 
 	return video, uris, nil
 }
