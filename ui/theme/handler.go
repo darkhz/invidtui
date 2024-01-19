@@ -4,10 +4,12 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 	"sync"
 
+	"github.com/darkhz/invidtui/cmd"
 	"github.com/gdamore/tcell/v2"
 	"github.com/knadh/koanf/parsers/hjson"
 	"github.com/knadh/koanf/providers/file"
@@ -30,23 +32,88 @@ type ThemeSetting struct {
 
 var config ThemeConfig
 
-// ParseThemeFile parses the theme file.
-func ParseThemeFile(k *koanf.Koanf, dir string) error {
+// GetConfigHandler returns the theme configuration handler.
+func GetConfigHandler() *ThemeConfig {
+	return &config
+}
+
+// Parse parses the theme from the configuration.
+func (c *ThemeConfig) Parse(k *koanf.Koanf, dir string) error {
 	themeFile := k.String("theme")
 	if themeFile == "" {
-		return ParseConfig(nil)
+		return parseConfig(nil)
+	}
+
+	if filepath.Ext(themeFile) == "" {
+		themeFile += ".theme"
 	}
 
 	conf := koanf.New(".")
-	if err := conf.Load(file.Provider(filepath.Join(dir, themeFile)), hjson.Parser()); err != nil {
+	if err := conf.Load(file.Provider(filepath.Join(dir, "themes", themeFile)), hjson.Parser()); err != nil {
 		return err
 	}
 
-	return ParseConfig(conf)
+	return parseConfig(conf)
 }
 
-// ParseConfig parses the current configuration or the default.
-func ParseConfig(k *koanf.Koanf) error {
+// Generate generates the theme configuration.
+func (c *ThemeConfig) Generate(k *koanf.Koanf) (interface{}, error) {
+	themeFile := k.String("theme")
+	if themeFile == "" {
+		themeFile = "default"
+	}
+
+	themePath, err := cmd.GetPath("themes/default.theme")
+	if err != nil {
+		return themeFile, err
+	}
+
+	fd, err := os.OpenFile(themePath, os.O_WRONLY, os.ModePerm)
+	if err != nil {
+		return themeFile, err
+	}
+
+	info, err := fd.Stat()
+	if err == nil && info.Size() == 0 {
+		_, err = fd.WriteString(DefaultThemeConfig)
+	}
+
+	return themeFile, err
+}
+
+// GetThemeSetting returns a style and tag according to the ThemeProperty.
+func GetThemeSetting(p ThemeProperty) (tcell.Style, string, bool) {
+	config.Lock()
+	defer config.Unlock()
+
+	var setting ThemeSetting
+
+	if config.settings == nil {
+		goto Setting
+	}
+
+	for _, context := range []ThemeContext{
+		p.Context,
+		ThemeContextApp,
+	} {
+		settingMap, ok := config.settings[context]
+		if !ok {
+			continue
+		}
+
+		s, ok := settingMap[p.Item]
+		if ok {
+			setting = s
+			break
+		}
+	}
+
+Setting:
+	return setting.Style, setting.Tag, setting != (ThemeSetting{})
+}
+
+// parseConfig parses the current configuration or the default.
+func parseConfig(k *koanf.Koanf) error {
 	if k == nil {
 		k = koanf.New(".")
 		if err := k.Load(rawbytes.Provider([]byte(DefaultThemeConfig)), hjson.Parser()); err != nil {
@@ -56,7 +123,6 @@ func ParseConfig(k *koanf.Koanf) error {
 
 	keyErrors := bytes.Buffer{}
 	fmt.Fprintf(&keyErrors, "Config: The following theme directives will conflict:\n")
-
 	length := keyErrors.Len()
 
 	settings := make(map[ThemeContext]map[ThemeItem]ThemeSetting)

@@ -1,7 +1,9 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -75,6 +77,18 @@ func (c *Config) setup() {
 // GetPath returns the full config path for the provided file type.
 func GetPath(ftype string, nocreate ...struct{}) (string, error) {
 	var cfpath string
+
+	if strings.Contains(ftype, "/") {
+		dir := filepath.Join(config.path, filepath.Dir(ftype))
+
+		_, err := os.Stat(dir)
+		if errors.Is(err, fs.ErrNotExist) {
+			err = os.MkdirAll(dir, os.ModePerm)
+			if err != nil {
+				return "", err
+			}
+		}
+	}
 
 	if ftype == "socket" {
 		socket := filepath.Join(config.path, "socket")
@@ -185,11 +199,7 @@ func generateConfig() {
 		}
 	}
 
-	keys := config.Get("keybindings")
-	if keys == nil {
-		keys = make(map[string]interface{})
-	}
-	genMap["keybindings"] = keys
+	RunAllGenerators(genMap)
 
 	data, err := hjson.Marshal(genMap)
 	if err != nil {
@@ -201,7 +211,7 @@ func generateConfig() {
 		printer.Error(err.Error())
 	}
 
-	file, err := os.OpenFile(conf, os.O_WRONLY, os.ModePerm)
+	file, err := os.OpenFile(conf, os.O_WRONLY|os.O_TRUNC, os.ModePerm)
 	if err != nil {
 		printer.Error(err.Error())
 	}

@@ -11,8 +11,18 @@ import (
 	"golang.org/x/text/language"
 )
 
-// ParseKeybindings parses the keybindings from the configuration.
-func ParseKeybindings(k *koanf.Koanf, dir string) error {
+// KbConfig describes the keybinding configuration handler.
+type KbConfig struct{}
+
+var config KbConfig
+
+// GetConfigHandler returns the keybinding configuration handler.
+func GetConfigHandler() *KbConfig {
+	return &config
+}
+
+// Parse parses the keybindings from the configuration.
+func (c *KbConfig) Parse(k *koanf.Koanf, dir string) error {
 	if !k.Exists("keybindings") {
 		return nil
 	}
@@ -33,10 +43,10 @@ func ParseKeybindings(k *koanf.Koanf, dir string) error {
 		}
 	}
 
-	keyErrors := make(map[Keybinding]struct{})
-	kbErrors := strings.Builder{}
+	keyMap := make(map[Keybinding]struct{})
+	keyErrors := strings.Builder{}
 
-	fmt.Fprintf(&kbErrors, "Config: The following keybindings will conflict:\n")
+	fmt.Fprintf(&keyErrors, "Config: The following keybindings will conflict:\n")
 
 	for keyType, keydata := range OperationKeys {
 		for existing, data := range OperationKeys {
@@ -48,19 +58,29 @@ func ParseKeybindings(k *koanf.Koanf, dir string) error {
 				continue
 
 			KeyError:
-				if _, ok := keyErrors[keydata.Kb]; !ok {
-					keyErrors[keydata.Kb] = struct{}{}
-					fmt.Fprintf(&kbErrors, "- %s will override %s (%s)\n", keyType, existing, KeyName(keydata.Kb))
+				if _, ok := keyMap[keydata.Kb]; !ok {
+					keyMap[keydata.Kb] = struct{}{}
+					fmt.Fprintf(&keyErrors, "- %s will override %s (%s)\n", keyType, existing, KeyName(keydata.Kb))
 				}
 			}
 		}
 	}
 
-	if len(keyErrors) > 0 {
-		return fmt.Errorf(kbErrors.String()[:kbErrors.Len()-1])
+	if len(keyMap) > 0 {
+		return fmt.Errorf(keyErrors.String()[:keyErrors.Len()-1])
 	}
 
 	return nil
+}
+
+// Generate generates the keybinding configuration.
+func (c *KbConfig) Generate(k *koanf.Koanf) (interface{}, error) {
+	kbMap := k.Get("keybindings")
+	if kbMap == nil {
+		kbMap = make(map[string]interface{})
+	}
+
+	return kbMap, nil
 }
 
 // checkBindings validates the provided keybinding.

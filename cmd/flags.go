@@ -222,7 +222,7 @@ func parse() {
 
 // check validates all the command-line and configuration values.
 func check() {
-	parseKeybindings()
+	RunAllParsers()
 	getSettings()
 	checkAuth()
 
