@@ -102,6 +102,12 @@ var options = []Option{
 		Type:        "other",
 	},
 	{
+		Name:        "theme",
+		Description: "Specify theme file to apply on startup.",
+		Value:       "",
+		Type:        "other",
+	},
+	{
 		Name:        "close-instances",
 		Description: "Close all currently running instances.",
 		Value:       "",

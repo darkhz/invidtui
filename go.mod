@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/darkhz/mpvipc v0.0.0-20231124135332-eb73ba48ad46
-	github.com/darkhz/tview v0.0.0-20231221085230-b7c392e224e5
+	github.com/darkhz/tview v0.0.0-20240121043810-dda5a0850641
 	github.com/davidmytton/url-verifier v1.0.0
 	github.com/etherlabsio/go-m3u8 v1.0.0
 	github.com/gammazero/deque v0.2.1
@@ -13,6 +13,7 @@ require (
 	github.com/knadh/koanf/parsers/hjson v0.1.0
 	github.com/knadh/koanf/providers/file v0.1.0
 	github.com/knadh/koanf/providers/posflag v0.1.0
+	github.com/knadh/koanf/providers/rawbytes v0.1.0
 	github.com/knadh/koanf/v2 v2.0.1
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/schollz/progressbar/v3 v3.14.1
@@ -38,6 +39,7 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
 	github.com/rivo/uniseg v0.4.4 // indirect
+	github.com/stretchr/testify v1.8.2 // indirect
 	golang.org/x/sys v0.15.0 // indirect
 	golang.org/x/term v0.15.0 // indirect
 	gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce // indirect

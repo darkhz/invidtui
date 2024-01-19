@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/darkhz/invidtui/cmd"
+	"github.com/darkhz/invidtui/ui/theme"
 	"github.com/darkhz/tview"
 	"github.com/gdamore/tcell/v2"
 )
@@ -112,6 +113,10 @@ func FocusMenu() {
 func DrawMenu(x int, region string) {
 	var skipped, width int
 
+	region, _, ok := theme.GetThemeRegion(region)
+	if !ok {
+		return
+	}
 	if strings.Contains(region, "context-") {
 		region = strings.Split(region, "-")[1]
 	}
@@ -121,7 +126,10 @@ func DrawMenu(x int, region string) {
 		return
 	}
 
-	modal := NewMenuModal("menu", x, 1)
+	modal := NewMenuModal("menu", x, 1, theme.ThemeProperty{
+		Context: theme.ThemeContextMenu,
+		Item:    theme.ThemePopupBackground,
+	})
 	modal.Table.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		switch event.Key() {
 		case tcell.KeyEnter:
@@ -167,13 +175,20 @@ func DrawMenu(x int, region string) {
 			width = opwidth
 		}
 
-		modal.Table.SetCell(row-skipped, 0, tview.NewTableCell(op.Title).
+		modal.Table.SetCell(row-skipped, 0, theme.NewTableCell(
+			theme.ThemeContextMenu,
+			theme.ThemeDescription,
+			op.Title,
+		).
 			SetExpansion(1).
-			SetReference(op).
-			SetAttributes(tcell.AttrBold),
+			SetReference(op),
 		)
 
-		modal.Table.SetCell(row-skipped, 1, tview.NewTableCell(keyname).
+		modal.Table.SetCell(row-skipped, 1, theme.NewTableCell(
+			theme.ThemeContextMenu,
+			theme.ThemeKeybinding,
+			keyname,
+		).
 			SetExpansion(1).
 			SetAlign(tview.AlignRight),
 		)
@@ -241,5 +256,10 @@ Event:
 
 // menuFormat returns the format for displaying menu names.
 func menuFormat(text, region, title string) string {
-	return fmt.Sprintf("%s [\"%s\"][::b]%s[-:-:-][\"\"]", text, region, title)
+	menuName := theme.SetTextStyle(
+		region, title,
+		theme.ThemeContextMenu, theme.ThemeName,
+	)
+
+	return fmt.Sprintf("%s %s", text, menuName)
 }

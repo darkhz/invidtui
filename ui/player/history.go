@@ -6,6 +6,7 @@ import (
 	"github.com/darkhz/invidtui/cmd"
 	inv "github.com/darkhz/invidtui/invidious"
 	"github.com/darkhz/invidtui/ui/app"
+	"github.com/darkhz/invidtui/ui/theme"
 	"github.com/darkhz/invidtui/ui/view"
 	"github.com/darkhz/tview"
 	"github.com/gdamore/tcell/v2"
@@ -70,6 +71,7 @@ func addToHistory(data inv.SearchData) {
 // showHistory shows a popup with the history entries.
 func showHistory() {
 	var history []cmd.PlayHistorySettings
+	var property theme.ThemeProperty
 
 	player.mutex.Lock()
 	history = player.history.entries
@@ -87,21 +89,20 @@ func showHistory() {
 		goto Render
 	}
 
-	player.history.table = tview.NewTable()
-	player.history.table.SetSelectorWrap(true)
+	property = theme.ThemeProperty{
+		Context: theme.ThemeContextHistory,
+		Item:    theme.ThemePopupBackground,
+	}
+
+	player.history.table = theme.NewTable(property)
 	player.history.table.SetSelectable(true, false)
-	player.history.table.SetBackgroundColor(tcell.ColorDefault)
 	player.history.table.SetInputCapture(historyTableKeybindings)
 	player.history.table.SetFocusFunc(func() {
 		app.SetContextMenu(cmd.KeyContextHistory, player.history.table)
 	})
 
-	player.history.input = tview.NewInputField()
-	player.history.input.SetLabel("[::b]Filter: ")
+	player.history.input = theme.NewInputField(property, "Filter:")
 	player.history.input.SetChangedFunc(historyFilter)
-	player.history.input.SetLabelColor(tcell.ColorWhite)
-	player.history.input.SetBackgroundColor(tcell.ColorDefault)
-	player.history.input.SetFieldBackgroundColor(tcell.ColorDefault)
 	player.history.input.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		switch event.Key() {
 		case tcell.KeyEscape, tcell.KeyEnter:
@@ -111,13 +112,13 @@ func showHistory() {
 		return event
 	})
 
-	player.history.flex = tview.NewFlex().
+	player.history.flex = theme.NewFlex(property).
 		SetDirection(tview.FlexRow).
 		AddItem(player.history.table, 0, 10, true).
-		AddItem(app.HorizontalLine(), 1, 0, false).
+		AddItem(app.HorizontalLine(property), 1, 0, false).
 		AddItem(player.history.input, 1, 0, false)
 
-	player.history.modal = app.NewModal("player_history", "Previously played", player.history.flex, 40, 0)
+	player.history.modal = app.NewModal("player_history", "Previously played", player.history.flex, 40, 0, property)
 
 Render:
 	player.history.modal.Show(true)
@@ -175,26 +176,43 @@ func historyFilter(text string) {
 			AuthorID:   ph.AuthorID,
 		}
 
-		player.history.table.SetCell(row, 0, tview.NewTableCell("[blue::b]"+ph.Title).
+		player.history.table.SetCell(row, 0, theme.NewTableCell(
+			theme.ThemeContextHistory,
+			theme.ThemeVideo,
+			tview.Escape(ph.Title),
+		).
 			SetExpansion(1).
-			SetReference(info).
-			SetSelectedStyle(app.UI.SelectedStyle),
+			SetReference(info),
 		)
 
-		player.history.table.SetCell(row, 1, tview.NewTableCell("").
-			SetSelectable(false),
+		player.history.table.SetCell(row, 1, theme.NewTableCell(
+			theme.ThemeContextHistory,
+			theme.ThemePopupBackground,
+			"",
+		).
+			SetSelectable(true),
 		)
 
-		player.history.table.SetCell(row, 2, tview.NewTableCell("[purple::b]"+ph.Author).
-			SetSelectedStyle(app.UI.ColumnStyle),
+		player.history.table.SetCell(row, 2, theme.NewTableCell(
+			theme.ThemeContextHistory,
+			theme.ThemeAuthor,
+			tview.Escape(ph.Author),
+		),
 		)
 
-		player.history.table.SetCell(row, 3, tview.NewTableCell("").
-			SetSelectable(false),
+		player.history.table.SetCell(row, 3, theme.NewTableCell(
+			theme.ThemeContextHistory,
+			theme.ThemePopupBackground,
+			"",
+		).
+			SetSelectable(true),
 		)
 
-		player.history.table.SetCell(row, 4, tview.NewTableCell("[pink]"+ph.Type).
-			SetSelectedStyle(app.UI.ColumnStyle),
+		player.history.table.SetCell(row, 4, theme.NewTableCell(
+			theme.ThemeContextHistory,
+			theme.ThemeMediaType,
+			ph.Type,
+		),
 		)
 
 		row++

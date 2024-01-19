@@ -8,6 +8,7 @@ import (
 	"github.com/darkhz/invidtui/ui/menu"
 	"github.com/darkhz/invidtui/ui/player"
 	"github.com/darkhz/invidtui/ui/popup"
+	"github.com/darkhz/invidtui/ui/theme"
 	"github.com/darkhz/invidtui/ui/view"
 	"github.com/darkhz/invidtui/utils"
 	"github.com/darkhz/tview"
@@ -16,6 +17,8 @@ import (
 
 // SetupUI sets up the UI and starts the application.
 func SetupUI() {
+	theme.ParseConfig()
+
 	app.Setup()
 	app.InitMenu(menu.Items)
 	app.SetResizeHandler(Resize)

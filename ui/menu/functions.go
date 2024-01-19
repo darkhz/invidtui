@@ -47,7 +47,7 @@ func searchInputFocused(menuType string) bool {
 func downloadView(menuType string) bool {
 	d := view.Downloads
 
-	return d != view.DownloadsView{} &&
+	return d.IsInitialized() &&
 		!d.Primitive().HasFocus()
 }
 
@@ -110,7 +110,7 @@ func isDashboardSubscription(menuType string) bool {
 func downloadViewVisible(menuType string) bool {
 	d := view.Downloads
 
-	return d != view.DownloadsView{} &&
+	return d.IsInitialized() &&
 		d.Primitive().HasFocus()
 }
 

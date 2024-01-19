@@ -16,6 +16,7 @@ import (
 	inv "github.com/darkhz/invidtui/invidious"
 	mp "github.com/darkhz/invidtui/mediaplayer"
 	"github.com/darkhz/invidtui/ui/app"
+	"github.com/darkhz/invidtui/ui/theme"
 	"github.com/darkhz/invidtui/utils"
 	"github.com/darkhz/tview"
 	"github.com/etherlabsio/go-m3u8/m3u8"
@@ -76,9 +77,6 @@ const (
 
 	QueuePlayingMarker = QueueColumnSize - 2
 	QueueMediaMarker   = QueueColumnSize - 5
-
-	PlayerMarkerFormat = `[%s::b][%s[][-:-:-]`
-	MediaMarkerFormat  = `[pink::b]%s[-:-:-]`
 )
 
 // Setup sets up the queue.
@@ -87,22 +85,23 @@ func (q *Queue) Setup() {
 		return
 	}
 
+	property := q.ThemeProperty()
+
 	q.store = deque.New[*QueueData](100)
 
 	q.status = make(chan struct{}, 100)
 	q.videos = make(map[string]*inv.VideoData)
 
-	q.table = tview.NewTable()
+	q.table = theme.NewTable(property)
 	q.table.SetContent(q)
 	q.table.SetSelectable(true, false)
 	q.table.SetInputCapture(q.Keybindings)
-	q.table.SetBackgroundColor(tcell.ColorDefault)
 	q.table.SetSelectionChangedFunc(q.selectorHandler)
 	q.table.SetFocusFunc(func() {
 		app.SetContextMenu(cmd.KeyContextQueue, q.table)
 	})
 
-	q.modal = app.NewModal("queue", "Queue", q.table, 40, 0)
+	q.modal = app.NewModal("queue", "Queue", q.table, 40, 0, property)
 
 	q.lock = semaphore.NewWeighted(1)
 
@@ -153,43 +152,79 @@ func (q *Queue) Add(video inv.VideoData, audio bool, uri ...[2]string) {
 
 	q.SetData(count, QueueData{
 		Columns: [QueueColumnSize]*tview.TableCell{
-			tview.NewTableCell(" ").
+			theme.NewTableCell(
+				theme.ThemeContextQueue,
+				theme.ThemePopupBackground,
+				" ",
+			).
 				SetMaxWidth(1).
 				SetSelectable(false),
-			tview.NewTableCell("[blue::b]" + tview.Escape(video.Title)).
+			theme.NewTableCell(
+				theme.ThemeContextQueue,
+				theme.ThemeVideo,
+				tview.Escape(video.Title),
+			).
+				SetExpansion(1).
+				SetMaxWidth(w / 7).
+				SetSelectable(true),
+			theme.NewTableCell(
+				theme.ThemeContextQueue,
+				theme.ThemePopupBackground,
+				" ",
+			).
+				SetMaxWidth(1).
+				SetSelectable(true),
+			theme.NewTableCell(
+				theme.ThemeContextQueue,
+				theme.ThemeAuthor,
+				tview.Escape(video.Author),
+			).
 				SetExpansion(1).
 				SetMaxWidth(w / 7).
 				SetSelectable(true).
-				SetSelectedStyle(app.UI.ColumnStyle),
-			tview.NewTableCell(" ").
+				SetAlign(tview.AlignRight),
+			theme.NewTableCell(
+				theme.ThemeContextQueue,
+				theme.ThemePopupBackground,
+				" ",
+			).
 				SetMaxWidth(1).
-				SetSelectable(false),
-			tview.NewTableCell("[purple::b]" + tview.Escape(video.Author)).
-				SetExpansion(1).
-				SetMaxWidth(w / 7).
-				SetSelectable(true).
-				SetAlign(tview.AlignRight).
-				SetSelectedStyle(app.UI.ColumnStyle),
-			tview.NewTableCell(" ").
-				SetMaxWidth(1).
-				SetSelectable(false),
-			tview.NewTableCell(fmt.Sprintf(MediaMarkerFormat, media)).
+				SetSelectable(true),
+			theme.NewTableCell(
+				theme.ThemeContextQueue,
+				theme.ThemeMediaType,
+				media,
+			).
 				SetMaxWidth(5).
-				SetSelectable(true).
-				SetSelectedStyle(app.UI.ColumnStyle),
-			tview.NewTableCell(" ").
+				SetSelectable(true),
+			theme.NewTableCell(
+				theme.ThemeContextQueue,
+				theme.ThemePopupBackground,
+				" ",
+			).
 				SetMaxWidth(1).
-				SetSelectable(false),
-			tview.NewTableCell("[pink::b]" + length).
+				SetSelectable(true),
+			theme.NewTableCell(
+				theme.ThemeContextQueue,
+				theme.ThemeTotalDuration,
+				length,
+			).
 				SetMaxWidth(10).
-				SetSelectable(true).
-				SetSelectedStyle(app.UI.ColumnStyle),
-			tview.NewTableCell(" ").
-				SetMaxWidth(11).
-				SetSelectable(false),
-			tview.NewTableCell(" ").
+				SetSelectable(true),
+			theme.NewTableCell(
+				theme.ThemeContextQueue,
+				theme.ThemePopupBackground,
+				" ",
+			).
+				SetMaxWidth(15).
+				SetSelectable(true),
+			theme.NewTableCell(
+				theme.ThemeContextQueue,
+				theme.ThemePopupBackground,
+				" ",
+			).
 				SetMaxWidth(1).
-				SetSelectable(false),
+				SetSelectable(true),
 		},
 		Audio:     audio,
 		Reference: video,
@@ -242,7 +277,7 @@ func (q *Queue) Play(norender ...struct{}) {
 
 		q.MarkPlayingEntry(EntryFetching)
 		q.audio.Store(data.Audio)
-		q.title.Store(data.Reference.Title)
+		q.title.Store(tview.Escape(data.Reference.Title))
 
 		sendPlayerEvents()
 		Show()
@@ -555,24 +590,23 @@ func (q *Queue) MarkPlayingEntry(status QueueEntryStatus) {
 		return
 	}
 
+	tagMap := map[QueueEntryStatus]theme.ThemeItem{
+		EntryFetching: theme.ThemeTagFetching,
+		EntryLoading:  theme.ThemeTagLoading,
+		EntryPlaying:  theme.ThemeTagPlaying,
+		EntryStopped:  theme.ThemeTagStopped,
+	}
+
 	app.UI.QueueUpdateDraw(func() {
 		if q.marker != nil {
 			q.marker.SetText("")
 		}
 
+		builder := theme.NewTextBuilder(theme.ThemeContextQueue)
+		builder.Format(tagMap[status], "tag", " %s ", status)
+
 		q.marker = cell
-
-		color := "white"
-		switch status {
-		case EntryFetching, EntryLoading:
-			color = "yellow"
-
-		case EntryStopped:
-			color = "red"
-		}
-
-		marker := string(status)
-		q.marker.SetText(fmt.Sprintf(PlayerMarkerFormat, color, marker))
+		q.marker.SetText(builder.Get())
 	})
 }
 
@@ -604,7 +638,8 @@ func (q *Queue) MarkEntryMediaType(key cmd.Key) {
 
 	data.Audio = audio
 	data.Columns[QueueMediaMarker].SetText(
-		fmt.Sprintf(MediaMarkerFormat, media),
+		theme.SetTextStyle(
+			"mediatype", media, theme.ThemeContextQueue, theme.ThemeMediaType),
 	)
 
 	if pos == q.Position() {
@@ -897,6 +932,14 @@ func (q *Queue) Keybindings(event *tcell.EventKey) *tcell.EventKey {
 	return event
 }
 
+// ThemeProperty returns the queue's theme property.
+func (q *Queue) ThemeProperty() theme.ThemeProperty {
+	return theme.ThemeProperty{
+		Context: theme.ThemeContextQueue,
+		Item:    theme.ThemePopupBackground,
+	}
+}
+
 // play handles the 'Enter' key event within the queue.
 // If the move mode is enabled, the currently moving item
 // is set to the position where the selector rests.
@@ -970,9 +1013,11 @@ func (q *Queue) move() {
 func (q *Queue) selectorHandler(row, col int) {
 	selector := ">"
 	rows := q.table.GetRowCount()
+	item := theme.ThemeNormalModeSelector
 
 	if q.moveMode {
 		selector = "M"
+		item = theme.ThemeMoveModeSelector
 	}
 
 	for i := 0; i < rows; i++ {
@@ -983,7 +1028,14 @@ func (q *Queue) selectorHandler(row, col int) {
 		}
 
 		if i == row {
-			cell.SetText(selector)
+			cell.SetText(
+				theme.SetTextStyle(
+					"selector",
+					selector,
+					theme.ThemeContextQueue,
+					item,
+				),
+			)
 			continue
 		}
 

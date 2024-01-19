@@ -10,6 +10,7 @@ import (
 	inv "github.com/darkhz/invidtui/invidious"
 	"github.com/darkhz/invidtui/ui/app"
 	"github.com/darkhz/invidtui/ui/popup"
+	"github.com/darkhz/invidtui/ui/theme"
 	"github.com/darkhz/invidtui/utils"
 	"github.com/darkhz/tview"
 	"github.com/gdamore/tcell/v2"
@@ -31,6 +32,8 @@ type SearchView struct {
 	parametersBox  *app.Modal
 	parametersForm *tview.Form
 	parameters     map[string]string
+
+	property theme.ThemeProperty
 
 	lock *semaphore.Weighted
 }
@@ -87,19 +90,22 @@ func (s *SearchView) Init() bool {
 		return true
 	}
 
+	s.property = s.ThemeProperty()
+
 	s.currentType = "video"
 	s.tab = s.currentType
 
-	s.table = tview.NewTable()
+	s.table = theme.NewTable(s.property)
 	s.table.SetBorder(false)
-	s.table.SetSelectorWrap(true)
 	s.table.SetInputCapture(s.Keybindings)
-	s.table.SetBackgroundColor(tcell.ColorDefault)
 	s.table.SetFocusFunc(func() {
 		app.SetContextMenu(cmd.KeyContextSearch, s.table)
 	})
 
-	s.suggestBox = app.NewModal("suggestion", "Suggestions", nil, 0, 0)
+	s.suggestBox = app.NewModal(
+		"suggestion", "Suggestions", nil, 0, 0,
+		s.property.SetItem(theme.ThemePopupBackground),
+	)
 	s.suggestBox.Table.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		switch event.Key() {
 		case tcell.KeyEscape:
@@ -109,16 +115,20 @@ func (s *SearchView) Init() bool {
 		return event
 	})
 	s.suggestBox.Table.SetSelectionChangedFunc(func(row, column int) {
-		text := s.suggestBox.Table.GetCell(row, column).Text
-
-		app.UI.Status.SetText(text)
+		text, ok := s.suggestBox.Table.GetCell(row, column).GetReference().(string)
+		if ok {
+			app.UI.Status.SetText(text)
+		}
 	})
 
 	if s.parametersForm == nil {
-		s.parametersForm = tview.NewForm()
+		s.parametersForm = theme.NewForm(s.property.SetItem(theme.ThemePopupBackground))
 	}
 
-	s.parametersBox = app.NewModal("parameters", "Set Search Parameters", s.parametersForm, 40, 60)
+	s.parametersBox = app.NewModal(
+		"parameters", "Set Search Parameters", s.parametersForm, 40, 60,
+		s.property.SetItem(theme.ThemePopupBackground),
+	)
 
 	s.parameters = make(map[string]string)
 
@@ -153,6 +163,14 @@ func (s *SearchView) Tabs() app.Tab {
 // Primitive returns the primitive for the search view.
 func (s *SearchView) Primitive() tview.Primitive {
 	return s.table
+}
+
+// ThemeProperty returns the search view's theme property.
+func (d *SearchView) ThemeProperty() theme.ThemeProperty {
+	return theme.ThemeProperty{
+		Context: theme.ThemeContextSearch,
+		Item:    theme.ThemeBackground,
+	}
 }
 
 // Start shows the search view and fetches results for
@@ -217,7 +235,7 @@ func (s *SearchView) Query(switchMode ...struct{}) {
 		app.SetContextMenu(cmd.KeyContextSearch, app.UI.Status.InputField)
 	})
 
-	label := "[::b]Search (" + s.tab + "):"
+	label := "Search (" + s.tab + "):"
 	app.UI.Status.SetInput(label, 0, switchMode == nil, Search.Start, Search.inputFunc)
 }
 
@@ -248,8 +266,12 @@ func (s *SearchView) Suggestions(text string) {
 		s.suggestBox.Height = totalSuggestions + 1
 
 		for row, suggest := range suggestions.Suggestions {
-			s.suggestBox.Table.SetCell(row, 0, tview.NewTableCell(suggest).
-				SetSelectedStyle(app.UI.ColumnStyle),
+			s.suggestBox.Table.SetCell(row, 0, theme.NewTableCell(
+				theme.ThemeContextSearch,
+				theme.ThemeText,
+				suggest,
+			).
+				SetReference(suggest),
 			)
 		}
 
@@ -361,8 +383,11 @@ func (s *SearchView) inputFunc(e *tcell.EventKey) *tcell.EventKey {
 		go s.Suggestions(app.UI.Status.GetText())
 
 	case cmd.KeySearchSwitchMode:
-		tab := s.Tabs()
-		tab.Selected = s.tab
+		var tab app.Tab
+		if GetCurrentView() != (&Search) {
+			tab = s.Tabs()
+			tab.Selected = s.tab
+		}
 
 		s.tab = app.SwitchTab(false, tab)
 		s.Query(struct{}{})
@@ -479,10 +504,9 @@ func (s *SearchView) getParametersForm() *tview.Form {
 		goto SetContent
 	}
 
-	form = tview.NewForm()
+	form = theme.NewForm(s.property.SetItem(theme.ThemePopupBackground))
 	form.SetItemPadding(2)
 	form.SetHorizontal(true)
-	form.SetBackgroundColor(tcell.ColorDefault)
 	form.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		switch event.Key() {
 		case tcell.KeyEscape:
@@ -626,66 +650,105 @@ func (s *SearchView) renderResults(results []inv.SearchData) {
 			lentext = utils.FormatDuration(result.LengthSeconds)
 		}
 
+		item := theme.ThemeVideo
+		switch result.Type {
+		case "playlist":
+			item = theme.ThemePlaylist
+
+		case "channel":
+			item = theme.ThemeChannel
+		}
+
 		actualRow := (rows + i) - skipped
 
-		s.table.SetCell(actualRow, 0, tview.NewTableCell("[blue::b]"+tview.Escape(result.Title)).
+		s.table.SetCell(actualRow, 0, theme.NewTableCell(
+			theme.ThemeContextSearch,
+			item,
+			tview.Escape(result.Title),
+		).
 			SetExpansion(1).
 			SetReference(result).
-			SetMaxWidth((width / 4)).
-			SetSelectedStyle(app.UI.SelectedStyle),
+			SetMaxWidth((width / 4)),
 		)
 
-		s.table.SetCell(actualRow, 1, tview.NewTableCell(" ").
-			SetSelectable(false).
+		s.table.SetCell(actualRow, 1, theme.NewTableCell(
+			theme.ThemeContextSearch,
+			theme.ThemeBackground,
+			" ",
+		).
+			SetSelectable(true).
 			SetAlign(tview.AlignRight),
 		)
 
-		s.table.SetCell(actualRow, 2, tview.NewTableCell("[purple::b]"+tview.Escape(author)).
+		s.table.SetCell(actualRow, 2, theme.NewTableCell(
+			theme.ThemeContextSearch,
+			theme.ThemeAuthor,
+			tview.Escape(author),
+		).
 			SetSelectable(true).
 			SetMaxWidth((width / 4)).
-			SetAlign(tview.AlignLeft).
-			SetSelectedStyle(app.UI.ColumnStyle),
+			SetAlign(tview.AlignLeft),
 		)
 
-		s.table.SetCell(actualRow, 3, tview.NewTableCell(" ").
-			SetSelectable(false).
+		s.table.SetCell(actualRow, 3, theme.NewTableCell(
+			theme.ThemeContextSearch,
+			theme.ThemeBackground,
+			" ",
+		).
+			SetSelectable(true).
 			SetAlign(tview.AlignRight),
 		)
 
 		if result.Type == "playlist" || result.Type == "channel" {
-			s.table.SetCell(actualRow, 4, tview.NewTableCell("[pink]"+strconv.FormatInt(result.VideoCount, 10)+" videos").
+			s.table.SetCell(actualRow, 4, theme.NewTableCell(
+				theme.ThemeContextSearch,
+				theme.ThemeTotalVideos,
+				strconv.FormatInt(result.VideoCount, 10)+" videos",
+			).
 				SetSelectable(true).
-				SetAlign(tview.AlignRight).
-				SetSelectedStyle(app.UI.ColumnStyle),
+				SetAlign(tview.AlignRight),
 			)
 
 			if result.Type == "playlist" {
 				continue
 			}
 		} else {
-			s.table.SetCell(actualRow, 4, tview.NewTableCell("[pink]"+lentext).
+			s.table.SetCell(actualRow, 4, theme.NewTableCell(
+				theme.ThemeContextSearch,
+				theme.ThemeTotalDuration,
+				lentext,
+			).
 				SetSelectable(true).
-				SetAlign(tview.AlignRight).
-				SetSelectedStyle(app.UI.ColumnStyle),
+				SetAlign(tview.AlignRight),
 			)
 		}
 
-		s.table.SetCell(actualRow, 5, tview.NewTableCell(" ").
-			SetSelectable(false).
+		s.table.SetCell(actualRow, 5, theme.NewTableCell(
+			theme.ThemeContextSearch,
+			theme.ThemeBackground,
+			" ",
+		).
+			SetSelectable(true).
 			SetAlign(tview.AlignRight),
 		)
 
 		if result.Type == "channel" {
-			s.table.SetCell(actualRow, 6, tview.NewTableCell("[pink]"+utils.FormatNumber(result.SubCount)+" subs").
+			s.table.SetCell(actualRow, 6, theme.NewTableCell(
+				theme.ThemeContextSearch,
+				theme.ThemeSubscribers,
+				utils.FormatNumber(result.SubCount)+" subs",
+			).
 				SetSelectable(true).
-				SetAlign(tview.AlignRight).
-				SetSelectedStyle(app.UI.ColumnStyle),
+				SetAlign(tview.AlignRight),
 			)
 		} else {
-			s.table.SetCell(actualRow, 6, tview.NewTableCell("[pink]"+utils.FormatPublished(result.PublishedText)).
+			s.table.SetCell(actualRow, 6, theme.NewTableCell(
+				theme.ThemeContextSearch,
+				theme.ThemePublished,
+				utils.FormatPublished(result.PublishedText),
+			).
 				SetSelectable(true).
-				SetAlign(tview.AlignRight).
-				SetSelectedStyle(app.UI.ColumnStyle),
+				SetAlign(tview.AlignRight),
 			)
 		}
 	}

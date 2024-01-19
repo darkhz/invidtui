@@ -10,6 +10,7 @@ import (
 	"sync"
 
 	"github.com/darkhz/invidtui/cmd"
+	"github.com/darkhz/invidtui/ui/theme"
 	"github.com/darkhz/invidtui/utils"
 	"github.com/darkhz/tview"
 	"github.com/gdamore/tcell/v2"
@@ -46,35 +47,30 @@ func (f *FileBrowser) setup() {
 		return
 	}
 
-	f.title = tview.NewTextView()
-	f.title.SetDynamicColors(true)
-	f.title.SetTextAlign(tview.AlignCenter)
-	f.title.SetBackgroundColor(tcell.ColorDefault)
+	property := f.ThemeProperty()
 
-	f.table = tview.NewTable()
+	f.title = theme.NewTextView(property)
+	f.title.SetTextAlign(tview.AlignCenter)
+
+	f.table = theme.NewTable(property)
 	f.table.SetSelectorWrap(true)
 	f.table.SetInputCapture(f.Keybindings)
-	f.table.SetBackgroundColor(tcell.ColorDefault)
 	f.table.SetSelectionChangedFunc(f.selectorHandler)
 
-	f.input = tview.NewInputField()
-	f.input.SetLabel("[::b]File: ")
+	f.input = theme.NewInputField(property, "File:")
 	f.input.SetInputCapture(f.inputFunc)
-	f.input.SetLabelColor(tcell.ColorWhite)
-	f.input.SetBackgroundColor(tcell.ColorDefault)
-	f.input.SetFieldBackgroundColor(tcell.ColorDefault)
 	f.input.SetFocusFunc(func() {
 		SetContextMenu(cmd.KeyContextFiles, f.input)
 	})
 
-	f.flex = tview.NewFlex().
+	f.flex = theme.NewFlex(property).
 		SetDirection(tview.FlexRow).
 		AddItem(f.title, 1, 0, false).
 		AddItem(f.table, 0, 1, false).
-		AddItem(HorizontalLine(), 1, 0, false).
+		AddItem(HorizontalLine(property), 1, 0, false).
 		AddItem(f.input, 1, 0, true)
 
-	f.modal = NewModal("Files", "Browse", f.flex, 60, 100)
+	f.modal = NewModal("Files", "Browse", f.flex, 60, 100, property)
 
 	f.lock = semaphore.NewWeighted(1)
 
@@ -89,8 +85,11 @@ func (f *FileBrowser) Show(prompt string, dofunc func(text string), options ...F
 	f.dofunc = dofunc
 	f.dironly = false
 
-	f.prompt = "[::b]" + prompt + " "
+	f.prompt = prompt
 	f.input.SetLabel(f.prompt)
+	f.input.SetLabelWidth(
+		tview.TaggedStringWidth(f.input.GetLabel()) + 1,
+	)
 
 	if options != nil {
 		f.dironly = options[0].ShowDirOnly
@@ -199,7 +198,9 @@ func (f *FileBrowser) Keybindings(event *tcell.EventKey) *tcell.EventKey {
 	case cmd.KeyFilebrowserDirForward:
 		sel, _ := f.table.GetSelection()
 		cell := f.table.GetCell(sel, 0)
-		go f.cd(filepath.Clean(cell.Text), true, false)
+		if entry, ok := cell.GetReference().(fs.DirEntry); ok {
+			go f.cd(entry.Name(), true, false)
+		}
 
 	case cmd.KeyFilebrowserDirBack:
 		go f.cd("", false, true)
@@ -256,12 +257,25 @@ func (f *FileBrowser) selectorHandler(row, col int) {
 	sel, _ := f.table.GetSelection()
 	cell := f.table.GetCell(sel, 0)
 
-	if !f.dironly && strings.Contains(cell.Text, string(os.PathSeparator)) {
+	entry, ok := cell.GetReference().(fs.DirEntry)
+	if !ok {
+		return
+	}
+
+	if !f.dironly && entry.IsDir() {
 		f.input.SetText("")
 		return
 	}
 
-	f.input.SetText(cell.Text)
+	f.input.SetText(entry.Name())
+}
+
+// ThemeProperty returns the filebrowser's theme property.
+func (f *FileBrowser) ThemeProperty() theme.ThemeProperty {
+	return theme.ThemeProperty{
+		Context: theme.ThemeContextFiles,
+		Item:    theme.ThemePopupBackground,
+	}
 }
 
 // cd changes the directory.
@@ -366,7 +380,7 @@ func (f *FileBrowser) render(dlist []fs.DirEntry, cdBack bool) {
 		f.table.SetSelectable(false, false)
 
 		for row, entry := range dlist {
-			var color tcell.Color
+			var item theme.ThemeItem
 
 			name := entry.Name()
 			if entry.IsDir() {
@@ -375,20 +389,32 @@ func (f *FileBrowser) render(dlist []fs.DirEntry, cdBack bool) {
 				}
 
 				name += string(os.PathSeparator)
-				color = tcell.ColorBlue
+				item = theme.ThemeDirectory
 			} else {
-				color = tcell.ColorWhite
+				item = theme.ThemeFile
 			}
 
-			f.table.SetCell(row, 0, tview.NewTableCell(name).
-				SetTextColor(color))
+			f.table.SetCell(row, 0, theme.NewTableCell(
+				theme.ThemeContextFiles,
+				item,
+				name,
+			).
+				SetReference(entry),
+			)
 		}
 
 		f.table.ScrollToBeginning()
 		f.table.SetSelectable(true, false)
 		f.table.Select(pos, 0)
 
-		f.title.SetText("[::bu]" + f.currentPath)
+		f.title.SetText(
+			theme.SetTextStyle(
+				"path",
+				f.currentPath,
+				theme.ThemeContextFiles,
+				theme.ThemePath,
+			),
+		)
 
 		ResizeModal()
 	})
@@ -427,7 +453,7 @@ func (f *FileBrowser) confirmOverwrite(file string) (int, bool, bool, bool) {
 
 // newFolder prompts for a name and creates a directory.
 func (f *FileBrowser) newFolder() {
-	name := f.Query("[::b]Folder name:", f.validateText)
+	name := f.Query("Folder name:", f.validateText)
 	if name == "" {
 		return
 	}
@@ -442,7 +468,7 @@ func (f *FileBrowser) newFolder() {
 
 // renameItem prompts for a name and renames the currently selected entry.
 func (f *FileBrowser) renameItem() {
-	name := f.Query("[::b]Rename to:", f.validateText)
+	name := f.Query("Rename to:", f.validateText)
 	if name == "" {
 		return
 	}

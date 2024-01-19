@@ -13,6 +13,7 @@ import (
 	"github.com/darkhz/invidtui/cmd"
 	inv "github.com/darkhz/invidtui/invidious"
 	"github.com/darkhz/invidtui/ui/app"
+	"github.com/darkhz/invidtui/ui/theme"
 	"github.com/darkhz/invidtui/utils"
 	"github.com/darkhz/tview"
 	"github.com/gdamore/tcell/v2"
@@ -24,12 +25,15 @@ type DownloadsView struct {
 	init          bool
 	modal         *app.Modal
 	options, view *tview.Table
+
+	property theme.ThemeProperty
 }
 
 // DownloadProgress describes the layout of a progress indicator.
 type DownloadProgress struct {
 	desc, progress *tview.TableCell
 	bar            *progressbar.ProgressBar
+	builder        theme.ThemeTextBuilder
 
 	cancelFunc context.CancelFunc
 }
@@ -39,6 +43,11 @@ type DownloadData struct {
 	id, title, dtype string
 
 	format inv.VideoFormat
+}
+
+type DownloadItem struct {
+	region, text string
+	item         theme.ThemeItem
 }
 
 // Downloads stores the downloads view properties.
@@ -55,28 +64,33 @@ func (d *DownloadsView) Init() bool {
 		return true
 	}
 
-	d.options = tview.NewTable()
-	d.options.SetSelectorWrap(true)
+	d.property = d.ThemeProperty()
+
+	d.options = theme.NewTable(d.property)
 	d.options.SetSelectable(true, false)
-	d.options.SetBackgroundColor(tcell.ColorDefault)
 	d.options.SetInputCapture(d.OptionKeybindings)
 	d.options.SetFocusFunc(func() {
 		app.SetContextMenu(cmd.KeyContextDownloads, d.options)
 	})
 
-	d.view = tview.NewTable()
+	d.view = theme.NewTable(d.property.SetItem(theme.ThemeBackground))
 	d.view.SetBorder(true)
-	d.view.SetSelectorWrap(true)
-	d.view.SetTitle("Download List")
+	d.view.SetTitle(
+		theme.SetTextStyle(
+			"title",
+			"Download List",
+			d.property.Context,
+			theme.ThemeTitle,
+		),
+	)
 	d.view.SetSelectable(true, false)
 	d.view.SetTitleAlign(tview.AlignLeft)
-	d.view.SetBackgroundColor(tcell.ColorDefault)
 	d.view.SetInputCapture(d.Keybindings)
 	d.view.SetFocusFunc(func() {
 		app.SetContextMenu(cmd.KeyContextDownloads, d.view)
 	})
 
-	d.modal = app.NewModal("downloads", "Select Download Option", d.options, 40, 60)
+	d.modal = app.NewModal("downloads", "Select Download Option", d.options, 40, 60, d.property)
 
 	d.init = true
 
@@ -96,6 +110,19 @@ func (d *DownloadsView) Tabs() app.Tab {
 // Primitive returns the primitive for the downloads view.
 func (d *DownloadsView) Primitive() tview.Primitive {
 	return d.view
+}
+
+// ThemeProperty returns the download view's theme property.
+func (d *DownloadsView) ThemeProperty() theme.ThemeProperty {
+	return theme.ThemeProperty{
+		Context: theme.ThemeContextDownloads,
+		Item:    theme.ThemePopupBackground,
+	}
+}
+
+// IsInitialized returns whether the downloads view is initialized.
+func (d *DownloadsView) IsInitialized() bool {
+	return d.init
 }
 
 // View shows the download view.
@@ -295,6 +322,8 @@ func (d *DownloadsView) renderOptions(video inv.VideoData) {
 
 	d.options.Clear()
 
+	builder := theme.NewTextBuilder(theme.ThemeContextDownloads)
+
 	for i, formatData := range [][]inv.VideoFormat{
 		video.FormatStreams,
 		video.AdaptiveFormats,
@@ -302,21 +331,6 @@ func (d *DownloadsView) renderOptions(video inv.VideoData) {
 		rows := d.options.GetRowCount()
 
 		for row, format := range formatData {
-			var err error
-			var minfo, size string
-			var optionInfo []string
-
-			if i != 0 {
-				minfo = " only"
-			} else {
-				minfo = " + audio"
-				clen := utils.GetDataFromURL(format.URL).Get("clen")
-				format.ContentLength, err = strconv.ParseInt(clen, 10, 64)
-				if err != nil {
-					format.ContentLength = 0
-				}
-			}
-
 			mtype := strings.Split(strings.Split(format.Type, ";")[0], "/")
 			if (mtype[0] == "audio" && (format.Container == "" || format.Encoding == "")) ||
 				(mtype[0] == "video" && format.FPS == 0) {
@@ -324,27 +338,39 @@ func (d *DownloadsView) renderOptions(video inv.VideoData) {
 				continue
 			}
 
-			if format.ContentLength == 0 {
-				size = "-"
+			builder.Start(theme.ThemeMediaInfo, "minfo")
+			fmt.Fprintf(&builder, "%s", mtype[0])
+			if i != 0 {
+				builder.AppendText(" only")
 			} else {
-				size = strconv.FormatFloat(float64(format.ContentLength)/1024/1024, 'f', 2, 64)
-			}
+				var err error
 
-			optionInfo = []string{
-				"[red::b]" + mtype[0] + minfo + "[-:-:-]",
-				"[blue::b]" + size + " MB[-:-:-]",
-				"[purple::b]" + format.Container + "/" + format.Encoding + "[-:-:-]",
+				builder.AppendText(" + audio")
+				clen := utils.GetDataFromURL(format.URL).Get("clen")
+				format.ContentLength, err = strconv.ParseInt(clen, 10, 64)
+				if err != nil {
+					format.ContentLength = 0
+				}
 			}
-			if mtype[0] != "audio" {
-				optionInfo = append(optionInfo, []string{
-					"[green::b]" + format.Resolution + "[-:-:-]",
-					"[yellow::b]" + strconv.Itoa(format.FPS) + "fps[-:-:-]",
-				}...)
+			builder.Finish()
+			builder.AppendText(", ")
+
+			builder.Start(theme.ThemeMediaSize, "msize")
+			if format.ContentLength == 0 {
+				builder.AppendText("-")
 			} else {
-				optionInfo = append(optionInfo, []string{
-					"[lightpink::b]" + strconv.Itoa(format.AudioSampleRate) + "kHz[-:-:-]",
-					"[grey::b]" + strconv.Itoa(format.AudioChannels) + "ch[-:-:-]",
-				}...)
+				fmt.Fprintf(&builder, "%.2f MB", float64(format.ContentLength)/1024/1024)
+			}
+			builder.Finish()
+			builder.AppendText(", ")
+
+			builder.Format(theme.ThemeMediaType, "mtype", "%s / %s, ", format.Container, format.Encoding)
+			if mtype[0] != "audio" {
+				builder.Format(theme.ThemeVideoResolution, "vres", "%s, ", format.Resolution)
+				builder.Format(theme.ThemeVideoFPS, "vfps", "%d fps", format.FPS)
+			} else {
+				builder.Format(theme.ThemeAudioSampleRate, "akhz", "%d kHz, ", format.AudioSampleRate)
+				builder.Format(theme.ThemeAudioChannels, "auch", "%d ch", format.AudioChannels)
 			}
 
 			data := DownloadData{
@@ -355,16 +381,15 @@ func (d *DownloadsView) renderOptions(video inv.VideoData) {
 				format: format,
 			}
 
-			option := strings.Join(optionInfo, ", ")
-			optionLength := tview.TaggedStringWidth(option) + 6
+			text := builder.Get()
+			optionLength := tview.TaggedStringWidth(text) + 6
 			if optionLength > width {
 				width = optionLength
 			}
 
-			d.options.SetCell((rows+row)-skipped, 0, tview.NewTableCell(option).
+			d.options.SetCell((rows+row)-skipped, 0, tview.NewTableCell(text).
 				SetExpansion(1).
-				SetReference(data).
-				SetSelectedStyle(app.UI.ColumnStyle),
+				SetReference(data),
 			)
 		}
 	}
@@ -417,12 +442,20 @@ func (p *DownloadProgress) renderBar(filename string, clen int64, cancel func(),
 		options = append(options, progressbar.OptionShowBytes(true))
 	}
 
-	p.desc = tview.NewTableCell("[::b]" + tview.Escape(filename)).
+	p.desc = theme.NewTableCell(
+		theme.ThemeContextDownloads,
+		theme.ThemeProgressText,
+		tview.Escape(filename),
+	).
 		SetExpansion(1).
 		SetSelectable(true).
 		SetAlign(tview.AlignLeft)
 
-	p.progress = tview.NewTableCell("").
+	p.progress = theme.NewTableCell(
+		theme.ThemeContextDownloads,
+		theme.ThemeProgressBar,
+		"",
+	).
 		SetExpansion(1).
 		SetSelectable(false).
 		SetAlign(tview.AlignRight)
@@ -430,6 +463,8 @@ func (p *DownloadProgress) renderBar(filename string, clen int64, cancel func(),
 	p.bar = progressbar.NewOptions64(clen, options...)
 
 	p.cancelFunc = cancel
+
+	p.builder = theme.NewTextBuilder(theme.ThemeContextDownloads)
 
 	app.UI.QueueUpdateDraw(func() {
 		rows := Downloads.view.GetRowCount()
@@ -442,8 +477,12 @@ func (p *DownloadProgress) renderBar(filename string, clen int64, cancel func(),
 
 // Write generates the progress bar.
 func (p *DownloadProgress) Write(b []byte) (int, error) {
+	p.builder.Start(theme.ThemeProgressBar, "progress")
+	p.builder.Write(b)
+	p.builder.Finish()
+
 	app.UI.QueueUpdateDraw(func() {
-		p.progress.SetText(string(b))
+		p.progress.SetText(p.builder.Get())
 	})
 
 	return 0, nil

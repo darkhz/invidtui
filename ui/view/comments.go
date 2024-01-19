@@ -1,11 +1,10 @@
 package view
 
 import (
-	"strconv"
-
 	"github.com/darkhz/invidtui/cmd"
 	inv "github.com/darkhz/invidtui/invidious"
 	"github.com/darkhz/invidtui/ui/app"
+	"github.com/darkhz/invidtui/ui/theme"
 	"github.com/darkhz/invidtui/utils"
 	"github.com/darkhz/tview"
 	"github.com/gdamore/tcell/v2"
@@ -21,6 +20,9 @@ type CommentsView struct {
 	view  *tview.TreeView
 	root  *tview.TreeNode
 
+	property theme.ThemeProperty
+	builder  theme.ThemeTextBuilder
+
 	lock *semaphore.Weighted
 }
 
@@ -29,13 +31,15 @@ var Comments CommentsView
 
 // Init initializes the comments view.
 func (c *CommentsView) Init() {
-	c.view = tview.NewTreeView()
+	c.property = theme.ThemeProperty{
+		Context: theme.ThemeContextComments,
+		Item:    theme.ThemePopupBackground,
+	}
+
+	c.builder = theme.NewTextBuilder(c.property.Context)
+
+	c.view = theme.NewTreeView(c.property)
 	c.view.SetGraphics(false)
-	c.view.SetBackgroundColor(tcell.ColorDefault)
-	c.view.SetSelectedStyle(tcell.Style{}.
-		Foreground(tcell.Color16).
-		Background(tcell.ColorWhite),
-	)
 	c.view.SetSelectedFunc(c.selectorHandler)
 	c.view.SetInputCapture(c.Keybindings)
 	c.view.SetFocusFunc(func() {
@@ -44,7 +48,7 @@ func (c *CommentsView) Init() {
 
 	c.root = tview.NewTreeNode("")
 
-	c.modal = app.NewModal("comments", "Comments", c.view, 40, 0)
+	c.modal = app.NewModal("comments", "Comments", c.view, 40, 0, c.property)
 
 	c.lock = semaphore.NewWeighted(1)
 
@@ -88,7 +92,7 @@ func (c *CommentsView) Load(id, title string) {
 	app.ShowInfo("Loaded comments", false)
 
 	app.UI.QueueUpdateDraw(func() {
-		c.root.SetText("[blue::bu]" + title)
+		c.setNodeText(c.root, theme.ThemeVideo, tview.Escape(title))
 		for _, comment := range comments.Comments {
 			c.addComment(c.root, comment)
 		}
@@ -115,15 +119,17 @@ func (c *CommentsView) Subcomments(selected, removed *tview.TreeNode, continuati
 		showNode = removed
 	}
 
+	item := theme.ThemeText
+
 	app.UI.QueueUpdateDraw(func() {
-		showNode.SetText("-- Loading comments --")
+		c.setNodeText(showNode, item, "-- Loading comments --")
 	})
 
 	subcomments, err := inv.Comments(c.currentID, continuation)
 	if err != nil {
 		app.ShowError(err)
 		app.UI.QueueUpdateDraw(func() {
-			selected.SetText("-- Reload --")
+			c.setNodeText(selected, item, "-- Reload --")
 		})
 
 		return
@@ -137,7 +143,7 @@ func (c *CommentsView) Subcomments(selected, removed *tview.TreeNode, continuati
 			}
 		}
 
-		showNode.SetText("-- Hide comments --")
+		c.setNodeText(showNode, item, "-- Hide comments --")
 
 		if removed != nil {
 			selected.RemoveChild(removed)
@@ -193,7 +199,7 @@ func (c *CommentsView) selectorHandler(node *tview.TreeNode) {
 		}
 
 		node.SetExpanded(!expanded)
-		node.SetText("-- " + toggle + " comments --")
+		c.setNodeText(node, theme.ThemeText, "-- "+toggle+" comments --")
 
 		return
 	}
@@ -210,28 +216,30 @@ func (c *CommentsView) selectorHandler(node *tview.TreeNode) {
 
 // addComments adds the provided comment to the comment node.
 func (c *CommentsView) addComment(node *tview.TreeNode, comment inv.CommentData) *tview.TreeNode {
-	authorInfo := "- [purple::bu]" + comment.Author + "[-:-:-]"
-	authorInfo += " [grey::b]" + utils.FormatPublished(comment.PublishedText) + "[-:-:-]"
+	c.builder.Format(theme.ThemeAuthor, "author", "- %s", tview.Escape(comment.Author))
+	c.builder.Format(theme.ThemePublished, "published", " %s", utils.FormatPublished(comment.PublishedText))
 	if comment.Verified {
-		authorInfo += " [aqua::b](Verified)[-:-:-]"
+		c.builder.Format(theme.ThemeAuthorVerified, "verified", " %s", "(Verified)")
 	}
 	if comment.AuthorIsChannelOwner {
-		authorInfo += " [plum::b](Owner)"
+		c.builder.Format(theme.ThemeAuthorOwner, "owner", " %s", "(Owner)")
 	}
-	authorInfo += " [red::b](" + strconv.Itoa(comment.LikeCount) + " likes)"
+	c.builder.Format(theme.ThemeLikes, "likes", " (%d likes)", comment.LikeCount)
 
-	commentNode := tview.NewTreeNode(authorInfo)
-	for _, line := range utils.SplitLines(comment.Content) {
+	commentNode := tview.NewTreeNode(c.builder.Get())
+	for _, line := range tview.WordWrap(tview.Escape(comment.Content), 60) {
+		c.builder.Format(theme.ThemeComment, "comment", " %s", line)
 		commentNode.AddChild(
-			tview.NewTreeNode(" " + line).
+			tview.NewTreeNode(c.builder.Get()).
 				SetSelectable(false).
 				SetIndent(1),
 		)
 	}
 
 	if comment.Replies.ReplyCount > 0 {
+		c.builder.Format(theme.ThemeText, "replies", "-- Load  %d replies --", comment.Replies.ReplyCount)
 		commentNode.AddChild(
-			tview.NewTreeNode("-- Load " + strconv.Itoa(comment.Replies.ReplyCount) + " replies --").
+			tview.NewTreeNode(c.builder.Get()).
 				SetReference(comment.Replies.Continuation),
 		)
 	}
@@ -256,4 +264,11 @@ func (c *CommentsView) addContinuation(node *tview.TreeNode, continuation string
 			SetSelectable(true).
 			SetReference(continuation),
 	)
+}
+
+func (c *CommentsView) setNodeText(node *tview.TreeNode, item theme.ThemeItem, text string) *tview.TreeNode {
+	c.builder.Append(item, "node", text)
+	node.SetText(c.builder.Get())
+
+	return node
 }

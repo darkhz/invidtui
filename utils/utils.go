@@ -79,24 +79,24 @@ func FormatPublished(published string) string {
 // one decimal place. If there is a zero after the decimal,
 // it is removed.
 func FormatNumber(num int) string {
+	var sb strings.Builder
+
 	for i, n := range []int{
 		1000000000,
 		1000000,
 		1000,
 	} {
 		if num >= n {
-			str := fmt.Sprintf("%.1f%c", float64(num)/float64(n), "BMK"[i])
-
-			split := strings.Split(str, ".")
-			if strings.Contains(split[1], "0") {
-				str = split[0]
-			}
-
-			return str
+			fmt.Fprintf(&sb, "%.0f%c", float64(num)/float64(n), "BMK"[i])
+			break
 		}
 	}
 
-	return strconv.Itoa(num)
+	if sb.Len() == 0 {
+		fmt.Fprintf(&sb, "%d", num)
+	}
+
+	return sb.String()
 }
 
 // ConvertDurationToSeconds converts a "hh:mm:ss" string to seconds.
@@ -122,32 +122,6 @@ func ConvertDurationToSeconds(duration string) int64 {
 	d, _ := time.ParseDuration(strings.Join(dursplit, ""))
 
 	return int64(d.Seconds())
-}
-
-// SplitLines splits a given string into separate lines.
-func SplitLines(line string) []string {
-	var currPos int
-	var lines []string
-	var joinedString string
-
-	split := strings.Fields(line)
-
-	for i, w := range split {
-		joinedString += w + " "
-
-		if len(joinedString) >= 60 {
-			lines = append(lines, joinedString)
-			joinedString = ""
-
-			currPos = i
-		}
-	}
-
-	if lines == nil || currPos < len(split) {
-		lines = append(lines, joinedString)
-	}
-
-	return lines
 }
 
 // SanitizeCookie sanitizes and returns the provided cookie.

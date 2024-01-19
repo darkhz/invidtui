@@ -5,6 +5,7 @@ import (
 
 	"github.com/darkhz/invidtui/cmd"
 	"github.com/darkhz/invidtui/ui/app"
+	"github.com/darkhz/invidtui/ui/theme"
 	"github.com/darkhz/tview"
 	"github.com/gdamore/tcell/v2"
 )
@@ -62,6 +63,14 @@ func (b *BannerView) Primitive() tview.Primitive {
 	return b.flex
 }
 
+// ThemeProperty returns the banner view's theme property.
+func (d *BannerView) ThemeProperty() theme.ThemeProperty {
+	return theme.ThemeProperty{
+		Context: theme.ThemeContextStart,
+		Item:    theme.ThemeBackground,
+	}
+}
+
 // Keybindings describes the banner view's keybindings.
 func (b *BannerView) Keybindings(event *tcell.EventKey) *tcell.EventKey {
 	switch cmd.KeyOperation(event) {
@@ -74,17 +83,26 @@ func (b *BannerView) Keybindings(event *tcell.EventKey) *tcell.EventKey {
 
 // setup sets up the banner view.
 func (b *BannerView) setup() {
+	property := theme.ThemeProperty{
+		Context: theme.ThemeContextStart,
+		Item:    theme.ThemeBackground,
+	}
+
 	lines := strings.Split(bannerText, "\n")
 	bannerWidth := 0
 	bannerHeight := len(lines)
 
-	bannerBox := tview.NewTextView()
-	bannerBox.SetDynamicColors(true)
-	bannerBox.SetBackgroundColor(tcell.ColorDefault)
-	bannerBox.SetText("[::b]" + bannerText)
+	bannerBox := theme.NewTextView(property)
+	bannerBox.SetText(
+		theme.SetTextStyle(
+			"banner",
+			bannerText,
+			theme.ThemeContextStart,
+			theme.ThemeText,
+		),
+	)
 
-	box := tview.NewBox().
-		SetBackgroundColor(tcell.ColorDefault)
+	box := theme.NewBox(property)
 
 	for _, line := range lines {
 		if len(line) > bannerWidth {
@@ -92,15 +110,14 @@ func (b *BannerView) setup() {
 		}
 	}
 
-	b.flex = tview.NewFlex().
+	b.flex = theme.NewFlex(property).
 		SetDirection(tview.FlexRow).
 		AddItem(box, 0, 7, false).
-		AddItem(tview.NewFlex().
+		AddItem(theme.NewFlex(property).
 			AddItem(box, 0, 1, false).
 			AddItem(bannerBox, bannerWidth, 1, true).
 			AddItem(box, 0, 1, false), bannerHeight, 1, true).
 		AddItem(box, 0, 7, false)
-	b.flex.SetBackgroundColor(tcell.ColorDefault)
 	b.flex.SetInputCapture(b.Keybindings)
 	bannerBox.SetFocusFunc(func() {
 		app.SetContextMenu(cmd.KeyContextStart, b.flex)

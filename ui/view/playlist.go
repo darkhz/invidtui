@@ -8,6 +8,7 @@ import (
 	inv "github.com/darkhz/invidtui/invidious"
 	"github.com/darkhz/invidtui/ui/app"
 	"github.com/darkhz/invidtui/ui/popup"
+	"github.com/darkhz/invidtui/ui/theme"
 	"github.com/darkhz/invidtui/utils"
 	"github.com/darkhz/tview"
 	"github.com/gdamore/tcell/v2"
@@ -24,6 +25,8 @@ type PlaylistView struct {
 
 	table    *tview.Table
 	infoView InfoView
+
+	property theme.ThemeProperty
 
 	lock *semaphore.Weighted
 }
@@ -42,15 +45,15 @@ func (p *PlaylistView) Init() bool {
 		return true
 	}
 
-	p.table = tview.NewTable()
-	p.table.SetSelectorWrap(true)
+	p.property = p.ThemeProperty()
+
+	p.table = theme.NewTable(p.property)
 	p.table.SetInputCapture(p.Keybindings)
-	p.table.SetBackgroundColor(tcell.ColorDefault)
 	p.table.SetFocusFunc(func() {
 		app.SetContextMenu(cmd.KeyContextPlaylist, p.table)
 	})
 
-	p.infoView.Init(p.table)
+	p.infoView.Init(p.table, p.property)
 
 	p.idmap = make(map[string]struct{})
 	p.lock = semaphore.NewWeighted(1)
@@ -86,6 +89,14 @@ func (p *PlaylistView) Tabs() app.Tab {
 // Primitive returns the primitive for the playlist view.
 func (p *PlaylistView) Primitive() tview.Primitive {
 	return p.infoView.flex
+}
+
+// ThemeProperty returns the playlist view's theme property.
+func (p *PlaylistView) ThemeProperty() theme.ThemeProperty {
+	return theme.ThemeProperty{
+		Context: theme.ThemeContextPlaylist,
+		Item:    theme.ThemeBackground,
+	}
 }
 
 // View shows the playlist view.
@@ -152,7 +163,7 @@ func (p *PlaylistView) Load(id string, loadMore ...struct{}) {
 
 	app.UI.QueueUpdateDraw(func() {
 		if loadMore == nil {
-			p.infoView.Set(result.Title, result.Description)
+			p.infoView.Set(tview.Escape(result.Title), tview.Escape(result.Description))
 			p.View()
 
 			p.table.Clear()
@@ -250,17 +261,23 @@ func (p *PlaylistView) renderPlaylist(result inv.PlaylistData, id string) {
 			Author:     result.Author,
 		}
 
-		p.table.SetCell((rows+i)-skipped, 0, tview.NewTableCell("[blue::b]"+tview.Escape(v.Title)).
+		p.table.SetCell((rows+i)-skipped, 0, theme.NewTableCell(
+			theme.ThemeContextPlaylist,
+			theme.ThemeVideo,
+			tview.Escape(v.Title),
+		).
 			SetExpansion(1).
 			SetReference(sref).
-			SetMaxWidth((pageWidth / 4)).
-			SetSelectedStyle(app.UI.SelectedStyle),
+			SetMaxWidth((pageWidth / 4)),
 		)
 
-		p.table.SetCell((rows+i)-skipped, 1, tview.NewTableCell("[pink]"+utils.FormatDuration(v.LengthSeconds)).
+		p.table.SetCell((rows+i)-skipped, 1, theme.NewTableCell(
+			theme.ThemeContextPlaylist,
+			theme.ThemeTotalDuration,
+			utils.FormatDuration(v.LengthSeconds),
+		).
 			SetSelectable(true).
-			SetAlign(tview.AlignRight).
-			SetSelectedStyle(app.UI.ColumnStyle),
+			SetAlign(tview.AlignRight),
 		)
 	}
 

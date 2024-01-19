@@ -4,17 +4,26 @@ import (
 	"fmt"
 
 	inv "github.com/darkhz/invidtui/invidious"
+	"github.com/darkhz/invidtui/ui/theme"
 	"github.com/darkhz/tview"
 	"github.com/gdamore/tcell/v2"
 )
 
 // HorizontalLine returns a box with a thick horizontal line.
-func HorizontalLine() *tview.Box {
-	return tview.NewBox().
-		SetBackgroundColor(tcell.ColorDefault).
-		SetDrawFunc(func(
-			screen tcell.Screen,
-			x, y, width, height int) (int, int, int, int) {
+func HorizontalLine(property theme.ThemeProperty) *tview.Box {
+	box := tview.NewBox()
+	theme.WrapDrawFunc(
+		box,
+		property,
+		func(screen tcell.Screen, x, y, width, height int) (int, int, int, int) {
+			style, _, ok := theme.GetThemeSetting(theme.ThemeProperty{
+				Context: property.Context,
+				Item:    theme.ThemeBorder,
+			})
+			if !ok {
+				style = tcell.StyleDefault.Foreground(tcell.ColorWhite)
+			}
+
 			centerY := y + height/2
 			for cx := x; cx < x+width; cx++ {
 				screen.SetContent(
@@ -22,7 +31,7 @@ func HorizontalLine() *tview.Box {
 					centerY,
 					tview.BoxDrawingsLightHorizontal,
 					nil,
-					tcell.StyleDefault.Foreground(tcell.ColorWhite),
+					style,
 				)
 			}
 
@@ -30,24 +39,39 @@ func HorizontalLine() *tview.Box {
 				centerY + 1,
 				width - 2,
 				height - (centerY + 1 - y)
-		})
+		},
+		struct{}{},
+	)
+
+	return box
 }
 
 // VerticalLine returns a box with a thick vertical line.
-func VerticalLine() *tview.Box {
-	return tview.NewBox().
-		SetBackgroundColor(tcell.ColorDefault).
-		SetDrawFunc(func(
-			screen tcell.Screen,
-			x, y, width, height int,
-		) (int, int, int, int) {
+func VerticalLine(property theme.ThemeProperty) *tview.Box {
+	box := tview.NewBox()
+	theme.WrapDrawFunc(
+		box,
+		property,
+		func(screen tcell.Screen, x, y, width, height int) (int, int, int, int) {
+			style, _, ok := theme.GetThemeSetting(theme.ThemeProperty{
+				Context: property.Context,
+				Item:    theme.ThemeBorder,
+			})
+			if !ok {
+				style = tcell.StyleDefault.Foreground(tcell.ColorWhite)
+			}
+
 			for cy := y; cy < y+height; cy++ {
-				screen.SetContent(x, cy, tview.BoxDrawingsLightVertical, nil, tcell.StyleDefault.Foreground(tcell.ColorWhite))
-				screen.SetContent(x+width-1, cy, tview.BoxDrawingsLightVertical, nil, tcell.StyleDefault.Foreground(tcell.ColorWhite))
+				screen.SetContent(x, cy, tview.BoxDrawingsLightVertical, nil, style)
+				screen.SetContent(x+width-1, cy, tview.BoxDrawingsLightVertical, nil, style)
 			}
 
 			return x, y, width, height
-		})
+		},
+		struct{}{},
+	)
+
+	return box
 }
 
 // ModifyReference modifies the currently selected entry within the focused table.

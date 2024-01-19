@@ -10,6 +10,7 @@ import (
 	inv "github.com/darkhz/invidtui/invidious"
 	"github.com/darkhz/invidtui/ui/app"
 	"github.com/darkhz/invidtui/ui/popup"
+	"github.com/darkhz/invidtui/ui/theme"
 	"github.com/darkhz/invidtui/utils"
 	"github.com/darkhz/tview"
 	"github.com/gdamore/tcell/v2"
@@ -25,6 +26,8 @@ type ChannelView struct {
 	infoView InfoView
 	views    *tview.Pages
 	tableMap map[string]*ChannelTable
+
+	property theme.ThemeProperty
 
 	lock  *semaphore.Weighted
 	mutex sync.Mutex
@@ -60,26 +63,22 @@ func (c *ChannelView) Init() bool {
 		return true
 	}
 
+	c.property = c.ThemeProperty()
+
 	c.continuation = make(map[string]*ChannelContinuation)
 	for _, i := range c.Tabs().Info {
 		c.continuation[i.ID] = &ChannelContinuation{}
 	}
 
-	c.views = tview.NewPages()
-	c.views.SetBackgroundColor(tcell.ColorDefault)
+	c.views = theme.NewPages(c.property)
 
 	c.queueWrite(func() {
 		c.tableMap = make(map[string]*ChannelTable)
 
 		for _, info := range c.Tabs().Info {
-			table := tview.NewTable()
-			table.SetSelectorWrap(true)
+			table := theme.NewTable(c.property)
 			table.SetSelectable(true, false)
 			table.SetInputCapture(c.Keybindings)
-			table.SetBackgroundColor(tcell.ColorDefault)
-			table.SetSelectionChangedFunc(func(row, col int) {
-				c.selectorHandler(table, row, col)
-			})
 			table.SetFocusFunc(func() {
 				app.SetContextMenu(cmd.KeyContextChannel, c.views)
 			})
@@ -92,7 +91,7 @@ func (c *ChannelView) Init() bool {
 		}
 	})
 
-	c.infoView.Init(c.views)
+	c.infoView.Init(c.views, c.property)
 
 	c.lock = semaphore.NewWeighted(1)
 
@@ -123,6 +122,14 @@ func (c *ChannelView) Tabs() app.Tab {
 // Primitive returns the primitive for the channel view.
 func (c *ChannelView) Primitive() tview.Primitive {
 	return c.infoView.flex
+}
+
+// ThemeProperty returns the channel view's theme property.
+func (c *ChannelView) ThemeProperty() theme.ThemeProperty {
+	return theme.ThemeProperty{
+		Context: theme.ThemeContextChannel,
+		Item:    theme.ThemeBackground,
+	}
 }
 
 // View shows the channel view.
@@ -217,7 +224,7 @@ func (c *ChannelView) Load(pageType string, loadMore ...struct{}) {
 RenderView:
 	app.UI.QueueUpdateDraw(func() {
 		if GetCurrentView() != &Channel && author != "" {
-			c.infoView.Set(author, description)
+			c.infoView.Set(tview.Escape(author), tview.Escape(description))
 		}
 		if GetCurrentView() != &Channel || app.GetCurrentTab() != pageType {
 			c.View(pageType)
@@ -302,17 +309,23 @@ func (c *ChannelView) Videos(id string, loadMore ...struct{}) (string, string, e
 				Author:   result.Author,
 			}
 
-			videoTable.SetCell((rows+i)-skipped, 0, tview.NewTableCell("[blue::b]"+tview.Escape(v.Title)).
+			videoTable.SetCell((rows+i)-skipped, 0, theme.NewTableCell(
+				theme.ThemeContextChannel,
+				theme.ThemeVideo,
+				tview.Escape(v.Title),
+			).
 				SetExpansion(1).
 				SetReference(sref).
-				SetMaxWidth((pageWidth / 4)).
-				SetSelectedStyle(app.UI.SelectedStyle),
+				SetMaxWidth((pageWidth / 4)),
 			)
 
-			videoTable.SetCell((rows+i)-skipped, 1, tview.NewTableCell("[pink]"+utils.FormatDuration(v.LengthSeconds)).
+			videoTable.SetCell((rows+i)-skipped, 1, theme.NewTableCell(
+				theme.ThemeContextChannel,
+				theme.ThemeTotalDuration,
+				utils.FormatDuration(v.LengthSeconds),
+			).
 				SetSelectable(true).
-				SetAlign(tview.AlignRight).
-				SetSelectedStyle(app.UI.ColumnStyle),
+				SetAlign(tview.AlignRight),
 			)
 		}
 
@@ -386,17 +399,23 @@ func (c *ChannelView) Playlists(id string, loadMore ...struct{}) (string, string
 				Author:     result.Author,
 			}
 
-			playlistTable.SetCell((rows + i), 0, tview.NewTableCell("[blue::b]"+tview.Escape(p.Title)).
+			playlistTable.SetCell((rows + i), 0, theme.NewTableCell(
+				theme.ThemeContextChannel,
+				theme.ThemePlaylist,
+				tview.Escape(p.Title),
+			).
 				SetExpansion(1).
 				SetReference(sref).
-				SetMaxWidth((pageWidth / 4)).
-				SetSelectedStyle(app.UI.SelectedStyle),
+				SetMaxWidth((pageWidth / 4)),
 			)
 
-			playlistTable.SetCell((rows + i), 1, tview.NewTableCell("[pink]"+strconv.FormatInt(p.VideoCount, 10)+" videos").
+			playlistTable.SetCell((rows + i), 1, theme.NewTableCell(
+				theme.ThemeContextChannel,
+				theme.ThemeTotalVideos,
+				strconv.FormatInt(p.VideoCount, 10)+" videos",
+			).
 				SetSelectable(true).
-				SetAlign(tview.AlignRight).
-				SetSelectedStyle(app.UI.ColumnStyle),
+				SetAlign(tview.AlignRight),
 			)
 		}
 
@@ -465,23 +484,32 @@ func (c *ChannelView) Search(text string) {
 				result.Author = ""
 			}
 
-			searchTable.SetCell(rows+i, 0, tview.NewTableCell("[blue::b]"+tview.Escape(result.Title)).
+			searchTable.SetCell(rows+i, 0, theme.NewTableCell(
+				theme.ThemeContextChannel,
+				theme.ThemeVideo,
+				tview.Escape(result.Title),
+			).
 				SetExpansion(1).
 				SetReference(result).
-				SetMaxWidth((width / 4)).
-				SetSelectedStyle(app.UI.SelectedStyle),
+				SetMaxWidth((width / 4)),
 			)
 
-			searchTable.SetCell(rows+i, 1, tview.NewTableCell(" ").
-				SetSelectable(false).
-				SetAlign(tview.AlignRight).
-				SetSelectedStyle(app.UI.ColumnStyle),
-			)
-
-			searchTable.SetCell(rows+i, 2, tview.NewTableCell("[pink]"+result.Type).
+			searchTable.SetCell(rows+i, 1, theme.NewTableCell(
+				theme.ThemeContextChannel,
+				theme.ThemeBackground,
+				" ",
+			).
 				SetSelectable(true).
-				SetAlign(tview.AlignRight).
-				SetSelectedStyle(app.UI.ColumnStyle),
+				SetAlign(tview.AlignRight),
+			)
+
+			searchTable.SetCell(rows+i, 2, theme.NewTableCell(
+				theme.ThemeContextChannel,
+				theme.ThemeMediaType,
+				result.Type,
+			).
+				SetSelectable(true).
+				SetAlign(tview.AlignRight),
 			)
 		}
 
@@ -502,7 +530,7 @@ func (c *ChannelView) Search(text string) {
 func (c *ChannelView) Query() {
 	c.Init()
 
-	label := "[::b]Search channel:"
+	label := "Search channel:"
 	app.UI.Status.SetInput(label, 0, false, c.Search, c.inputFunc)
 }
 
@@ -510,9 +538,7 @@ func (c *ChannelView) Query() {
 func (c *ChannelView) Keybindings(event *tcell.EventKey) *tcell.EventKey {
 	switch cmd.KeyOperation(event) {
 	case cmd.KeySwitchTab:
-		tab := c.Tabs()
-		tab.Selected = c.currentType
-		c.currentType = app.SwitchTab(false, tab)
+		c.currentType = app.SwitchTab(false)
 
 		c.View(c.currentType)
 		go c.Load(c.currentType)
@@ -556,26 +582,6 @@ func (c *ChannelView) inputFunc(e *tcell.EventKey) *tcell.EventKey {
 	}
 
 	return e
-}
-
-// selectorHandler sets the attributes for the currently selected entry.
-func (c *ChannelView) selectorHandler(table *tview.Table, row, col int) {
-	rows := table.GetRowCount()
-
-	if row < 0 || row > rows {
-		return
-	}
-
-	cell := table.GetCell(row, col)
-
-	if cell == nil {
-		return
-	}
-
-	table.SetSelectedStyle(tcell.Style{}.
-		Background(tcell.ColorBlue).
-		Foreground(tcell.ColorWhite).
-		Attributes(cell.Attributes | tcell.AttrBold))
 }
 
 // getTableMap returns a map of tables within the channel view.

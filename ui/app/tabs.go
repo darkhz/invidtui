@@ -1,11 +1,15 @@
 package app
 
-import "fmt"
+import (
+	"github.com/darkhz/invidtui/ui/theme"
+)
 
 // Tab describes the layout for a tab.
 type Tab struct {
 	Title, Selected string
 	Info            []TabInfo
+
+	Context theme.ThemeContext
 }
 
 // TabInfo stores the tab information.
@@ -13,26 +17,40 @@ type TabInfo struct {
 	ID, Title string
 }
 
+var currentTab = &Tab{}
+
 // SetTab sets the tab.
-func SetTab(tabInfo Tab) {
+func SetTab(tabInfo Tab, context theme.ThemeContext) {
 	if tabInfo.Title == "" {
 		UI.Tabs.Clear()
 		return
 	}
 
-	tab := ""
-	for _, info := range tabInfo.Info {
-		tab += fmt.Sprintf("[\"%s\"][darkcyan]%s[\"\"] ", info.ID, info.Title)
+	tabInfo.Context = context
+	if context == "" {
+		tabInfo.Context = theme.ThemeContextApp
 	}
+	currentTab = &tabInfo
 
-	UI.Tabs.SetText(tab)
+	builder := theme.NewTextBuilder(tabInfo.Context)
+	for _, info := range tabInfo.Info {
+		builder.Append(theme.ThemeTabs, info.ID, info.Title)
+		builder.AppendText(" ")
+	}
+	UI.Tabs.SetText(builder.Get())
 
 	SelectTab(tabInfo.Selected)
 }
 
 // SelectTab selects a tab.
 func SelectTab(tab string) {
-	UI.Tabs.Highlight(tab)
+	if currentTab.Info == nil {
+		return
+	}
+
+	UI.Tabs.Highlight(
+		theme.FormatRegion(tab, currentTab.Context, theme.ThemeTabs),
+	)
 }
 
 // GetCurrentTab returns the currently selected tab.
@@ -52,10 +70,13 @@ func SwitchTab(reverse bool, tabs ...Tab) string {
 	var selected string
 	var regions []string
 
-	if tabs != nil {
-		selected = tabs[0].Selected
+	if tabs != nil && tabs[0].Info != nil {
+		selected = theme.FormatRegion(tabs[0].Selected, currentTab.Context, theme.ThemeTabs)
 		for _, region := range tabs[0].Info {
-			regions = append(regions, region.ID)
+			regions = append(
+				regions,
+				theme.FormatRegion(region.ID, currentTab.Context, theme.ThemeTabs),
+			)
 		}
 
 		goto Selected
@@ -63,13 +84,13 @@ func SwitchTab(reverse bool, tabs ...Tab) string {
 
 	regions = UI.Tabs.GetRegionIDs()
 	if len(regions) == 0 {
-		return ""
+		return selected
 	}
 
 	if highlights := UI.Tabs.GetHighlights(); highlights != nil {
 		selected = highlights[0]
 	} else {
-		return ""
+		return selected
 	}
 
 Selected:
@@ -94,5 +115,6 @@ Selected:
 	UI.Tabs.Highlight(regions[currentView])
 	UI.Tabs.ScrollToHighlight()
 
-	return regions[currentView]
+	region, _, _ := theme.GetThemeRegion(regions[currentView])
+	return region
 }

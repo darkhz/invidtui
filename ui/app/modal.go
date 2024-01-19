@@ -1,8 +1,8 @@
 package app
 
 import (
+	"github.com/darkhz/invidtui/ui/theme"
 	"github.com/darkhz/tview"
-	"github.com/gdamore/tcell/v2"
 )
 
 // Modal stores a layout to display a floating modal.
@@ -19,41 +19,42 @@ type Modal struct {
 
 	y *tview.Flex
 	x *tview.Flex
+
+	property theme.ThemeProperty
 }
 
 var modals []*Modal
 
 // NewModal returns a modal. If a primitive is not provided,
 // a table is attach to it.
-func NewModal(name, title string, item tview.Primitive, height, width int) *Modal {
+func NewModal(name, title string, item tview.Primitive, height, width int, property theme.ThemeProperty) *Modal {
 	var table *tview.Table
 
-	modalTitle := tview.NewTextView()
-	modalTitle.SetDynamicColors(true)
-	modalTitle.SetText("[::bu]" + title)
+	modalTitle := theme.NewTextView(property)
+	modalTitle.SetText(
+		theme.SetTextStyle(
+			"title", title,
+			property.Context, theme.ThemeTitle,
+		),
+	)
 	modalTitle.SetTextAlign(tview.AlignCenter)
-	modalTitle.SetBackgroundColor(tcell.ColorDefault)
 
 	if item == nil {
-		table = tview.NewTable()
-		table.SetSelectorWrap(true)
+		table = theme.NewTable(property)
 		table.SetSelectable(true, false)
-		table.SetBackgroundColor(tcell.ColorDefault)
 
 		item = table
 	}
 
-	flex := tview.NewFlex()
+	flex := theme.NewFlex(property)
 	flex.SetBorder(true)
 	flex.SetDirection(tview.FlexRow)
 
-	box := tview.NewBox()
-	box.SetBackgroundColor(tcell.ColorDefault)
+	box := theme.NewBox(property)
 
 	flex.AddItem(modalTitle, 1, 0, false)
 	flex.AddItem(box, 1, 0, false)
 	flex.AddItem(item, 0, 1, true)
-	flex.SetBackgroundColor(tcell.ColorDefault)
 
 	return &Modal{
 		Name:  name,
@@ -62,19 +63,20 @@ func NewModal(name, title string, item tview.Primitive, height, width int) *Moda
 
 		Height: height,
 		Width:  width,
+
+		property: property,
 	}
 }
 
 // NewMenuModal returns a menu modal.
-func NewMenuModal(name string, regionX, regionY int) *Modal {
-	table := tview.NewTable()
+func NewMenuModal(name string, regionX, regionY int, property theme.ThemeProperty) *Modal {
+	table := theme.NewTable(property)
 	table.SetBorder(true)
 	table.SetSelectable(true, false)
-	table.SetBackgroundColor(tcell.ColorDefault)
 
-	flex := tview.NewFlex().
-		SetDirection(tview.FlexRow).
-		AddItem(table, 0, 1, true)
+	flex := theme.NewFlex(property)
+	flex.SetDirection(tview.FlexRow)
+	flex.AddItem(table, 0, 1, true)
 
 	return &Modal{
 		Name:  name,
@@ -84,6 +86,8 @@ func NewMenuModal(name string, regionX, regionY int) *Modal {
 		menu:    true,
 		regionX: regionX,
 		regionY: regionY,
+
+		property: property,
 	}
 }
 
@@ -111,13 +115,13 @@ func (m *Modal) Show(attachToStatus bool) {
 
 	m.Open = true
 
-	m.y = tview.NewFlex().
+	m.y = theme.NewFlex(m.property).
 		SetDirection(tview.FlexRow).
 		AddItem(nil, y, yattach, false).
 		AddItem(m.Flex, m.Height, 0, true).
 		AddItem(nil, yattach, 0, false)
 
-	m.x = tview.NewFlex().
+	m.x = theme.NewFlex(m.property).
 		SetDirection(tview.FlexColumn).
 		AddItem(nil, x, xattach, false).
 		AddItem(m.y, m.Width, 0, true).

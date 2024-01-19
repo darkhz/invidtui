@@ -4,7 +4,7 @@ import (
 	"github.com/darkhz/invidtui/client"
 	inv "github.com/darkhz/invidtui/invidious"
 	"github.com/darkhz/invidtui/ui/app"
-	"github.com/darkhz/tview"
+	"github.com/darkhz/invidtui/ui/theme"
 	"github.com/gdamore/tcell/v2"
 )
 
@@ -13,20 +13,28 @@ import (
 func ShowLink() {
 	var linkModal *app.Modal
 
+	property := theme.ThemeProperty{
+		Item:    theme.ThemePopupBackground,
+		Context: theme.ThemeContextLinks,
+	}
+
 	info, err := app.FocusedTableReference()
 	if err != nil {
 		app.ShowError(err)
 		return
 	}
 
+	builder := theme.NewTextBuilder(property.Context)
 	invlink, ytlink := getLinks(info)
-	linkText := "[::u]Invidious link[-:-:-]\n[::b]" + invlink +
-		"\n\n[::u]Youtube link[-:-:-]\n[::b]" + ytlink
 
-	linkView := tview.NewTextView()
-	linkView.SetText(linkText)
-	linkView.SetDynamicColors(true)
-	linkView.SetBackgroundColor(tcell.ColorDefault)
+	builder.Format(theme.ThemeText, "header", "Invidious link\n")
+	builder.Format(theme.ThemeInvidiousURI, "invidious", "%s\n\n", invlink)
+
+	builder.Format(theme.ThemeText, "header", "Youtube link\n")
+	builder.Format(theme.ThemeYoutubeURI, "youtube", "%s", ytlink)
+
+	linkView := theme.NewTextView(property)
+	linkView.SetText(builder.Get())
 	linkView.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		switch event.Key() {
 		case tcell.KeyEnter, tcell.KeyEscape:
@@ -39,7 +47,7 @@ func ShowLink() {
 		app.SetContextMenu("", nil)
 	})
 
-	linkModal = app.NewModal("link", "Copy link", linkView, 10, len(invlink)+10)
+	linkModal = app.NewModal("link", "Copy link", linkView, 10, len(invlink)+10, property)
 	linkModal.Show(false)
 }
 

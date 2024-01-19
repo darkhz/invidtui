@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/darkhz/invidtui/ui/theme"
 	"github.com/darkhz/tview"
 	"github.com/gdamore/tcell/v2"
 )
@@ -39,16 +40,13 @@ type message struct {
 
 // Setup sets up the status bar.
 func (s *Status) Setup() {
-	s.Pages = tview.NewPages()
+	property := s.ThemeProperty()
 
-	s.Message = tview.NewTextView()
-	s.Message.SetDynamicColors(true)
-	s.Message.SetBackgroundColor(tcell.ColorDefault)
+	s.Pages = theme.NewPages(property)
 
-	s.InputField = tview.NewInputField()
-	s.InputField.SetLabelColor(tcell.ColorWhite)
-	s.InputField.SetBackgroundColor(tcell.ColorDefault)
-	s.InputField.SetFieldBackgroundColor(tcell.ColorDefault)
+	s.Message = theme.NewTextView(property)
+
+	s.InputField = theme.NewInputField(property, "")
 	s.InputField.SetFocusFunc(s.inputFocus)
 	s.InputField.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		switch event.Key() {
@@ -86,8 +84,15 @@ func (s *Status) Setup() {
 
 // InfoMessage sends an info message to the status bar.
 func (s *Status) InfoMessage(text string, persist bool) {
+	text = theme.SetTextStyle(
+		"message",
+		text,
+		theme.ThemeContextStatusBar,
+		theme.ThemeInfoMessage,
+	)
+
 	select {
-	case s.msgchan <- message{"[white::b]" + text, persist}:
+	case s.msgchan <- message{text, persist}:
 		return
 
 	default:
@@ -100,8 +105,15 @@ func (s *Status) ErrorMessage(err error) {
 		return
 	}
 
+	text := theme.SetTextStyle(
+		"message",
+		err.Error(),
+		theme.ThemeContextStatusBar,
+		theme.ThemeInfoMessage,
+	)
+
 	select {
-	case s.msgchan <- message{"[red::b]" + err.Error(), false}:
+	case s.msgchan <- message{text, false}:
 		return
 
 	default:
@@ -137,7 +149,10 @@ func (s *Status) SetInput(label string,
 	if clearInput {
 		s.InputField.SetText("")
 	}
-	s.InputField.SetLabel("[::b]" + label + " ")
+	s.InputField.SetLabel(label)
+	s.InputField.SetLabelWidth(
+		tview.TaggedStringWidth(s.InputField.GetLabel()) + 1,
+	)
 
 	if ifunc != nil {
 		s.InputField.SetInputCapture(ifunc)
@@ -166,6 +181,13 @@ func (s *Status) Tag(tag string) {
 		return
 
 	default:
+	}
+}
+
+func (s *Status) ThemeProperty() theme.ThemeProperty {
+	return theme.ThemeProperty{
+		Context: theme.ThemeContextStatusBar,
+		Item:    theme.ThemeBackground,
 	}
 }
 

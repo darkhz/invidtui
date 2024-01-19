@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/darkhz/invidtui/platform"
+	"github.com/darkhz/invidtui/ui/theme"
 	"github.com/darkhz/tview"
 	"github.com/gdamore/tcell/v2"
 )
@@ -20,9 +21,6 @@ type Application struct {
 
 	Status      Status
 	FileBrowser FileBrowser
-
-	SelectedStyle tcell.Style
-	ColumnStyle   tcell.Style
 
 	Suspend bool
 	Closed  context.Context
@@ -40,55 +38,45 @@ var UI Application
 
 // Setup sets up the application
 func Setup() {
-	box := tview.NewBox().
-		SetBackgroundColor(tcell.ColorDefault)
+	property := theme.ThemeProperty{
+		Context: theme.ThemeContextApp,
+		Item:    theme.ThemeBackground,
+	}
+
+	box := theme.NewBox(property)
 
 	UI.Status.Setup()
 
-	UI.SelectedStyle = tcell.Style{}.
-		Foreground(tcell.ColorBlue).
-		Background(tcell.ColorWhite).
-		Attributes(tcell.AttrBold)
-
-	UI.ColumnStyle = tcell.Style{}.
-		Attributes(tcell.AttrBold)
-
-	UI.Menu, UI.Tabs = tview.NewTextView(), tview.NewTextView()
-	UI.Menu.SetWrap(false)
-	UI.Menu.SetRegions(true)
+	UI.Menu, UI.Tabs =
+		theme.NewTextView(property.SetContext(theme.ThemeContextMenu)),
+		theme.NewTextView(property.SetContext(theme.ThemeContextMenu))
 	UI.Tabs.SetWrap(false)
-	UI.Tabs.SetRegions(true)
-	UI.Tabs.SetDynamicColors(true)
-	UI.Menu.SetDynamicColors(true)
 	UI.Tabs.SetTextAlign(tview.AlignRight)
-	UI.Menu.SetBackgroundColor(tcell.ColorDefault)
-	UI.Tabs.SetBackgroundColor(tcell.ColorDefault)
 	UI.Menu.SetHighlightedFunc(MenuHighlightHandler)
 	UI.Menu.SetInputCapture(MenuKeybindings)
-	UI.MenuLayout = tview.NewFlex().
+
+	UI.MenuLayout = theme.NewFlex(property.SetContext(theme.ThemeContextMenu)).
 		SetDirection(tview.FlexColumn).
 		AddItem(UI.Menu, 0, 1, false).
 		AddItem(UI.Tabs, 0, 1, false)
-	UI.MenuLayout.SetBackgroundColor(tcell.ColorDefault)
 
-	UI.Pages = tview.NewPages()
+	UI.Pages = theme.NewPages(property)
 	UI.Pages.SetChangedFunc(func() {
 		MenuExit()
 	})
 
-	UI.Region = tview.NewFlex().
+	UI.Region = theme.NewFlex(property).
 		AddItem(UI.Pages, 0, 1, true)
 
-	UI.Layout = tview.NewFlex().
+	UI.Layout = theme.NewFlex(property).
 		SetDirection(tview.FlexRow).
 		AddItem(UI.MenuLayout, 1, 0, false).
 		AddItem(box, 1, 0, false).
 		AddItem(UI.Region, 0, 10, false).
 		AddItem(box, 1, 0, false).
 		AddItem(UI.Status.Pages, 1, 0, false)
-	UI.Layout.SetBackgroundColor(tcell.ColorDefault)
 
-	UI.Area = tview.NewPages()
+	UI.Area = theme.NewPages(property)
 	UI.Area.AddPage("ui", UI.Layout, true, true)
 	UI.Area.SetChangedFunc(func() {
 		pg, _ := UI.Area.GetFrontPage()

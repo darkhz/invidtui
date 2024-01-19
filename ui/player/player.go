@@ -6,7 +6,6 @@ import (
 	"image/jpeg"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -15,6 +14,7 @@ import (
 	inv "github.com/darkhz/invidtui/invidious"
 	mp "github.com/darkhz/invidtui/mediaplayer"
 	"github.com/darkhz/invidtui/ui/app"
+	"github.com/darkhz/invidtui/ui/theme"
 	"github.com/darkhz/invidtui/utils"
 	"github.com/darkhz/tview"
 	"github.com/gdamore/tcell/v2"
@@ -41,6 +41,8 @@ type Player struct {
 	quality      *tview.DropDown
 	title, desc  *tview.TextView
 
+	property theme.ThemeProperty
+
 	ctx                           context.Context
 	cancel, infoCancel, imgCancel context.CancelFunc
 
@@ -60,47 +62,47 @@ func setup() {
 
 	player.init = true
 
+	player.property = theme.ThemeProperty{
+		Context: theme.ThemeContextPlayer,
+		Item:    theme.ThemeBackground,
+	}
+
 	player.channel = make(chan bool, 10)
 	player.events = make(chan struct{}, 100)
 
-	player.title, player.desc = tview.NewTextView(), tview.NewTextView()
-	player.desc.SetDynamicColors(true)
-	player.title.SetDynamicColors(true)
+	player.title, player.desc =
+		theme.NewTextView(player.property),
+		theme.NewTextView(player.property)
 	player.desc.SetTextAlign(tview.AlignCenter)
 	player.title.SetTextAlign(tview.AlignCenter)
-	player.desc.SetBackgroundColor(tcell.ColorDefault)
-	player.title.SetBackgroundColor(tcell.ColorDefault)
 
-	player.image = tview.NewImage()
-	player.image.SetBackgroundColor(tcell.ColorDefault)
+	player.image = theme.NewImage(
+		player.property.SetContext(theme.ThemeContextPlayerInfo),
+	)
 	player.image.SetDithering(tview.DitheringFloydSteinberg)
 
-	player.info = tview.NewTextView()
-	player.info.SetDynamicColors(true)
+	player.info = theme.NewTextView(
+		player.property.SetContext(theme.ThemeContextPlayerInfo),
+	)
 	player.info.SetTextAlign(tview.AlignCenter)
-	player.info.SetBackgroundColor(tcell.ColorDefault)
 
-	player.quality = tview.NewDropDown()
-	player.quality.SetLabel("[green::b]Quality: ")
-	player.quality.SetBackgroundColor(tcell.ColorDefault)
-	player.quality.SetFieldTextColor(tcell.ColorOrangeRed)
-	player.quality.SetFieldBackgroundColor(tcell.ColorDefault)
-	player.quality.List().
-		SetMainTextColor(tcell.ColorWhite).
-		SetBackgroundColor(tcell.ColorDefault).
-		SetBorder(true)
+	player.quality = theme.NewDropDown(
+		player.property.SetContext(theme.ThemeContextPlayerInfo),
+		"Quality:",
+	)
+	player.quality.List().SetBorder(true)
 
-	player.flex = tview.NewFlex().
+	player.flex = theme.NewFlex(player.property).
 		SetDirection(tview.FlexRow).
 		AddItem(player.title, 1, 0, false).
 		AddItem(player.desc, 1, 0, false)
-	player.flex.SetBackgroundColor(tcell.ColorDefault)
 
-	player.region = tview.NewFlex().
+	player.region = theme.NewFlex(
+		player.property.SetContext(theme.ThemeContextPlayerInfo),
+	).
 		SetDirection(tview.FlexRow).
 		AddItem(player.image, 0, 1, false).
 		AddItem(player.info, 0, 1, false)
-	player.region.SetBackgroundColor(tcell.ColorDefault)
 
 	player.lock = semaphore.NewWeighted(10)
 }
@@ -167,15 +169,15 @@ func ToggleInfo(hide ...struct{}) {
 	if !player.toggle.Load() && player.status.Load() {
 		player.toggle.Store(true)
 
-		box := tview.NewBox()
-		box.SetBackgroundColor(tcell.ColorDefault)
+		property := player.property.SetContext(theme.ThemeContextPlayerInfo)
+		box := theme.NewBox(property)
 
 		app.UI.Region.Clear().
-			AddItem(player.region, 25, 0, false).
+			AddItem(player.region, 0, 1, false).
 			AddItem(box, 1, 0, false).
-			AddItem(app.VerticalLine(), 1, 0, false).
+			AddItem(app.VerticalLine(property), 1, 0, false).
 			AddItem(box, 1, 0, false).
-			AddItem(app.UI.Pages, 0, 1, true)
+			AddItem(app.UI.Pages, 0, 2, true)
 
 		Resize(0, struct{}{})
 
@@ -237,7 +239,6 @@ func Resize(width int, force ...struct{}) {
 
 ResizePlayer:
 	sendPlayerEvents()
-	app.UI.Region.ResizeItem(player.region, (width / 4), 0)
 
 	player.width = width
 }
@@ -490,15 +491,21 @@ func loadSelected(info inv.SearchData, audio, current bool) {
 // renderPlayer renders the media player within the app.
 func renderPlayer() {
 	var width int
+	var marker string
 
 	app.UI.QueueUpdateDraw(func() {
 		_, _, width, _ = player.desc.GetRect()
+		marker = player.queue.marker.Text
 	})
 
-	progress, states := updateProgressAndInfo(width - 10)
+	title, desc, states := updateProgressAndInfo(
+		player.queue.GetTitle(),
+		marker,
+		width-10,
+	)
 	app.UI.QueueUpdateDraw(func() {
-		player.title.SetText("[::b]" + tview.Escape(player.queue.GetTitle()))
-		player.desc.SetText(progress + " " + player.queue.marker.Text)
+		player.title.SetText(title)
+		player.desc.SetText(desc)
 	})
 
 	player.mutex.Lock()
@@ -572,16 +579,20 @@ func changeImageQuality(set ...struct{}) {
 
 		return event
 	})
-	player.quality.SetDrawFunc(func(screen tcell.Screen, x, y, width, height int) (int, int, int, int) {
-		_, _, w, _ := player.quality.List().GetRect()
+	theme.WrapDrawFunc(
+		player.quality,
+		player.property.SetContext(theme.ThemeContextPlayerInfo),
+		func(screen tcell.Screen, x, y, width, height int) (int, int, int, int) {
+			_, _, w, _ := player.quality.List().GetRect()
 
-		dx := ((width / 2) - w) + 2
-		if dx < 0 {
-			dx = 0
-		}
+			dx := ((width / 2) - w) + 2
+			if dx < 0 {
+				dx = 0
+			}
 
-		return dx, y, width, height
-	})
+			return dx, y, width, height
+		},
+	)
 
 	player.quality.SetOptions(options, func(text string, index int) {
 		if index < 0 {
@@ -621,18 +632,23 @@ func renderInfo(video inv.VideoData, force ...struct{}) {
 
 	infoContext(true, struct{}{})
 
+	builder := theme.NewTextBuilder(theme.ThemeContextPlayerInfo)
+
 	app.UI.QueueUpdateDraw(func() {
-		player.info.SetText("[::b]Loading information...")
+		builder.Append(theme.ThemeDescription, "info", "Loading information...")
+		player.info.SetText(builder.Get())
+
 		player.image.SetImage(nil)
 	})
 
 	if video.Thumbnails == nil {
-		go func(ctx context.Context, pos int, v inv.VideoData) {
+		go func(ctx context.Context, pos int, v inv.VideoData, b theme.ThemeTextBuilder) {
 			v, err := inv.Video(v.VideoID, ctx)
 			if err != nil {
 				if ctx.Err() != context.Canceled {
 					app.UI.QueueUpdateDraw(func() {
-						player.info.SetText("[::b]No information for\n" + v.Title)
+						b.Format(theme.ThemeDescription, "info", "No information for\n%s", v.Title)
+						player.info.SetText(b.Get())
 					})
 				}
 
@@ -641,7 +657,7 @@ func renderInfo(video inv.VideoData, force ...struct{}) {
 
 			player.queue.SetReference(pos, v, struct{}{})
 			renderInfo(v, struct{}{})
-		}(infoContext(false), player.queue.Position(), video)
+		}(infoContext(false), player.queue.Position(), video, builder)
 
 		return
 	}
@@ -652,22 +668,24 @@ func renderInfo(video inv.VideoData, force ...struct{}) {
 			player.region.RemoveItemIndex(1)
 		}
 
-		text := "\n"
+		builder.AppendText("\n")
 		if video.Author != "" {
-			text += fmt.Sprintf("[::bu]%s[-:-:-]\n\n", video.Author)
+			builder.Append(theme.ThemeAuthor, "author", tview.Escape(video.Author))
+			builder.AppendText("\n\n")
 		}
 		if video.PublishedText != "" {
-			text += fmt.Sprintf("[lightpink::b]Uploaded %s[-:-:-]\n", video.PublishedText)
+			builder.Append(theme.ThemePublished, "published", "Uploaded "+video.PublishedText)
+			builder.AppendText("\n\n")
 		}
-		text += fmt.Sprintf(
-			"[aqua::b]%s views[-:-:-] / [red::b]%s likes[-:-:-] / [purple::b]%s subscribers[-:-:-]\n\n",
-			utils.FormatNumber(video.ViewCount),
-			utils.FormatNumber(video.LikeCount),
-			video.SubCountText,
-		)
-		text += "[::b]" + tview.Escape(video.Description)
 
-		player.info.SetText(text)
+		builder.Format(theme.ThemeViews, "views", " %s views / ", utils.FormatNumber(video.ViewCount))
+		builder.Format(theme.ThemeLikes, "likes", "%s likes / ", utils.FormatNumber(video.LikeCount))
+		builder.Format(theme.ThemeSubscribers, "info", "%s subscribers", video.SubCountText)
+		builder.AppendText("\n\n")
+
+		builder.Append(theme.ThemeDescription, "description", tview.Escape(video.Description))
+
+		player.info.SetText(builder.Get())
 		player.info.ScrollToBeginning()
 
 		changeImageQuality(struct{}{})
@@ -789,8 +807,7 @@ func openPlaylist(file string) {
 // of the currently playing track, and updates the track information.
 //
 //gocyclo:ignore
-func updateProgressAndInfo(width int) (string, []string) {
-	var lhs, rhs string
+func updateProgressAndInfo(title, marker string, width int) (string, string, []string) {
 	var states []string
 
 	eof := mp.Player().Finished()
@@ -802,14 +819,8 @@ func updateProgressAndInfo(width int) (string, []string) {
 
 	duration := mp.Player().Duration()
 	timepos := mp.Player().Position()
-	currtime := utils.FormatDuration(timepos)
 
-	vol := strconv.Itoa(volume)
-	if vol == "" {
-		vol = "0"
-	}
-	states = append(states, "volume "+vol)
-	vol += "%"
+	builder := theme.NewTextBuilder(theme.ThemeContextPlayer)
 
 	if timepos < 0 {
 		timepos = 0
@@ -820,9 +831,6 @@ func updateProgressAndInfo(width int) (string, []string) {
 	if timepos > duration {
 		timepos = duration
 	}
-
-	totaltime := utils.FormatDuration(duration)
-	mtype := "(" + player.queue.GetMediaType() + ")"
 
 	width /= 2
 	length := width * int(timepos)
@@ -835,56 +843,80 @@ func updateProgressAndInfo(width int) (string, []string) {
 		endlength = width
 	}
 
-	if shuffle {
-		lhs += " S"
-		states = append(states, "shuffle")
-	}
-	if mute {
-		lhs += " M"
-		states = append(states, "mute")
-	}
-
-	loop, loopsetting := "", ""
+	loopsetting := ""
 	switch player.queue.GetRepeatMode() {
-	case mp.RepeatModeOff:
-		loop = ""
-
 	case mp.RepeatModeFile:
-		loop = "R-F"
+		builder.Append(theme.ThemeLoop, "loop", "R-F ")
 		loopsetting = "loop-file"
 
 	case mp.RepeatModePlaylist:
-		loop = "R-P"
+		builder.Append(theme.ThemeLoop, "loop", "R-P ")
 		loopsetting = "loop-playlist"
 	}
-	if loop != "" {
+	if loopsetting != "" {
 		states = append(states, loopsetting)
 	}
 
-	state := ""
+	if shuffle {
+		builder.Append(theme.ThemeShuffle, "shuffle", "S ")
+		states = append(states, "shuffle")
+	}
+	if mute {
+		builder.Append(theme.ThemeMute, "mute", "M ")
+		states = append(states, "mute")
+	}
+
 	switch {
 	case paused:
 		if eof {
-			state = "[]"
+			builder.Append(theme.ThemeStop, "stop", "[] ")
 		} else {
-			state = "||"
+			builder.Append(theme.ThemePause, "pause", "|| ")
 		}
 
 	case buffering:
-		state = "B"
+		builder.Append(theme.ThemeBuffer, "buffer", "B")
 		if pct := mp.Player().BufferPercentage(); pct >= 0 {
-			state += "(" + strconv.Itoa(pct) + "%)"
+			builder.Format(theme.ThemeBuffer, "buffer", "(%s%%)", strconv.Itoa(pct))
 		}
+		builder.AppendText(" ")
 
 	default:
-		state = ">"
+		builder.Append(theme.ThemePlay, "play", "> ")
 	}
 
-	rhs = " " + vol + " " + mtype
-	lhs = loop + lhs + " " + state + " "
-	progress := currtime + " |" + strings.Repeat("█", length) + strings.Repeat(" ", endlength) + "| " + totaltime
+	builder.Append(theme.ThemeDuration, "duration", utils.FormatDuration(timepos))
 
-	return (lhs + progress + rhs), states
+	builder.Start(theme.ThemeProgressBar, "progress")
+	builder.AppendText(" |")
+	for i := 0; i < length; i++ {
+		builder.AppendText("█")
+	}
+	for i := 0; i < endlength; i++ {
+		builder.AppendText(" ")
+	}
+	builder.AppendText("| ")
+	builder.Finish()
+
+	builder.Append(theme.ThemeTotalDuration, "totalduration", utils.FormatDuration(duration))
+
+	vol := strconv.Itoa(volume)
+	if vol == "" {
+		vol = "0"
+	}
+	states = append(states, "volume "+vol)
+	builder.Format(theme.ThemeVolume, "volume", " %s%% ", vol)
+	builder.Format(theme.ThemeMediaType, "mediatype", "(%s) ", player.queue.GetMediaType())
+	builder.AppendText(marker)
+
+	title = theme.SetTextStyle(
+		"title",
+		title,
+		player.property.Context,
+		theme.ThemeTitle,
+	)
+
+	return title, builder.Get(), states
 }
 
 // sendPlayingStatus sends status events to the player.

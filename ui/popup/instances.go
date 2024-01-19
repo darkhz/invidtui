@@ -1,10 +1,9 @@
 package popup
 
 import (
-	"strings"
-
 	"github.com/darkhz/invidtui/client"
 	"github.com/darkhz/invidtui/ui/app"
+	"github.com/darkhz/invidtui/ui/theme"
 	"github.com/darkhz/invidtui/utils"
 	"github.com/darkhz/tview"
 	"github.com/gdamore/tcell/v2"
@@ -16,16 +15,19 @@ func ShowInstancesList() {
 
 	app.ShowInfo("Loading instance list", true)
 
+	property := theme.ThemeProperty{
+		Context: theme.ThemeContextInstances,
+		Item:    theme.ThemePopupBackground,
+	}
+
 	instances, err := client.GetInstances()
 	if err != nil {
 		app.ShowError(err)
 		return
 	}
 
-	instancesView := tview.NewTable()
-	instancesView.SetSelectorWrap(true)
+	instancesView := theme.NewTable(property)
 	instancesView.SetSelectable(true, false)
-	instancesView.SetBackgroundColor(tcell.ColorDefault)
 	instancesView.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		switch event.Key() {
 		case tcell.KeyEnter:
@@ -50,22 +52,33 @@ func ShowInstancesList() {
 		currentInstance := utils.GetHostname(client.Instance())
 
 		for row, instance := range instances {
+			selected := ""
 			if instance == currentInstance {
-				instance += " [white::b](Selected)[-:-:-]"
+				selected = "(Selected)"
 			}
 
 			if len(instance) > width {
 				width = len(instance)
 			}
 
-			instancesView.SetCell(row, 0, tview.NewTableCell(instance).
-				SetReference(instances[row]).
-				SetTextColor(tcell.ColorBlue).
-				SetSelectedStyle(app.UI.SelectedStyle),
+			instancesView.SetCell(row, 0, theme.NewTableCell(
+				theme.ThemeContextInstances,
+				theme.ThemeInstanceURI,
+				instance,
+			).
+				SetReference(instances[row]),
+			)
+
+			instancesView.SetCell(row, 1, theme.NewTableCell(
+				theme.ThemeContextInstances,
+				theme.ThemeTagChanged,
+				selected,
+			).
+				SetSelectable(true),
 			)
 		}
 
-		instancesModal = app.NewModal("instances", "Available instances", instancesView, len(instances)+4, width+4)
+		instancesModal = app.NewModal("instances", "Available instances", instancesView, len(instances)+4, width+15, property)
 		instancesModal.Show(false)
 	})
 
@@ -92,21 +105,17 @@ func checkInstance(instance string, table *tview.Table) {
 		var cell *tview.TableCell
 
 		for i := 0; i < table.GetRowCount(); i++ {
-			c := table.GetCell(i, 0)
-
-			if ref, ok := c.GetReference().(string); ok {
+			if ref, ok := table.GetCell(i, 0).GetReference().(string); ok {
+				c := table.GetCell(i, 1)
 				if ref == instance {
 					cell = c
 				}
 
-				text := c.Text
-				if strings.Contains(text, "Selected") || strings.Contains(text, "Changed") {
-					c.SetText(ref)
-				}
+				c.SetText("")
 			}
 		}
 
-		cell.SetText(instance + " [white::b](Changed)[-:-:-]")
+		cell.SetText("(Changed)")
 	})
 
 	app.ShowInfo("Set client to "+instance, false)

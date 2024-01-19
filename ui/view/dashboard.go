@@ -10,6 +10,7 @@ import (
 	inv "github.com/darkhz/invidtui/invidious"
 	"github.com/darkhz/invidtui/ui/app"
 	"github.com/darkhz/invidtui/ui/popup"
+	"github.com/darkhz/invidtui/ui/theme"
 	"github.com/darkhz/invidtui/utils"
 	"github.com/darkhz/tview"
 	"github.com/gdamore/tcell/v2"
@@ -28,6 +29,8 @@ type DashboardView struct {
 	views    *tview.Pages
 	flex     *tview.Flex
 	tableMap map[string]*DashboardTable
+
+	property theme.ThemeProperty
 
 	lock  *semaphore.Weighted
 	mutex sync.Mutex
@@ -55,28 +58,27 @@ func (d *DashboardView) Init() bool {
 		return true
 	}
 
+	d.property = d.ThemeProperty()
+
 	d.currentType = "feed"
 
-	d.message = tview.NewTextView()
+	d.message = theme.NewTextView(d.property)
 	d.message.SetWrap(true)
-	d.message.SetDynamicColors(true)
-	d.message.SetBackgroundColor(tcell.ColorDefault)
 
-	d.token = tview.NewInputField()
-	d.token.SetLabel("[white::b]Token: ")
-	d.token.SetBackgroundColor(tcell.ColorDefault)
+	d.token = theme.NewInputField(d.property, "Token:")
 	d.token.SetFocusFunc(func() {
 		app.SetContextMenu("", nil)
 	})
 
-	d.flex = tview.NewFlex().
+	box := theme.NewBox(d.property)
+	d.flex = theme.NewFlex(d.property).
 		SetDirection(tview.FlexRow).
 		AddItem(d.message, 10, 0, false).
-		AddItem(nil, 1, 0, false).
-		AddItem(d.token, 6, 0, true)
+		AddItem(box, 1, 0, false).
+		AddItem(d.token, 6, 0, true).
+		AddItem(box, 0, 1, false)
 
-	d.views = tview.NewPages()
-	d.views.SetBackgroundColor(tcell.ColorDefault)
+	d.views = theme.NewPages(d.property)
 	d.views.AddPage("Authentication", d.flex, true, false)
 
 	d.queueWrite(func() {
@@ -89,10 +91,8 @@ func (d *DashboardView) Init() bool {
 		}
 
 		for _, info := range d.Tabs().Info {
-			table := tview.NewTable()
+			table := theme.NewTable(d.property)
 			table.SetTitle(info.Title)
-			table.SetSelectorWrap(true)
-			table.SetBackgroundColor(tcell.ColorDefault)
 			table.SetInputCapture(kbMap[info.Title])
 			table.SetFocusFunc(func() {
 				app.SetContextMenu(cmd.KeyContextDashboard, table)
@@ -151,6 +151,14 @@ func (d *DashboardView) Tabs() app.Tab {
 // Primitive returns the primitive for the dashboard view.
 func (d *DashboardView) Primitive() tview.Primitive {
 	return d.views
+}
+
+// ThemeProperty returns the dashboard view's theme property.
+func (d *DashboardView) ThemeProperty() theme.ThemeProperty {
+	return theme.ThemeProperty{
+		Context: theme.ThemeContextDashboard,
+		Item:    theme.ThemeBackground,
+	}
 }
 
 // CurrentPage returns the dashboard's current page.
@@ -232,15 +240,23 @@ func (d *DashboardView) EventHandler() {
 func (d *DashboardView) AuthPage() {
 	app.ShowInfo("Authentication required", false)
 
-	authText := "No authorization token found or token is invalid.\n\n" +
-		"To authenticate, do either of the listed steps:\n\n" +
-		"- Navigate to [::b]" + client.Instance() + "/token_manager[-:-:-] " +
-		"and copy the [::u]SID[-:-:-] (the base64 string on top of a red background)\n\n" +
-		"- Navigate to [::b]" + client.AuthLink() + "[-:-:-] and click 'OK' when prompted for confirmation, " +
-		"then copy the [::u]session token[-:-:-]" +
-		"\n\nPaste the SID or Token in the inputbox below and press Enter."
+	builder := theme.NewTextBuilder(theme.ThemeContextDashboard)
+	builder.Start(theme.ThemeText, "auth")
+	builder.AppendText("No authorization token found or token is invalid.\n\n")
+	builder.AppendText("To authenticate, do either of the listed steps:\n\n")
 
-	d.message.SetText(authText)
+	builder.AppendText("- Navigate to ")
+	builder.Format(theme.ThemeInstanceURI, "token_manager", "%s/token_manager", client.Instance())
+	builder.AppendText(" and copy the SID (the base64 string on top of a red background)\n\n")
+
+	builder.AppendText("- Navigate to ")
+	builder.Format(theme.ThemeInstanceURI, "auth_link", "%s", client.AuthLink())
+	builder.AppendText(" and click 'OK' when prompted for confirmation, then copy the session token\n\n")
+
+	builder.AppendText("Paste the SID or Token in the inputbox below and press Enter.")
+	builder.Finish()
+
+	d.message.SetText(builder.Get())
 	d.token.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		switch event.Key() {
 		case tcell.KeyEscape:
@@ -307,8 +323,10 @@ func (d *DashboardView) PlaylistForm(edit bool) {
 		info, _ = app.FocusedTableReference()
 	}
 
-	form := tview.NewForm()
-	form.SetBackgroundColor(tcell.ColorDefault)
+	property := d.property.
+		SetItem(theme.ThemePopupBackground)
+
+	form := theme.NewForm(property)
 	form.AddInputField("Name: ", info.Title, 0, nil, nil)
 	form.AddDropDown("Privacy: ", []string{"public", "unlisted", "private"}, -1, nil)
 	if edit {
@@ -329,7 +347,7 @@ func (d *DashboardView) PlaylistForm(edit bool) {
 		return event
 	})
 
-	modal = app.NewModal("playlist_editor", mode+" playlist", form, form.GetFormItemCount()+10, 60)
+	modal = app.NewModal("playlist_editor", mode+" playlist", form, form.GetFormItemCount()+10, 60, property)
 	modal.Show(false)
 }
 
@@ -337,9 +355,7 @@ func (d *DashboardView) PlaylistForm(edit bool) {
 func (d *DashboardView) Keybindings(event *tcell.EventKey) *tcell.EventKey {
 	switch cmd.KeyOperation(event, cmd.KeyContextDashboard) {
 	case cmd.KeySwitchTab:
-		tab := d.Tabs()
-		tab.Selected = d.CurrentPage()
-		d.CurrentPage(app.SwitchTab(false, tab))
+		d.CurrentPage(app.SwitchTab(false))
 
 		client.Cancel()
 		app.ShowInfo("", false)
@@ -480,7 +496,12 @@ func (d *DashboardView) playlistFormHandler(
 		newInfo := info
 		newInfo.Title = title
 		newInfo.Description = description
-		title = "[blue::b]" + tview.Escape(title)
+		title = theme.SetTextStyle(
+			"title",
+			tview.Escape(title),
+			theme.ThemeContextDashboard,
+			theme.ThemeVideo,
+		)
 
 		app.UI.QueueUpdateDraw(func() {
 			if err := app.ModifyReference(title, true, info, newInfo); err != nil {
@@ -501,7 +522,9 @@ func (d *DashboardView) playlistFormHandler(
 
 // modifySubscription adds/removes a channel subscription.
 func (d *DashboardView) modifySubscription(info inv.SearchData, add, focused bool) {
+
 	if add && !focused {
+		info.Author = tview.Escape(info.Author)
 		app.ShowInfo("Subscribing to "+info.Author, true)
 
 		if err := inv.AddSubscription(info.AuthorID); err != nil {
@@ -518,6 +541,7 @@ func (d *DashboardView) modifySubscription(info inv.SearchData, add, focused boo
 		return
 	}
 
+	info.Author = tview.Escape(info.Author)
 	app.ShowInfo("Unsubscribing from "+info.Author, true)
 
 	if err := inv.RemoveSubscription(info.AuthorID); err != nil {
@@ -579,11 +603,12 @@ func (d *DashboardView) modifyVideoInPlaylist(info inv.SearchData, add bool, loc
 
 	app.ShowInfo("Retrieved playlists", false)
 
-	table := tview.NewTable()
+	property := d.property.
+		SetItem(theme.ThemePopupBackground)
+
+	table := theme.NewTable(property)
 	table.SetBorders(false)
-	table.SetSelectorWrap(true)
 	table.SetSelectable(true, false)
-	table.SetBackgroundColor(tcell.ColorDefault)
 	table.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		switch event.Key() {
 		case tcell.KeyEscape:
@@ -607,20 +632,26 @@ func (d *DashboardView) modifyVideoInPlaylist(info inv.SearchData, add bool, loc
 			Author:     p.Author,
 		}
 
-		table.SetCell(i, 0, tview.NewTableCell("[blue::b]"+tview.Escape(p.Title)).
+		table.SetCell(i, 0, theme.NewTableCell(
+			property.Context,
+			theme.ThemeVideo,
+			tview.Escape(p.Title),
+		).
 			SetExpansion(1).
-			SetReference(ref).
-			SetSelectedStyle(app.UI.SelectedStyle),
+			SetReference(ref),
 		)
 
-		table.SetCell(i, 1, tview.NewTableCell("[pink]"+strconv.FormatInt(p.VideoCount, 10)+" videos").
+		table.SetCell(i, 1, theme.NewTableCell(
+			property.Context,
+			theme.ThemeTotalVideos,
+			strconv.FormatInt(p.VideoCount, 10)+" videos",
+		).
 			SetSelectable(true).
-			SetAlign(tview.AlignRight).
-			SetSelectedStyle(app.UI.ColumnStyle),
+			SetAlign(tview.AlignRight),
 		)
 	}
 
-	modal = app.NewModal("user_playlists", "Add to playlist", table, 20, 60)
+	modal = app.NewModal("user_playlists", "Add to playlist", table, 20, 60, property)
 
 	app.UI.QueueUpdateDraw(func() {
 		modal.Show(false)
@@ -719,17 +750,23 @@ LoadFeed:
 				Author:   video.Author,
 			}
 
-			feedView.table.SetCell((rows+i)-skipped, 0, tview.NewTableCell("[blue::b]"+tview.Escape(video.Title)).
+			feedView.table.SetCell((rows+i)-skipped, 0, theme.NewTableCell(
+				theme.ThemeContextDashboard,
+				theme.ThemeVideo,
+				tview.Escape(video.Title),
+			).
 				SetExpansion(1).
 				SetReference(sref).
-				SetMaxWidth((width / 4)).
-				SetSelectedStyle(app.UI.SelectedStyle),
+				SetMaxWidth((width / 4)),
 			)
 
-			feedView.table.SetCell((rows+i)-skipped, 1, tview.NewTableCell("[pink]"+utils.FormatDuration(video.LengthSeconds)).
+			feedView.table.SetCell((rows+i)-skipped, 1, theme.NewTableCell(
+				theme.ThemeContextDashboard,
+				theme.ThemeTotalDuration,
+				utils.FormatDuration(video.LengthSeconds),
+			).
 				SetSelectable(true).
-				SetAlign(tview.AlignRight).
-				SetSelectedStyle(app.UI.ColumnStyle),
+				SetAlign(tview.AlignRight),
 			)
 		}
 
@@ -775,17 +812,23 @@ func (d *DashboardView) loadPlaylists(reload bool) {
 				Author:     playlist.Author,
 			}
 
-			plView.table.SetCell(i, 0, tview.NewTableCell("[blue::b]"+tview.Escape(playlist.Title)).
+			plView.table.SetCell(i, 0, theme.NewTableCell(
+				theme.ThemeContextDashboard,
+				theme.ThemePlaylist,
+				tview.Escape(playlist.Title),
+			).
 				SetExpansion(1).
 				SetReference(sref).
-				SetMaxWidth((width / 4)).
-				SetSelectedStyle(app.UI.SelectedStyle),
+				SetMaxWidth((width / 4)),
 			)
 
-			plView.table.SetCell(i, 1, tview.NewTableCell("[pink]"+strconv.FormatInt(playlist.VideoCount, 10)+" videos").
+			plView.table.SetCell(i, 1, theme.NewTableCell(
+				theme.ThemeContextDashboard,
+				theme.ThemeTotalVideos,
+				strconv.FormatInt(playlist.VideoCount, 10)+" videos",
+			).
 				SetSelectable(true).
-				SetAlign(tview.AlignRight).
-				SetSelectedStyle(app.UI.ColumnStyle),
+				SetAlign(tview.AlignRight),
 			)
 		}
 
@@ -825,11 +868,14 @@ func (d *DashboardView) loadSubscriptions(reload bool) {
 				AuthorID: subscription.AuthorID,
 			}
 
-			subView.table.SetCell(i, 0, tview.NewTableCell("[blue::b]"+tview.Escape(subscription.Author)).
+			subView.table.SetCell(i, 0, theme.NewTableCell(
+				theme.ThemeContextDashboard,
+				theme.ThemeChannel,
+				tview.Escape(subscription.Author),
+			).
 				SetExpansion(1).
 				SetReference(sref).
-				SetMaxWidth((width / 4)).
-				SetSelectedStyle(app.UI.SelectedStyle),
+				SetMaxWidth((width / 4)),
 			)
 		}
 

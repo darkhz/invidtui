@@ -4,12 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
 	"sync"
 
 	"github.com/darkhz/invidtui/cmd"
 	inv "github.com/darkhz/invidtui/invidious"
 	"github.com/darkhz/invidtui/ui/app"
+	"github.com/darkhz/invidtui/ui/theme"
 	"github.com/darkhz/tview"
 	"github.com/gammazero/deque"
 	"github.com/gdamore/tcell/v2"
@@ -58,30 +58,28 @@ const (
 
 // Setup sets up the media fetcher.
 func (f *Fetcher) Setup() {
+	property := f.ThemeProperty()
+
 	f.items = deque.New[*FetcherData](100)
 
-	f.info = tview.NewTextView()
-	f.info.SetDynamicColors(true)
-	f.info.SetBackgroundColor(tcell.ColorDefault)
+	f.info = theme.NewTextView(property)
 
-	f.table = tview.NewTable()
+	f.table = theme.NewTable(property)
 	f.table.SetContent(f)
-	f.table.SetSelectorWrap(true)
 	f.table.SetSelectable(true, false)
 	f.table.SetInputCapture(f.Keybindings)
-	f.table.SetBackgroundColor(tcell.ColorDefault)
 	f.table.SetSelectionChangedFunc(f.selectorHandler)
 	f.table.SetFocusFunc(func() {
 		app.SetContextMenu(cmd.KeyContextFetcher, f.table)
 	})
 
-	flex := tview.NewFlex().
+	flex := theme.NewFlex(property).
 		SetDirection(tview.FlexRow).
 		AddItem(f.table, 0, 10, true).
-		AddItem(app.HorizontalLine(), 1, 0, false).
+		AddItem(app.HorizontalLine(property), 1, 0, false).
 		AddItem(f.info, 0, 1, false)
 
-	f.modal = app.NewModal("fetcher", "Media Fetcher", flex, 100, 100)
+	f.modal = app.NewModal("fetcher", "Media Fetcher", flex, 100, 100, property)
 
 	f.lock = semaphore.NewWeighted(10)
 }
@@ -176,31 +174,57 @@ func (f *Fetcher) Add(
 
 	data := &FetcherData{
 		Columns: [FetchColumnSize]*tview.TableCell{
-			tview.NewTableCell("[blue::b]" + tview.Escape(info.Title)).
+			theme.NewTableCell(
+				theme.ThemeContextFetcher,
+				theme.ThemeVideo,
+				tview.Escape(info.Title),
+			).
+				SetExpansion(1).
+				SetMaxWidth(15).
+				SetSelectable(true),
+			theme.NewTableCell(
+				theme.ThemeContextFetcher,
+				theme.ThemePopupBackground,
+				" ",
+			).
+				SetMaxWidth(1).
+				SetSelectable(true),
+			theme.NewTableCell(
+				theme.ThemeContextFetcher,
+				theme.ThemeAuthor,
+				tview.Escape(info.Author),
+			).
 				SetExpansion(1).
 				SetMaxWidth(15).
 				SetSelectable(true).
-				SetSelectedStyle(app.UI.SelectedStyle),
-			tview.NewTableCell(" ").
-				SetMaxWidth(1).
-				SetSelectable(false),
-			tview.NewTableCell("[purple::b]" + tview.Escape(info.Author)).
-				SetExpansion(1).
-				SetMaxWidth(15).
-				SetSelectable(true).
-				SetAlign(tview.AlignRight).
-				SetSelectedStyle(app.UI.ColumnStyle),
-			tview.NewTableCell(" ").
-				SetMaxWidth(1).
-				SetSelectable(false),
-			tview.NewTableCell(fmt.Sprintf("[pink::b]%s (%s)", info.Type, media)).
-				SetSelectable(false).
 				SetAlign(tview.AlignRight),
-			tview.NewTableCell(" ").
+			theme.NewTableCell(
+				theme.ThemeContextFetcher,
+				theme.ThemePopupBackground,
+				" ",
+			).
 				SetMaxWidth(1).
-				SetSelectable(false),
-			tview.NewTableCell(string(FetcherStatusAdding)).
-				SetSelectable(false),
+				SetSelectable(true),
+			theme.NewTableCell(
+				theme.ThemeContextFetcher,
+				theme.ThemeMediaType,
+				fmt.Sprintf("%s (%s)", info.Type, media),
+			).
+				SetSelectable(true).
+				SetAlign(tview.AlignRight),
+			theme.NewTableCell(
+				theme.ThemeContextFetcher,
+				theme.ThemePopupBackground,
+				" ",
+			).
+				SetMaxWidth(1).
+				SetSelectable(true),
+			theme.NewTableCell(
+				theme.ThemeContextFetcher,
+				theme.ThemeTagAdding,
+				string(FetcherStatusAdding),
+			).
+				SetSelectable(true),
 		},
 		Info:  info,
 		Audio: audio,
@@ -252,32 +276,35 @@ func (f *Fetcher) MarkStatus(data *FetcherData, status FetcherStatus, err error,
 
 	data.Error = err
 
-	color := "yellow"
+	item := theme.ThemeTagAdding
 	if status == FetcherStatusError {
-		color = "red"
+		item = theme.ThemeTagError
 	}
 
 	cell := data.Columns[FetchStatusMarker]
-	if cell != nil {
-		extra := ""
-		if text != nil {
-			extra = text[0]
-		}
-
-		go app.UI.QueueUpdateDraw(func() {
-			cell.SetText(fmt.Sprintf(`[%s::b][%s[][-:-:-] %s`, color, status, extra))
-
-			pos, _ := f.table.GetSelection()
-			f.table.Select(pos, 0)
-		})
+	if cell == nil {
+		return
 	}
+
+	builder := theme.NewTextBuilder(theme.ThemeContextFetcher)
+	builder.Format(item, "tag", ` %s `, status)
+	if text != nil {
+		builder.Format(theme.ThemeProgressText, "extra", ` %s`, text[0])
+	}
+
+	go app.UI.QueueUpdateDraw(func() {
+		cell.SetText(builder.Get())
+
+		pos, _ := f.table.GetSelection()
+		f.table.Select(pos, 0)
+	})
 }
 
 // UpdateTag updates the status bar tag according to the media fetcher status.
 func (f *Fetcher) UpdateTag(clear bool) {
-	var tag, wrap string
-	var info []string
+	var tag string
 	var queuedCount, errorCount int
+	var builder theme.ThemeTextBuilder
 
 	if clear {
 		goto Tag
@@ -296,18 +323,27 @@ func (f *Fetcher) UpdateTag(clear bool) {
 	})
 	f.mutex.Unlock()
 
-	if queuedCount > 0 {
-		info = append(info, fmt.Sprintf("Queuing %d", queuedCount))
-	}
-	if errorCount > 0 {
-		info = append(info, fmt.Sprintf("Errors %d", errorCount))
-	}
-	if info == nil {
+	if queuedCount == 0 && errorCount == 0 {
 		goto Tag
 	}
 
-	wrap = fmt.Sprintf(" (%s)", strings.Join(info, ", "))
-	tag = fmt.Sprintf("[black:yellow:b]Media Fetcher%s[-:-:-]", wrap)
+	builder = theme.NewTextBuilder(theme.ThemeContextFetcher)
+
+	builder.Start(theme.ThemeTagStatusBar, "fetcher")
+	builder.AppendText("Media Fetcher (")
+	if queuedCount > 0 {
+		fmt.Fprintf(&builder, "Queuing %d", queuedCount)
+	}
+	if queuedCount > 0 && errorCount > 0 {
+		builder.AppendText(", ")
+	}
+	if errorCount > 0 {
+		fmt.Fprintf(&builder, "Errors %d", errorCount)
+	}
+	builder.AppendText(")")
+	builder.Finish()
+
+	tag = builder.Get()
 
 Tag:
 	go app.UI.Status.Tag(tag)
@@ -474,10 +510,30 @@ func (f *Fetcher) selectorHandler(row, col int) {
 		return
 	}
 
-	info := "No errors"
+	info := ""
 	if data.Error != nil {
-		info = fmt.Sprintf("[red::bu]Error:[-:-:-]\n[::b]%s[-:-:-]", data.Error.Error())
+		info = theme.SetTextStyle(
+			"error",
+			data.Error.Error(),
+			theme.ThemeContextFetcher,
+			theme.ThemeErrorMessage,
+		)
+	} else {
+		info = theme.SetTextStyle(
+			"info",
+			"No errors",
+			theme.ThemeContextFetcher,
+			theme.ThemeInfoMessage,
+		)
 	}
 
 	f.info.SetText(info)
+}
+
+// ThemeProperty returns the media fetcher's theme property.
+func (f *Fetcher) ThemeProperty() theme.ThemeProperty {
+	return theme.ThemeProperty{
+		Context: theme.ThemeContextFetcher,
+		Item:    theme.ThemePopupBackground,
+	}
 }

@@ -2,6 +2,7 @@ package view
 
 import (
 	"github.com/darkhz/invidtui/ui/app"
+	"github.com/darkhz/invidtui/ui/theme"
 	"github.com/darkhz/tview"
 	"github.com/gdamore/tcell/v2"
 )
@@ -15,6 +16,7 @@ type View interface {
 
 	Keybindings(event *tcell.EventKey) *tcell.EventKey
 	Primitive() tview.Primitive
+	ThemeProperty() theme.ThemeProperty
 }
 
 var views []View
@@ -25,7 +27,7 @@ func SetView(viewIface View, noappend ...struct{}) {
 		return
 	}
 
-	app.SetTab(viewIface.Tabs())
+	app.SetTab(viewIface.Tabs(), viewIface.ThemeProperty().Context)
 	app.UI.Pages.AddAndSwitchToPage(viewIface.Name(), viewIface.Primitive(), true)
 	app.SetPrimaryFocus()
 
