@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/darkhz/invidtui/cmd"
+	"github.com/darkhz/invidtui/ui/keybinding"
 	"github.com/darkhz/invidtui/ui/theme"
 	"github.com/darkhz/tview"
 	"github.com/gdamore/tcell/v2"
@@ -12,13 +12,13 @@ import (
 
 // MenuData stores the menu items and handlers.
 type MenuData struct {
-	Visible map[cmd.Key]func(menuType string) bool
-	Items   map[cmd.KeyContext][]cmd.Key
+	Visible map[keybinding.Key]func(menuType string) bool
+	Items   map[keybinding.KeyContext][]keybinding.Key
 }
 
 // MenuArea stores the menu modal and the current context menu.
 type MenuArea struct {
-	context cmd.KeyContext
+	context keybinding.KeyContext
 
 	modal *Modal
 	data  *MenuData
@@ -36,7 +36,7 @@ func InitMenu(data *MenuData) {
 }
 
 // AddMenu adds a menu to the menubar.
-func AddMenu(menuType cmd.KeyContext) {
+func AddMenu(menuType keybinding.KeyContext) {
 	_, ok := menuArea.data.Items[menuType]
 	if !ok {
 		return
@@ -57,7 +57,7 @@ func MenuExit() {
 }
 
 // SetContextMenu sets the context menu.
-func SetContextMenu(menuType cmd.KeyContext, item tview.Primitive) {
+func SetContextMenu(menuType keybinding.KeyContext, item tview.Primitive) {
 	if menuArea.context == menuType && menuArea.focus == item {
 		return
 	}
@@ -77,7 +77,7 @@ func SetContextMenu(menuType cmd.KeyContext, item tview.Primitive) {
 		}
 	}
 
-	if _, ok := menuArea.data.Items[cmd.KeyContext(menuType)]; ok {
+	if _, ok := menuArea.data.Items[keybinding.KeyContext(menuType)]; ok {
 		text = menuFormat(text, "context-"+string(menuType), string(menuType))
 	}
 
@@ -121,7 +121,7 @@ func DrawMenu(x int, region string) {
 		region = strings.Split(region, "-")[1]
 	}
 
-	menuItems, ok := menuArea.data.Items[cmd.KeyContext(region)]
+	menuItems, ok := menuArea.data.Items[keybinding.KeyContext(region)]
 	if !ok {
 		return
 	}
@@ -136,7 +136,7 @@ func DrawMenu(x int, region string) {
 			row, _ := modal.Table.GetSelection()
 			ref := modal.Table.GetCell(row, 0).GetReference()
 
-			if op, ok := ref.(*cmd.KeyData); ok {
+			if op, ok := ref.(*keybinding.KeyData); ok {
 				MenuKeybindings(event)
 
 				if op.Kb.Key != tcell.KeyRune {
@@ -167,8 +167,8 @@ func DrawMenu(x int, region string) {
 			continue
 		}
 
-		op := cmd.OperationData(item)
-		keyname := cmd.KeyName(op.Kb)
+		op := keybinding.OperationData(item)
+		keyname := keybinding.KeyName(op.Kb)
 
 		opwidth := len(op.Title) + len(keyname) + 10
 		if opwidth > width {

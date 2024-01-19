@@ -6,6 +6,7 @@ import (
 	"github.com/darkhz/invidtui/cmd"
 	inv "github.com/darkhz/invidtui/invidious"
 	"github.com/darkhz/invidtui/ui/app"
+	"github.com/darkhz/invidtui/ui/keybinding"
 	"github.com/darkhz/invidtui/ui/theme"
 	"github.com/darkhz/invidtui/ui/view"
 	"github.com/darkhz/tview"
@@ -98,7 +99,7 @@ func showHistory() {
 	player.history.table.SetSelectable(true, false)
 	player.history.table.SetInputCapture(historyTableKeybindings)
 	player.history.table.SetFocusFunc(func() {
-		app.SetContextMenu(cmd.KeyContextHistory, player.history.table)
+		app.SetContextMenu(keybinding.KeyContextHistory, player.history.table)
 	})
 
 	player.history.input = theme.NewInputField(property, "Filter:")
@@ -128,22 +129,22 @@ Render:
 
 // historyTableKeybindings defines the keybindings for the history popup.
 func historyTableKeybindings(event *tcell.EventKey) *tcell.EventKey {
-	switch cmd.KeyOperation(event) {
-	case cmd.KeyQuery:
+	switch keybinding.KeyOperation(event) {
+	case keybinding.KeyQuery:
 		app.UI.SetFocus(player.history.input)
 
-	case cmd.KeyChannelVideos:
+	case keybinding.KeyChannelVideos:
 		view.Channel.EventHandler("video", event.Modifiers() == tcell.ModAlt)
 
-	case cmd.KeyChannelPlaylists:
+	case keybinding.KeyChannelPlaylists:
 		view.Channel.EventHandler("playlist", event.Modifiers() == tcell.ModAlt)
 
-	case cmd.KeyClose:
+	case keybinding.KeyClose:
 		player.history.modal.Exit(false)
 	}
 
-	for _, k := range []cmd.Key{cmd.KeyChannelVideos, cmd.KeyChannelPlaylists} {
-		if cmd.KeyOperation(event) == k {
+	for _, k := range []keybinding.Key{keybinding.KeyChannelVideos, keybinding.KeyChannelPlaylists} {
+		if keybinding.KeyOperation(event) == k {
 			player.history.modal.Exit(false)
 			app.UI.Status.SwitchToPage("messages")
 

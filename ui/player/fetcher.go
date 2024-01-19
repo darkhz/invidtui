@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/darkhz/invidtui/cmd"
 	inv "github.com/darkhz/invidtui/invidious"
 	"github.com/darkhz/invidtui/ui/app"
+	"github.com/darkhz/invidtui/ui/keybinding"
 	"github.com/darkhz/invidtui/ui/theme"
 	"github.com/darkhz/tview"
 	"github.com/gammazero/deque"
@@ -70,7 +70,7 @@ func (f *Fetcher) Setup() {
 	f.table.SetInputCapture(f.Keybindings)
 	f.table.SetSelectionChangedFunc(f.selectorHandler)
 	f.table.SetFocusFunc(func() {
-		app.SetContextMenu(cmd.KeyContextFetcher, f.table)
+		app.SetContextMenu(keybinding.KeyContextFetcher, f.table)
 	})
 
 	flex := theme.NewFlex(property).
@@ -472,29 +472,29 @@ func (f *Fetcher) GetReference(do ...func(d *FetcherData)) (*FetcherData, bool) 
 
 // Keybindings define the keybindings for the media fetcher.
 func (f *Fetcher) Keybindings(event *tcell.EventKey) *tcell.EventKey {
-	operation := cmd.KeyOperation(event, cmd.KeyContextFetcher)
+	operation := keybinding.KeyOperation(event, keybinding.KeyContextFetcher)
 
 	switch operation {
-	case cmd.KeyFetcherClearCompleted:
+	case keybinding.KeyFetcherClearCompleted:
 		f.ClearErrors()
 
-	case cmd.KeyFetcherCancel:
+	case keybinding.KeyFetcherCancel:
 		f.GetReference(func(d *FetcherData) {
 			f.Cancel(d)
 		})
 
-	case cmd.KeyFetcherReload:
+	case keybinding.KeyFetcherReload:
 		f.GetReference(func(d *FetcherData) {
 			go f.Fetch(d.Info, d.Audio, d)
 		})
 
-	case cmd.KeyFetcherCancelAll:
+	case keybinding.KeyFetcherCancelAll:
 		f.CancelAll(true)
 
-	case cmd.KeyFetcherReloadAll:
+	case keybinding.KeyFetcherReloadAll:
 		f.FetchAll()
 
-	case cmd.KeyPlayerStop, cmd.KeyClose:
+	case keybinding.KeyPlayerStop, keybinding.KeyClose:
 		f.Hide()
 	}
 

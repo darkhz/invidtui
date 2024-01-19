@@ -1,9 +1,9 @@
 package view
 
 import (
-	"github.com/darkhz/invidtui/cmd"
 	inv "github.com/darkhz/invidtui/invidious"
 	"github.com/darkhz/invidtui/ui/app"
+	"github.com/darkhz/invidtui/ui/keybinding"
 	"github.com/darkhz/invidtui/ui/theme"
 	"github.com/darkhz/invidtui/utils"
 	"github.com/darkhz/tview"
@@ -43,7 +43,7 @@ func (c *CommentsView) Init() {
 	c.view.SetSelectedFunc(c.selectorHandler)
 	c.view.SetInputCapture(c.Keybindings)
 	c.view.SetFocusFunc(func() {
-		app.SetContextMenu(cmd.KeyContextComments, c.view)
+		app.SetContextMenu(keybinding.KeyContextComments, c.view)
 	})
 
 	c.root = tview.NewTreeNode("")
@@ -165,14 +165,14 @@ func (c *CommentsView) Close() {
 
 // Keybindings describes the keybindings for the comments view.
 func (c *CommentsView) Keybindings(event *tcell.EventKey) *tcell.EventKey {
-	switch cmd.KeyOperation(event, cmd.KeyContextComments) {
-	case cmd.KeyCommentReplies:
+	switch keybinding.KeyOperation(event, keybinding.KeyContextComments) {
+	case keybinding.KeyCommentReplies:
 		node := c.view.GetCurrentNode()
 		if node.GetLevel() > 2 {
 			node.GetParent().SetExpanded(!node.GetParent().IsExpanded())
 		}
 
-	case cmd.KeyClose:
+	case keybinding.KeyClose:
 		c.Close()
 	}
 

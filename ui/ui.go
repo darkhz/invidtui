@@ -5,10 +5,10 @@ import (
 	"github.com/darkhz/invidtui/cmd"
 	mp "github.com/darkhz/invidtui/mediaplayer"
 	"github.com/darkhz/invidtui/ui/app"
+	"github.com/darkhz/invidtui/ui/keybinding"
 	"github.com/darkhz/invidtui/ui/menu"
 	"github.com/darkhz/invidtui/ui/player"
 	"github.com/darkhz/invidtui/ui/popup"
-	"github.com/darkhz/invidtui/ui/theme"
 	"github.com/darkhz/invidtui/ui/view"
 	"github.com/darkhz/invidtui/utils"
 	"github.com/darkhz/tview"
@@ -17,8 +17,6 @@ import (
 
 // SetupUI sets up the UI and starts the application.
 func SetupUI() {
-	theme.ParseConfig()
-
 	app.Setup()
 	app.InitMenu(menu.Items)
 	app.SetResizeHandler(Resize)
@@ -60,7 +58,7 @@ func Resize(screen tcell.Screen) {
 
 // Keybindings defines the global keybindings for the application.
 func Keybindings(event *tcell.EventKey) *tcell.EventKey {
-	operation := cmd.KeyOperation(event, cmd.KeyContextApp, cmd.KeyContextDashboard, cmd.KeyContextDownloads)
+	operation := keybinding.KeyOperation(event, keybinding.KeyContextApp, keybinding.KeyContextDashboard, keybinding.KeyContextDownloads)
 
 	focused := app.UI.GetFocus()
 	if _, ok := focused.(*tview.InputField); ok && operation != "Menu" {
@@ -72,33 +70,33 @@ func Keybindings(event *tcell.EventKey) *tcell.EventKey {
 	}
 
 	switch operation {
-	case cmd.KeyMenu:
+	case keybinding.KeyMenu:
 		app.FocusMenu()
 		return nil
 
-	case cmd.KeyDashboard:
+	case keybinding.KeyDashboard:
 		view.Dashboard.EventHandler()
 
-	case cmd.KeySuspend:
+	case keybinding.KeySuspend:
 		app.UI.Suspend = true
 
-	case cmd.KeyCancel:
+	case keybinding.KeyCancel:
 		client.Cancel()
 		client.SendCancel()
 
 		view.Comments.Close()
 		app.ShowInfo("Loading canceled", false)
 
-	case cmd.KeyDownloadView:
+	case keybinding.KeyDownloadView:
 		view.Downloads.View()
 
-	case cmd.KeyDownloadOptions:
+	case keybinding.KeyDownloadOptions:
 		go view.Downloads.ShowOptions()
 
-	case cmd.KeyInstancesList:
+	case keybinding.KeyInstancesList:
 		go popup.ShowInstancesList()
 
-	case cmd.KeyQuit:
+	case keybinding.KeyQuit:
 		StopUI()
 	}
 

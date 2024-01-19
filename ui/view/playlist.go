@@ -4,9 +4,9 @@ import (
 	"fmt"
 
 	"github.com/darkhz/invidtui/client"
-	"github.com/darkhz/invidtui/cmd"
 	inv "github.com/darkhz/invidtui/invidious"
 	"github.com/darkhz/invidtui/ui/app"
+	"github.com/darkhz/invidtui/ui/keybinding"
 	"github.com/darkhz/invidtui/ui/popup"
 	"github.com/darkhz/invidtui/ui/theme"
 	"github.com/darkhz/invidtui/utils"
@@ -50,7 +50,7 @@ func (p *PlaylistView) Init() bool {
 	p.table = theme.NewTable(p.property)
 	p.table.SetInputCapture(p.Keybindings)
 	p.table.SetFocusFunc(func() {
-		app.SetContextMenu(cmd.KeyContextPlaylist, p.table)
+		app.SetContextMenu(keybinding.KeyContextPlaylist, p.table)
 	})
 
 	p.infoView.Init(p.table, p.property)
@@ -186,30 +186,30 @@ func (p *PlaylistView) Save(id string, auth bool) {
 
 // Keybindings describes the keybindings for the playlist view.
 func (p *PlaylistView) Keybindings(event *tcell.EventKey) *tcell.EventKey {
-	switch cmd.KeyOperation(event, cmd.KeyContextCommon, cmd.KeyContextComments, cmd.KeyContextPlaylist) {
-	case cmd.KeyLoadMore:
+	switch keybinding.KeyOperation(event, keybinding.KeyContextCommon, keybinding.KeyContextComments, keybinding.KeyContextPlaylist) {
+	case keybinding.KeyLoadMore:
 		go p.Load(p.ID, struct{}{})
 
-	case cmd.KeyPlaylistSave:
+	case keybinding.KeyPlaylistSave:
 		go Playlist.Save(p.ID, p.auth)
 
-	case cmd.KeyClose:
+	case keybinding.KeyClose:
 		CloseView()
 
-	case cmd.KeyAdd:
+	case keybinding.KeyAdd:
 		if !Dashboard.IsFocused() {
 			Dashboard.ModifyHandler(true)
 		}
 
-	case cmd.KeyRemove:
+	case keybinding.KeyRemove:
 		if v := PreviousView(); v != nil && v.Name() == Dashboard.Name() {
 			Dashboard.ModifyHandler(false)
 		}
 
-	case cmd.KeyLink:
+	case keybinding.KeyLink:
 		popup.ShowLink()
 
-	case cmd.KeyComments:
+	case keybinding.KeyComments:
 		Comments.Show()
 	}
 

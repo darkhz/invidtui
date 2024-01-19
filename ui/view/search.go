@@ -9,6 +9,7 @@ import (
 	"github.com/darkhz/invidtui/cmd"
 	inv "github.com/darkhz/invidtui/invidious"
 	"github.com/darkhz/invidtui/ui/app"
+	"github.com/darkhz/invidtui/ui/keybinding"
 	"github.com/darkhz/invidtui/ui/popup"
 	"github.com/darkhz/invidtui/ui/theme"
 	"github.com/darkhz/invidtui/utils"
@@ -99,7 +100,7 @@ func (s *SearchView) Init() bool {
 	s.table.SetBorder(false)
 	s.table.SetInputCapture(s.Keybindings)
 	s.table.SetFocusFunc(func() {
-		app.SetContextMenu(cmd.KeyContextSearch, s.table)
+		app.SetContextMenu(keybinding.KeyContextSearch, s.table)
 	})
 
 	s.suggestBox = app.NewModal(
@@ -232,7 +233,7 @@ func (s *SearchView) Query(switchMode ...struct{}) {
 	s.Init()
 
 	app.UI.Status.SetFocusFunc(func() {
-		app.SetContextMenu(cmd.KeyContextSearch, app.UI.Status.InputField)
+		app.SetContextMenu(keybinding.KeyContextSearch, app.UI.Status.InputField)
 	})
 
 	label := "Search (" + s.tab + "):"
@@ -317,33 +318,33 @@ func (s *SearchView) ParseQuery() {
 
 // Keybindings describes the keybindings for the search view.
 func (s *SearchView) Keybindings(event *tcell.EventKey) *tcell.EventKey {
-	switch cmd.KeyOperation(event, cmd.KeyContextSearch, cmd.KeyContextComments) {
-	case cmd.KeySearchStart:
+	switch keybinding.KeyOperation(event, keybinding.KeyContextSearch, keybinding.KeyContextComments) {
+	case keybinding.KeySearchStart:
 		go s.Start("")
 		app.UI.Status.SetFocusFunc()
 
-	case cmd.KeyClose:
+	case keybinding.KeyClose:
 		CloseView()
 
-	case cmd.KeyQuery:
+	case keybinding.KeyQuery:
 		s.Query()
 
-	case cmd.KeyPlaylist:
+	case keybinding.KeyPlaylist:
 		Playlist.EventHandler(event.Modifiers() == tcell.ModAlt, false)
 
-	case cmd.KeyChannelVideos:
+	case keybinding.KeyChannelVideos:
 		Channel.EventHandler("video", event.Modifiers() == tcell.ModAlt)
 
-	case cmd.KeyChannelPlaylists:
+	case keybinding.KeyChannelPlaylists:
 		Channel.EventHandler("playlist", event.Modifiers() == tcell.ModAlt)
 
-	case cmd.KeyComments:
+	case keybinding.KeyComments:
 		Comments.Show()
 
-	case cmd.KeyAdd:
+	case keybinding.KeyAdd:
 		Dashboard.ModifyHandler(true)
 
-	case cmd.KeyLink:
+	case keybinding.KeyLink:
 		popup.ShowLink()
 	}
 
@@ -352,10 +353,10 @@ func (s *SearchView) Keybindings(event *tcell.EventKey) *tcell.EventKey {
 
 // inputFunc describes the keybindings for the search input box.
 func (s *SearchView) inputFunc(e *tcell.EventKey) *tcell.EventKey {
-	operation := cmd.KeyOperation(e, cmd.KeyContextSearch)
+	operation := keybinding.KeyOperation(e, keybinding.KeyContextSearch)
 
 	switch operation {
-	case cmd.KeySearchStart:
+	case keybinding.KeySearchStart:
 		s.currentType = s.tab
 
 		text := app.UI.Status.GetText()
@@ -364,7 +365,7 @@ func (s *SearchView) inputFunc(e *tcell.EventKey) *tcell.EventKey {
 			app.UI.Status.SetFocusFunc()
 		}
 
-	case cmd.KeyClose:
+	case keybinding.KeyClose:
 		if s.suggestBox.Open {
 			s.suggestBox.Exit(false)
 			goto Event
@@ -379,10 +380,10 @@ func (s *SearchView) inputFunc(e *tcell.EventKey) *tcell.EventKey {
 		app.UI.Status.SwitchToPage("messages")
 		app.SetPrimaryFocus()
 
-	case cmd.KeySearchSuggestions:
+	case keybinding.KeySearchSuggestions:
 		go s.Suggestions(app.UI.Status.GetText())
 
-	case cmd.KeySearchSwitchMode:
+	case keybinding.KeySearchSwitchMode:
 		var tab app.Tab
 		if GetCurrentView() != (&Search) {
 			tab = s.Tabs()
@@ -392,13 +393,13 @@ func (s *SearchView) inputFunc(e *tcell.EventKey) *tcell.EventKey {
 		s.tab = app.SwitchTab(false, tab)
 		s.Query(struct{}{})
 
-	case cmd.KeySearchParameters:
+	case keybinding.KeySearchParameters:
 		go s.Parameters()
 
-	case cmd.KeySearchSuggestionReverse, cmd.KeySearchSuggestionForward:
+	case keybinding.KeySearchSuggestionReverse, keybinding.KeySearchSuggestionForward:
 		s.suggestionHandler(operation)
 
-	case cmd.KeySearchHistoryReverse, cmd.KeySearchHistoryForward:
+	case keybinding.KeySearchHistoryReverse, keybinding.KeySearchHistoryForward:
 		if t := s.historyEntry(operation); t != "" {
 			app.UI.Status.SetText(t)
 		}
@@ -434,9 +435,9 @@ func (s *SearchView) addToHistory(text string) {
 }
 
 // historyEntry returns the search history entry.
-func (s *SearchView) historyEntry(key cmd.Key) string {
+func (s *SearchView) historyEntry(key keybinding.Key) string {
 	switch key {
-	case cmd.KeySearchHistoryReverse:
+	case keybinding.KeySearchHistoryReverse:
 		if s.pos-1 < 0 || s.pos-1 >= len(s.entries) {
 			var entry string
 
@@ -449,7 +450,7 @@ func (s *SearchView) historyEntry(key cmd.Key) string {
 
 		s.pos--
 
-	case cmd.KeySearchHistoryForward:
+	case keybinding.KeySearchHistoryForward:
 		if s.pos+1 >= len(s.entries) {
 			var entry string
 
@@ -473,14 +474,14 @@ func (s *SearchView) historyReset() {
 }
 
 // suggestionHandler handles suggestion popup key events.
-func (s *SearchView) suggestionHandler(key cmd.Key) {
+func (s *SearchView) suggestionHandler(key keybinding.Key) {
 	var eventKey tcell.Key
 
 	switch key {
-	case cmd.KeySearchSuggestionReverse:
+	case keybinding.KeySearchSuggestionReverse:
 		eventKey = tcell.KeyUp
 
-	case cmd.KeySearchSuggestionForward:
+	case keybinding.KeySearchSuggestionForward:
 		eventKey = tcell.KeyDown
 	}
 

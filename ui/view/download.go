@@ -13,6 +13,7 @@ import (
 	"github.com/darkhz/invidtui/cmd"
 	inv "github.com/darkhz/invidtui/invidious"
 	"github.com/darkhz/invidtui/ui/app"
+	"github.com/darkhz/invidtui/ui/keybinding"
 	"github.com/darkhz/invidtui/ui/theme"
 	"github.com/darkhz/invidtui/utils"
 	"github.com/darkhz/tview"
@@ -70,7 +71,7 @@ func (d *DownloadsView) Init() bool {
 	d.options.SetSelectable(true, false)
 	d.options.SetInputCapture(d.OptionKeybindings)
 	d.options.SetFocusFunc(func() {
-		app.SetContextMenu(cmd.KeyContextDownloads, d.options)
+		app.SetContextMenu(keybinding.KeyContextDownloads, d.options)
 	})
 
 	d.view = theme.NewTable(d.property.SetItem(theme.ThemeBackground))
@@ -87,7 +88,7 @@ func (d *DownloadsView) Init() bool {
 	d.view.SetTitleAlign(tview.AlignLeft)
 	d.view.SetInputCapture(d.Keybindings)
 	d.view.SetFocusFunc(func() {
-		app.SetContextMenu(cmd.KeyContextDownloads, d.view)
+		app.SetContextMenu(keybinding.KeyContextDownloads, d.view)
 	})
 
 	d.modal = app.NewModal("downloads", "Select Download Option", d.options, 40, 60, d.property)
@@ -276,11 +277,11 @@ func (d *DownloadsView) TransferPlaylist(id, file string, flags int, auth, appen
 
 // OptionKeybindings describes the keybindings for the download options popup.
 func (d *DownloadsView) OptionKeybindings(event *tcell.EventKey) *tcell.EventKey {
-	switch cmd.KeyOperation(event, cmd.KeyContextDownloads) {
-	case cmd.KeyDownloadChangeDir:
+	switch keybinding.KeyOperation(event, keybinding.KeyContextDownloads) {
+	case keybinding.KeyDownloadChangeDir:
 		d.SetDir()
 
-	case cmd.KeyDownloadOptionSelect:
+	case keybinding.KeyDownloadOptionSelect:
 		row, _ := d.options.GetSelection()
 		cell := d.options.GetCell(row, 0)
 
@@ -291,7 +292,7 @@ func (d *DownloadsView) OptionKeybindings(event *tcell.EventKey) *tcell.EventKey
 
 		fallthrough
 
-	case cmd.KeyClose:
+	case keybinding.KeyClose:
 		d.modal.Exit(false)
 	}
 
@@ -300,8 +301,8 @@ func (d *DownloadsView) OptionKeybindings(event *tcell.EventKey) *tcell.EventKey
 
 // Keybindings describes the keybindings for the downloads view.
 func (d *DownloadsView) Keybindings(event *tcell.EventKey) *tcell.EventKey {
-	switch cmd.KeyOperation(event, cmd.KeyContextDownloads) {
-	case cmd.KeyDownloadCancel:
+	switch keybinding.KeyOperation(event, keybinding.KeyContextDownloads) {
+	case keybinding.KeyDownloadCancel:
 		row, _ := Downloads.view.GetSelection()
 
 		cell := Downloads.view.GetCell(row, 0)
@@ -309,7 +310,7 @@ func (d *DownloadsView) Keybindings(event *tcell.EventKey) *tcell.EventKey {
 			progress.cancelFunc()
 		}
 
-	case cmd.KeyClose:
+	case keybinding.KeyClose:
 		CloseView()
 	}
 

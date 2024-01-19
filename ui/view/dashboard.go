@@ -6,9 +6,9 @@ import (
 	"sync"
 
 	"github.com/darkhz/invidtui/client"
-	"github.com/darkhz/invidtui/cmd"
 	inv "github.com/darkhz/invidtui/invidious"
 	"github.com/darkhz/invidtui/ui/app"
+	"github.com/darkhz/invidtui/ui/keybinding"
 	"github.com/darkhz/invidtui/ui/popup"
 	"github.com/darkhz/invidtui/ui/theme"
 	"github.com/darkhz/invidtui/utils"
@@ -95,7 +95,7 @@ func (d *DashboardView) Init() bool {
 			table.SetTitle(info.Title)
 			table.SetInputCapture(kbMap[info.Title])
 			table.SetFocusFunc(func() {
-				app.SetContextMenu(cmd.KeyContextDashboard, table)
+				app.SetContextMenu(keybinding.KeyContextDashboard, table)
 			})
 
 			d.tableMap[info.Title] = &DashboardTable{
@@ -353,19 +353,19 @@ func (d *DashboardView) PlaylistForm(edit bool) {
 
 // Keybindings defines the keybindings for the dashboard view.
 func (d *DashboardView) Keybindings(event *tcell.EventKey) *tcell.EventKey {
-	switch cmd.KeyOperation(event, cmd.KeyContextDashboard) {
-	case cmd.KeySwitchTab:
+	switch keybinding.KeyOperation(event, keybinding.KeyContextDashboard) {
+	case keybinding.KeySwitchTab:
 		d.CurrentPage(app.SwitchTab(false))
 
 		client.Cancel()
 		app.ShowInfo("", false)
 		d.Load(d.CurrentPage())
 
-	case cmd.KeyClose:
+	case keybinding.KeyClose:
 		client.Cancel()
 		CloseView()
 
-	case cmd.KeyDashboardReload:
+	case keybinding.KeyDashboardReload:
 		d.Load(d.CurrentPage(), struct{}{})
 	}
 
@@ -376,17 +376,17 @@ func (d *DashboardView) Keybindings(event *tcell.EventKey) *tcell.EventKey {
 func (d *DashboardView) feedKeybindings(event *tcell.EventKey) *tcell.EventKey {
 	d.Keybindings(event)
 
-	switch cmd.KeyOperation(event, cmd.KeyContextComments) {
-	case cmd.KeyLoadMore:
+	switch keybinding.KeyOperation(event, keybinding.KeyContextComments) {
+	case keybinding.KeyLoadMore:
 		d.loadFeed(false, struct{}{})
 
-	case cmd.KeyAdd:
+	case keybinding.KeyAdd:
 		d.ModifyHandler(true)
 
-	case cmd.KeyLink:
+	case keybinding.KeyLink:
 		popup.ShowLink()
 
-	case cmd.KeyComments:
+	case keybinding.KeyComments:
 		Comments.Show()
 	}
 
@@ -397,17 +397,17 @@ func (d *DashboardView) feedKeybindings(event *tcell.EventKey) *tcell.EventKey {
 func (d *DashboardView) plKeybindings(event *tcell.EventKey) *tcell.EventKey {
 	d.Keybindings(event)
 
-	switch cmd.KeyOperation(event, cmd.KeyContextDashboard) {
-	case cmd.KeyPlaylist:
+	switch keybinding.KeyOperation(event, keybinding.KeyContextDashboard) {
+	case keybinding.KeyPlaylist:
 		Playlist.EventHandler(event.Modifiers() == tcell.ModAlt, true)
 
-	case cmd.KeyDashboardCreatePlaylist, cmd.KeyDashboardEditPlaylist:
+	case keybinding.KeyDashboardCreatePlaylist, keybinding.KeyDashboardEditPlaylist:
 		d.PlaylistForm(event.Rune() == 'e')
 
-	case cmd.KeyRemove:
+	case keybinding.KeyRemove:
 		d.ModifyHandler(false)
 
-	case cmd.KeyLink:
+	case keybinding.KeyLink:
 		popup.ShowLink()
 	}
 
@@ -418,17 +418,17 @@ func (d *DashboardView) plKeybindings(event *tcell.EventKey) *tcell.EventKey {
 func (d *DashboardView) subKeybindings(event *tcell.EventKey) *tcell.EventKey {
 	d.Keybindings(event)
 
-	switch cmd.KeyOperation(event, cmd.KeyContextComments) {
-	case cmd.KeyChannelVideos:
+	switch keybinding.KeyOperation(event, keybinding.KeyContextComments) {
+	case keybinding.KeyChannelVideos:
 		Channel.EventHandler("video", event.Modifiers() == tcell.ModAlt)
 
-	case cmd.KeyChannelPlaylists:
+	case keybinding.KeyChannelPlaylists:
 		Channel.EventHandler("playlist", event.Modifiers() == tcell.ModAlt)
 
-	case cmd.KeyRemove:
+	case keybinding.KeyRemove:
 		d.ModifyHandler(false)
 
-	case cmd.KeyComments:
+	case keybinding.KeyComments:
 		Comments.Show()
 	}
 

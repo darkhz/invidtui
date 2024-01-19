@@ -12,10 +12,10 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/darkhz/invidtui/cmd"
 	inv "github.com/darkhz/invidtui/invidious"
 	mp "github.com/darkhz/invidtui/mediaplayer"
 	"github.com/darkhz/invidtui/ui/app"
+	"github.com/darkhz/invidtui/ui/keybinding"
 	"github.com/darkhz/invidtui/ui/theme"
 	"github.com/darkhz/invidtui/utils"
 	"github.com/darkhz/tview"
@@ -98,7 +98,7 @@ func (q *Queue) Setup() {
 	q.table.SetInputCapture(q.Keybindings)
 	q.table.SetSelectionChangedFunc(q.selectorHandler)
 	q.table.SetFocusFunc(func() {
-		app.SetContextMenu(cmd.KeyContextQueue, q.table)
+		app.SetContextMenu(keybinding.KeyContextQueue, q.table)
 	})
 
 	q.modal = app.NewModal("queue", "Queue", q.table, 40, 0, property)
@@ -611,17 +611,17 @@ func (q *Queue) MarkPlayingEntry(status QueueEntryStatus) {
 }
 
 // MarkEntryMediaType marks the selected queue entry as 'Audio/Video'.
-func (q *Queue) MarkEntryMediaType(key cmd.Key) {
+func (q *Queue) MarkEntryMediaType(key keybinding.Key) {
 	var media string
 
 	q.storeMutex.Lock()
 	defer q.storeMutex.Unlock()
 
 	switch key {
-	case cmd.KeyPlayerQueueAudio:
+	case keybinding.KeyPlayerQueueAudio:
 		media = "Audio"
 
-	case cmd.KeyPlayerQueueVideo:
+	case keybinding.KeyPlayerQueueVideo:
 		media = "Video"
 
 	default:
@@ -884,11 +884,11 @@ ReadPlaylist:
 
 // Keybindings define the keybindings for the queue.
 func (q *Queue) Keybindings(event *tcell.EventKey) *tcell.EventKey {
-	operation := cmd.KeyOperation(event, cmd.KeyContextQueue)
+	operation := keybinding.KeyOperation(event, keybinding.KeyContextQueue)
 
-	for _, op := range []cmd.Key{
-		cmd.KeyClose,
-		cmd.KeyQueueSave,
+	for _, op := range []keybinding.Key{
+		keybinding.KeyClose,
+		keybinding.KeyQueueSave,
 	} {
 		if operation == op {
 			q.Hide()
@@ -897,31 +897,31 @@ func (q *Queue) Keybindings(event *tcell.EventKey) *tcell.EventKey {
 	}
 
 	switch operation {
-	case cmd.KeyQueuePlayMove:
+	case keybinding.KeyQueuePlayMove:
 		q.play()
 
-	case cmd.KeyQueueSave:
+	case keybinding.KeyQueueSave:
 		app.UI.FileBrowser.Show("Save as:", q.saveAs)
 
-	case cmd.KeyQueueAppend:
+	case keybinding.KeyQueueAppend:
 		app.UI.FileBrowser.Show("Append from:", q.appendFrom)
 
-	case cmd.KeyQueueDelete:
+	case keybinding.KeyQueueDelete:
 		q.remove()
 
-	case cmd.KeyQueueMove:
+	case keybinding.KeyQueueMove:
 		q.move()
 
-	case cmd.KeyPlayerQueueAudio, cmd.KeyPlayerQueueVideo:
+	case keybinding.KeyPlayerQueueAudio, keybinding.KeyPlayerQueueVideo:
 		q.MarkEntryMediaType(operation)
 
-	case cmd.KeyPlayerStop, cmd.KeyClose:
+	case keybinding.KeyPlayerStop, keybinding.KeyClose:
 		q.Hide()
 	}
 
-	for _, o := range []cmd.Key{
-		cmd.KeyQueueMove,
-		cmd.KeyQueueDelete,
+	for _, o := range []keybinding.Key{
+		keybinding.KeyQueueMove,
+		keybinding.KeyQueueDelete,
 	} {
 		if operation == o {
 			app.ResizeModal()

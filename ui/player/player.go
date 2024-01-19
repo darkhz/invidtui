@@ -14,6 +14,7 @@ import (
 	inv "github.com/darkhz/invidtui/invidious"
 	mp "github.com/darkhz/invidtui/mediaplayer"
 	"github.com/darkhz/invidtui/ui/app"
+	"github.com/darkhz/invidtui/ui/keybinding"
 	"github.com/darkhz/invidtui/ui/theme"
 	"github.com/darkhz/invidtui/utils"
 	"github.com/darkhz/tview"
@@ -316,42 +317,42 @@ func IsHistoryInputFocused() bool {
 func Keybindings(event *tcell.EventKey) *tcell.EventKey {
 	playerKeybindings(event)
 
-	operation := cmd.KeyOperation(event, cmd.KeyContextQueue, cmd.KeyContextFetcher)
+	operation := keybinding.KeyOperation(event, keybinding.KeyContextQueue, keybinding.KeyContextFetcher)
 
 	switch operation {
-	case cmd.KeyPlayerOpenPlaylist:
+	case keybinding.KeyPlayerOpenPlaylist:
 		app.UI.FileBrowser.Show("Open playlist:", openPlaylist)
 
-	case cmd.KeyPlayerHistory:
+	case keybinding.KeyPlayerHistory:
 		showHistory()
 
-	case cmd.KeyPlayerInfo:
+	case keybinding.KeyPlayerInfo:
 		ToggleInfo()
 
-	case cmd.KeyPlayerInfoScrollDown:
+	case keybinding.KeyPlayerInfoScrollDown:
 		player.info.InputHandler()(tcell.NewEventKey(tcell.KeyDown, ' ', tcell.ModNone), nil)
 		return nil
 
-	case cmd.KeyPlayerInfoScrollUp:
+	case keybinding.KeyPlayerInfoScrollUp:
 		player.info.InputHandler()(tcell.NewEventKey(tcell.KeyUp, ' ', tcell.ModNone), nil)
 		return nil
 
-	case cmd.KeyPlayerInfoChangeQuality:
+	case keybinding.KeyPlayerInfoChangeQuality:
 		changeImageQuality()
 
-	case cmd.KeyPlayerQueueAudio, cmd.KeyPlayerQueueVideo, cmd.KeyPlayerPlayAudio, cmd.KeyPlayerPlayVideo:
+	case keybinding.KeyPlayerQueueAudio, keybinding.KeyPlayerQueueVideo, keybinding.KeyPlayerPlayAudio, keybinding.KeyPlayerPlayVideo:
 		playSelected(operation)
 
-	case cmd.KeyFetcher:
+	case keybinding.KeyFetcher:
 		player.fetcher.Show()
 
-	case cmd.KeyQueue:
+	case keybinding.KeyQueue:
 		player.queue.Show()
 
-	case cmd.KeyQueueCancel:
+	case keybinding.KeyQueueCancel:
 		player.queue.Context(true)
 
-	case cmd.KeyAudioURL, cmd.KeyVideoURL:
+	case keybinding.KeyAudioURL, keybinding.KeyVideoURL:
 		playInputURL(event.Rune() == 'b')
 		return nil
 	}
@@ -364,39 +365,39 @@ func Keybindings(event *tcell.EventKey) *tcell.EventKey {
 func playerKeybindings(event *tcell.EventKey) {
 	var nokey bool
 
-	switch cmd.KeyOperation(event, cmd.KeyContextPlayer) {
-	case cmd.KeyPlayerStop:
+	switch keybinding.KeyOperation(event, keybinding.KeyContextPlayer) {
+	case keybinding.KeyPlayerStop:
 		player.setting.Store(false)
 		go Hide()
 
-	case cmd.KeyPlayerSeekForward:
+	case keybinding.KeyPlayerSeekForward:
 		mp.Player().SeekForward()
 
-	case cmd.KeyPlayerSeekBackward:
+	case keybinding.KeyPlayerSeekBackward:
 		mp.Player().SeekBackward()
 
-	case cmd.KeyPlayerTogglePlay:
+	case keybinding.KeyPlayerTogglePlay:
 		mp.Player().TogglePaused()
 
-	case cmd.KeyPlayerToggleLoop:
+	case keybinding.KeyPlayerToggleLoop:
 		player.queue.ToggleRepeatMode()
 
-	case cmd.KeyPlayerToggleShuffle:
+	case keybinding.KeyPlayerToggleShuffle:
 		player.queue.ToggleShuffle()
 
-	case cmd.KeyPlayerToggleMute:
+	case keybinding.KeyPlayerToggleMute:
 		mp.Player().ToggleMuted()
 
-	case cmd.KeyPlayerVolumeIncrease:
+	case keybinding.KeyPlayerVolumeIncrease:
 		mp.Player().VolumeIncrease()
 
-	case cmd.KeyPlayerVolumeDecrease:
+	case keybinding.KeyPlayerVolumeDecrease:
 		mp.Player().VolumeDecrease()
 
-	case cmd.KeyPlayerPrev:
+	case keybinding.KeyPlayerPrev:
 		player.queue.Previous(struct{}{})
 
-	case cmd.KeyPlayerNext:
+	case keybinding.KeyPlayerNext:
 		player.queue.Next(struct{}{})
 
 	default:
@@ -410,16 +411,16 @@ func playerKeybindings(event *tcell.EventKey) {
 
 // playSelected determines the media type according
 // to the key pressed, and plays the currently selected entry.
-func playSelected(key cmd.Key) {
+func playSelected(key keybinding.Key) {
 	if player.queue.IsOpen() {
-		kb := cmd.OperationData(key)
+		kb := keybinding.OperationData(key)
 		player.queue.Keybindings(tcell.NewEventKey(kb.Kb.Key, kb.Kb.Rune, kb.Kb.Mod))
 
 		return
 	}
 
-	audio := key == cmd.KeyPlayerQueueAudio || key == cmd.KeyPlayerPlayAudio
-	current := key == cmd.KeyPlayerPlayAudio || key == cmd.KeyPlayerPlayVideo
+	audio := key == keybinding.KeyPlayerQueueAudio || key == keybinding.KeyPlayerPlayAudio
+	current := key == keybinding.KeyPlayerPlayAudio || key == keybinding.KeyPlayerPlayVideo
 
 	Play(audio, current)
 

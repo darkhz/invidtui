@@ -3,8 +3,8 @@ package view
 import (
 	"strings"
 
-	"github.com/darkhz/invidtui/cmd"
 	"github.com/darkhz/invidtui/ui/app"
+	"github.com/darkhz/invidtui/ui/keybinding"
 	"github.com/darkhz/invidtui/ui/theme"
 	"github.com/darkhz/tview"
 	"github.com/gdamore/tcell/v2"
@@ -73,8 +73,8 @@ func (d *BannerView) ThemeProperty() theme.ThemeProperty {
 
 // Keybindings describes the banner view's keybindings.
 func (b *BannerView) Keybindings(event *tcell.EventKey) *tcell.EventKey {
-	switch cmd.KeyOperation(event) {
-	case cmd.KeyQuery:
+	switch keybinding.KeyOperation(event) {
+	case keybinding.KeyQuery:
 		Search.Query()
 	}
 
@@ -120,7 +120,7 @@ func (b *BannerView) setup() {
 		AddItem(box, 0, 7, false)
 	b.flex.SetInputCapture(b.Keybindings)
 	bannerBox.SetFocusFunc(func() {
-		app.SetContextMenu(cmd.KeyContextStart, b.flex)
+		app.SetContextMenu(keybinding.KeyContextStart, b.flex)
 	})
 
 	b.shown = true

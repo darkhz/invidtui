@@ -9,7 +9,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/darkhz/invidtui/cmd"
+	"github.com/darkhz/invidtui/ui/keybinding"
 	"github.com/darkhz/invidtui/ui/theme"
 	"github.com/darkhz/invidtui/utils"
 	"github.com/darkhz/tview"
@@ -60,7 +60,7 @@ func (f *FileBrowser) setup() {
 	f.input = theme.NewInputField(property, "File:")
 	f.input.SetInputCapture(f.inputFunc)
 	f.input.SetFocusFunc(func() {
-		SetContextMenu(cmd.KeyContextFiles, f.input)
+		SetContextMenu(keybinding.KeyContextFiles, f.input)
 	})
 
 	f.flex = theme.NewFlex(property).
@@ -194,25 +194,25 @@ func (f *FileBrowser) SaveFile(
 
 // Keybindings define the keybindings for the file browser.
 func (f *FileBrowser) Keybindings(event *tcell.EventKey) *tcell.EventKey {
-	switch cmd.KeyOperation(event, cmd.KeyContextFiles) {
-	case cmd.KeyFilebrowserDirForward:
+	switch keybinding.KeyOperation(event, keybinding.KeyContextFiles) {
+	case keybinding.KeyFilebrowserDirForward:
 		sel, _ := f.table.GetSelection()
 		cell := f.table.GetCell(sel, 0)
 		if entry, ok := cell.GetReference().(fs.DirEntry); ok {
 			go f.cd(entry.Name(), true, false)
 		}
 
-	case cmd.KeyFilebrowserDirBack:
+	case keybinding.KeyFilebrowserDirBack:
 		go f.cd("", false, true)
 
-	case cmd.KeyFilebrowserToggleHidden:
+	case keybinding.KeyFilebrowserToggleHidden:
 		f.hiddenStatus(struct{}{})
 		go f.cd("", false, false)
 
-	case cmd.KeyFilebrowserNewFolder:
+	case keybinding.KeyFilebrowserNewFolder:
 		go f.newFolder()
 
-	case cmd.KeyFilebrowserRename:
+	case keybinding.KeyFilebrowserRename:
 		go f.renameItem()
 		return nil
 	}
@@ -224,11 +224,11 @@ func (f *FileBrowser) Keybindings(event *tcell.EventKey) *tcell.EventKey {
 func (f *FileBrowser) inputFunc(e *tcell.EventKey) *tcell.EventKey {
 	var toggle bool
 
-	switch cmd.KeyOperation(e, cmd.KeyContextFiles) {
-	case cmd.KeyFilebrowserToggleHidden:
+	switch keybinding.KeyOperation(e, keybinding.KeyContextFiles) {
+	case keybinding.KeyFilebrowserToggleHidden:
 		toggle = true
 
-	case cmd.KeyFilebrowserSelect:
+	case keybinding.KeyFilebrowserSelect:
 		text := f.input.GetText()
 		if text == "" {
 			goto Event
@@ -236,7 +236,7 @@ func (f *FileBrowser) inputFunc(e *tcell.EventKey) *tcell.EventKey {
 
 		go f.dofunc(filepath.Join(f.currentPath, text))
 
-	case cmd.KeyClose:
+	case keybinding.KeyClose:
 		f.modal.Exit(false)
 		goto Event
 	}

@@ -6,9 +6,9 @@ import (
 	"sync"
 
 	"github.com/darkhz/invidtui/client"
-	"github.com/darkhz/invidtui/cmd"
 	inv "github.com/darkhz/invidtui/invidious"
 	"github.com/darkhz/invidtui/ui/app"
+	"github.com/darkhz/invidtui/ui/keybinding"
 	"github.com/darkhz/invidtui/ui/popup"
 	"github.com/darkhz/invidtui/ui/theme"
 	"github.com/darkhz/invidtui/utils"
@@ -80,7 +80,7 @@ func (c *ChannelView) Init() bool {
 			table.SetSelectable(true, false)
 			table.SetInputCapture(c.Keybindings)
 			table.SetFocusFunc(func() {
-				app.SetContextMenu(cmd.KeyContextChannel, c.views)
+				app.SetContextMenu(keybinding.KeyContextChannel, c.views)
 			})
 
 			c.tableMap[info.Title] = &ChannelTable{
@@ -536,33 +536,33 @@ func (c *ChannelView) Query() {
 
 // Keybindings describes the keybindings for the channel view.
 func (c *ChannelView) Keybindings(event *tcell.EventKey) *tcell.EventKey {
-	switch cmd.KeyOperation(event) {
-	case cmd.KeySwitchTab:
+	switch keybinding.KeyOperation(event) {
+	case keybinding.KeySwitchTab:
 		c.currentType = app.SwitchTab(false)
 
 		c.View(c.currentType)
 		go c.Load(c.currentType)
 
-	case cmd.KeyLoadMore:
+	case keybinding.KeyLoadMore:
 		go c.Load(c.currentType, struct{}{})
 
-	case cmd.KeyClose:
+	case keybinding.KeyClose:
 		CloseView()
 
-	case cmd.KeyQuery:
+	case keybinding.KeyQuery:
 		c.currentType = "search"
 		go c.Load(c.currentType)
 
-	case cmd.KeyPlaylist:
+	case keybinding.KeyPlaylist:
 		go Playlist.EventHandler(event.Modifiers() == tcell.ModAlt, false)
 
-	case cmd.KeyAdd:
+	case keybinding.KeyAdd:
 		Dashboard.ModifyHandler(true)
 
-	case cmd.KeyComments:
+	case keybinding.KeyComments:
 		Comments.Show()
 
-	case cmd.KeyLink:
+	case keybinding.KeyLink:
 		popup.ShowLink()
 	}
 
