@@ -48,12 +48,7 @@ func (c *ThemeConfig) Parse(k *koanf.Koanf, dir string) error {
 		themeFile += ".theme"
 	}
 
-	conf := koanf.New(".")
-	if err := conf.Load(file.Provider(filepath.Join(dir, "themes", themeFile)), hjson.Parser()); err != nil {
-		return err
-	}
-
-	return parseConfig(conf)
+	return ParseFile(filepath.Join(dir, "themes", themeFile))
 }
 
 // Generate generates the theme configuration.
@@ -79,6 +74,16 @@ func (c *ThemeConfig) Generate(k *koanf.Koanf) (interface{}, error) {
 	}
 
 	return themeFile, err
+}
+
+// ParseFile parses a theme file.
+func ParseFile(themePath string) error {
+	conf := koanf.New(".")
+	if err := conf.Load(file.Provider(themePath), hjson.Parser()); err != nil {
+		return err
+	}
+
+	return parseConfig(conf)
 }
 
 // GetThemeSetting returns a style and tag according to the ThemeProperty.

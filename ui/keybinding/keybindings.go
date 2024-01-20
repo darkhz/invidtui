@@ -28,6 +28,7 @@ const (
 	KeyCancel                  Key = "Cancel"
 	KeySuspend                 Key = "Suspend"
 	KeyInstancesList           Key = "InstancesList"
+	KeyTheme                   Key = "Theme"
 	KeyQuit                    Key = "Quit"
 	KeySearchStart             Key = "SearchStart"
 	KeySearchSuggestions       Key = "SearchSuggestions"
@@ -143,6 +144,12 @@ var (
 			Title:   "Cancel Loading",
 			Context: KeyContextApp,
 			Kb:      Keybinding{tcell.KeyCtrlX, ' ', tcell.ModCtrl},
+			Global:  true,
+		},
+		KeyTheme: {
+			Title:   "Apply Theme",
+			Context: KeyContextApp,
+			Kb:      Keybinding{tcell.KeyRune, 'T', tcell.ModNone},
 			Global:  true,
 		},
 		KeyInstancesList: {

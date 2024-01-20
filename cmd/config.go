@@ -74,19 +74,28 @@ func (c *Config) setup() {
 	}
 }
 
+// GetConfigDir returns the full config path for the provided directory.
+func GetConfigDir(dir string) (string, error) {
+	dir = filepath.Join(config.path, dir)
+
+	_, err := os.Stat(dir)
+	if errors.Is(err, fs.ErrNotExist) {
+		err = os.MkdirAll(dir, os.ModePerm)
+		if err != nil {
+			return "", err
+		}
+	}
+
+	return dir, nil
+}
+
 // GetPath returns the full config path for the provided file type.
 func GetPath(ftype string, nocreate ...struct{}) (string, error) {
 	var cfpath string
 
 	if strings.Contains(ftype, "/") {
-		dir := filepath.Join(config.path, filepath.Dir(ftype))
-
-		_, err := os.Stat(dir)
-		if errors.Is(err, fs.ErrNotExist) {
-			err = os.MkdirAll(dir, os.ModePerm)
-			if err != nil {
-				return "", err
-			}
+		if _, err := GetConfigDir(filepath.Dir(ftype)); err != nil {
+			return "", err
 		}
 	}
 

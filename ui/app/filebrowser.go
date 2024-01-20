@@ -20,8 +20,8 @@ import (
 
 // FileBrowser describes the layout of a file browser.
 type FileBrowser struct {
-	init, hidden, dironly        bool
-	prevDir, currentPath, prompt string
+	init, hidden, dironly                   bool
+	prevDir, currentPath, resetpath, prompt string
 
 	dofunc func(text string)
 
@@ -37,8 +37,8 @@ type FileBrowser struct {
 
 // FileBrowserOptions describes the file browser options.
 type FileBrowserOptions struct {
-	ShowDirOnly bool
-	SetDir      string
+	ShowDirOnly, ResetPath bool
+	SetDir                 string
 }
 
 // setup sets up the file browser.
@@ -84,6 +84,15 @@ func (f *FileBrowser) Show(prompt string, dofunc func(text string), options ...F
 
 	f.dofunc = dofunc
 	f.dironly = false
+	if f.resetpath != "" {
+		if f.resetpath == "-" {
+			f.currentPath = ""
+		} else {
+			f.currentPath = f.resetpath
+		}
+
+		f.resetpath = ""
+	}
 
 	f.prompt = prompt
 	f.input.SetLabel(f.prompt)
@@ -94,6 +103,14 @@ func (f *FileBrowser) Show(prompt string, dofunc func(text string), options ...F
 	if options != nil {
 		f.dironly = options[0].ShowDirOnly
 		if dir := options[0].SetDir; dir != "" {
+			if options[0].ResetPath {
+				if f.currentPath == "" {
+					f.resetpath = "-"
+				} else {
+					f.resetpath = f.currentPath
+				}
+			}
+
 			f.currentPath = dir
 		}
 	}

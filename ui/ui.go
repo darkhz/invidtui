@@ -96,6 +96,9 @@ func Keybindings(event *tcell.EventKey) *tcell.EventKey {
 	case keybinding.KeyInstancesList:
 		go popup.ShowInstancesList()
 
+	case keybinding.KeyTheme:
+		go popup.ShowThemes()
+
 	case keybinding.KeyQuit:
 		StopUI()
 	}

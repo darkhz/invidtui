@@ -15,6 +15,7 @@ var Items = &app.MenuData{
 			keybinding.KeyDownloadView,
 			keybinding.KeyDownloadOptions,
 			keybinding.KeyInstancesList,
+			keybinding.KeyTheme,
 			keybinding.KeyQuit,
 		},
 		keybinding.KeyContextStart: {
