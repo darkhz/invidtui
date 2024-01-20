@@ -101,7 +101,7 @@ func Keybindings(event *tcell.EventKey) *tcell.EventKey {
 	}
 
 Event:
-	return event
+	return tcell.NewEventKey(event.Key(), event.Rune(), event.Modifiers())
 }
 
 // detectPlayerClose detects if the player has exited abruptly.
