@@ -441,7 +441,7 @@ func (s *SearchView) historyEntry(key keybinding.Key) string {
 		if s.pos-1 < 0 || s.pos-1 >= len(s.entries) {
 			var entry string
 
-			if s.entries != nil {
+			if len(s.entries) > 0 {
 				entry = s.entries[0]
 			}
 
@@ -454,7 +454,7 @@ func (s *SearchView) historyEntry(key keybinding.Key) string {
 		if s.pos+1 >= len(s.entries) {
 			var entry string
 
-			if s.entries != nil {
+			if len(s.entries) > 0 {
 				entry = s.entries[len(s.entries)-1]
 
 			}
