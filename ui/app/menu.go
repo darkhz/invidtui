@@ -131,8 +131,8 @@ func DrawMenu(x int, region string) {
 		Item:    theme.ThemePopupBackground,
 	})
 	modal.Table.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		switch event.Key() {
-		case tcell.KeyEnter:
+		switch keybinding.KeyOperation(event) {
+		case keybinding.KeySelect:
 			row, _ := modal.Table.GetSelection()
 			ref := modal.Table.GetCell(row, 0).GetReference()
 
@@ -154,7 +154,7 @@ func DrawMenu(x int, region string) {
 				}
 			}
 
-		case tcell.KeyEscape, tcell.KeyTab:
+		case keybinding.KeyClose, keybinding.KeySwitchTab:
 			MenuKeybindings(event)
 		}
 
@@ -220,11 +220,11 @@ func MenuHighlightHandler(added, removed, remaining []string) {
 
 // MenuKeybindings describes the menu keybindings.
 func MenuKeybindings(event *tcell.EventKey) *tcell.EventKey {
-	switch event.Key() {
-	case tcell.KeyEnter, tcell.KeyEscape:
+	switch keybinding.KeyOperation(event, keybinding.KeyContextApp) {
+	case keybinding.KeySelect, keybinding.KeyClose:
 		MenuExit()
 
-	case tcell.KeyTab:
+	case keybinding.KeySwitchTab:
 		var index int
 
 		highlighted := UI.Menu.GetHighlights()

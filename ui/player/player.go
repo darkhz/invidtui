@@ -413,9 +413,7 @@ func playerKeybindings(event *tcell.EventKey) {
 // to the key pressed, and plays the currently selected entry.
 func playSelected(key keybinding.Key) {
 	if player.queue.IsOpen() {
-		kb := keybinding.OperationData(key)
-		player.queue.Keybindings(tcell.NewEventKey(kb.Kb.Key, kb.Kb.Rune, kb.Kb.Mod))
-
+		player.queue.Keybindings(keybinding.KeyEvent(key))
 		return
 	}
 
@@ -572,8 +570,8 @@ func changeImageQuality(set ...struct{}) {
 		AddItem(player.info, 0, 1, false)
 
 	player.quality.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		switch event.Key() {
-		case tcell.KeyEscape:
+		switch keybinding.KeyOperation(event, keybinding.KeyContextCommon) {
+		case keybinding.KeyClose:
 			app.SetPrimaryFocus()
 			player.region.RemoveItem(player.quality)
 		}
@@ -614,7 +612,7 @@ func changeImageQuality(set ...struct{}) {
 	})
 	player.quality.SetCurrentOption(pos)
 	player.quality.InputHandler()(
-		tcell.NewEventKey(tcell.KeyEnter, ' ', tcell.ModNone),
+		keybinding.KeyEvent(keybinding.KeySelect),
 		func(p tview.Primitive) {
 			app.UI.SetFocus(p)
 		},

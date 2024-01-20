@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/darkhz/invidtui/ui/keybinding"
 	"github.com/darkhz/invidtui/ui/theme"
 	"github.com/darkhz/tview"
 	"github.com/gdamore/tcell/v2"
@@ -49,8 +50,8 @@ func (s *Status) Setup() {
 	s.InputField = theme.NewInputField(property, "")
 	s.InputField.SetFocusFunc(s.inputFocus)
 	s.InputField.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		switch event.Key() {
-		case tcell.KeyEnter:
+		switch keybinding.KeyOperation(event, keybinding.KeyContextCommon) {
+		case keybinding.KeySelect:
 			text := s.InputField.GetText()
 
 			if text == "" {
@@ -61,7 +62,7 @@ func (s *Status) Setup() {
 
 			fallthrough
 
-		case tcell.KeyEscape:
+		case keybinding.KeyClose:
 			_, item := UI.Pages.GetFrontPage()
 			UI.SetFocus(item)
 

@@ -108,8 +108,8 @@ func (s *SearchView) Init() bool {
 		s.property.SetItem(theme.ThemePopupBackground),
 	)
 	s.suggestBox.Table.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		switch event.Key() {
-		case tcell.KeyEscape:
+		switch keybinding.KeyOperation(event, keybinding.KeyContextCommon) {
+		case keybinding.KeyClose:
 			s.suggestBox.Exit(true)
 		}
 
@@ -319,7 +319,7 @@ func (s *SearchView) ParseQuery() {
 // Keybindings describes the keybindings for the search view.
 func (s *SearchView) Keybindings(event *tcell.EventKey) *tcell.EventKey {
 	switch keybinding.KeyOperation(event, keybinding.KeyContextSearch, keybinding.KeyContextComments) {
-	case keybinding.KeySearchStart:
+	case keybinding.KeyLoadMore:
 		go s.Start("")
 		app.UI.Status.SetFocusFunc()
 
@@ -475,17 +475,7 @@ func (s *SearchView) historyReset() {
 
 // suggestionHandler handles suggestion popup key events.
 func (s *SearchView) suggestionHandler(key keybinding.Key) {
-	var eventKey tcell.Key
-
-	switch key {
-	case keybinding.KeySearchSuggestionReverse:
-		eventKey = tcell.KeyUp
-
-	case keybinding.KeySearchSuggestionForward:
-		eventKey = tcell.KeyDown
-	}
-
-	s.suggestBox.Table.InputHandler()(tcell.NewEventKey(eventKey, ' ', tcell.ModNone), nil)
+	s.suggestBox.Table.InputHandler()(keybinding.KeyEvent(key), nil)
 }
 
 // getParametersForm renders and returns a form to
@@ -509,16 +499,12 @@ func (s *SearchView) getParametersForm() *tview.Form {
 	form.SetItemPadding(2)
 	form.SetHorizontal(true)
 	form.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		switch event.Key() {
-		case tcell.KeyEscape:
-			s.parametersBox.Exit(true)
-		}
+		switch keybinding.KeyOperation(event, keybinding.KeyContextSearch) {
+		case keybinding.KeySearchParameters:
+			s.setParameters()
 
-		switch event.Rune() {
-		case 'e':
-			if event.Modifiers() == tcell.ModAlt {
-				s.setParameters()
-			}
+		case keybinding.KeyClose:
+			s.parametersBox.Exit(true)
 		}
 
 		return event

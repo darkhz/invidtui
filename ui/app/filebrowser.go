@@ -125,11 +125,11 @@ func (f *FileBrowser) Query(
 		f.input.SetLabel(prompt + " ")
 		f.input.SetAcceptanceFunc(acceptFunc)
 		f.input.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-			switch event.Key() {
-			case tcell.KeyEnter:
+			switch keybinding.KeyOperation(event, keybinding.KeyContextCommon) {
+			case keybinding.KeySelect:
 				go validate(f.input.GetText(), reply)
 
-			case tcell.KeyEscape:
+			case keybinding.KeyClose:
 				select {
 				case reply <- "":
 
@@ -228,7 +228,7 @@ func (f *FileBrowser) inputFunc(e *tcell.EventKey) *tcell.EventKey {
 	case keybinding.KeyFilebrowserToggleHidden:
 		toggle = true
 
-	case keybinding.KeyFilebrowserSelect:
+	case keybinding.KeySelect:
 		text := f.input.GetText()
 		if text == "" {
 			goto Event

@@ -281,7 +281,7 @@ func (d *DownloadsView) OptionKeybindings(event *tcell.EventKey) *tcell.EventKey
 	case keybinding.KeyDownloadChangeDir:
 		d.SetDir()
 
-	case keybinding.KeyDownloadOptionSelect:
+	case keybinding.KeySelect:
 		row, _ := d.options.GetSelection()
 		cell := d.options.GetCell(row, 0)
 
@@ -424,7 +424,7 @@ func (p *DownloadProgress) remove() {
 	}
 
 	if Downloads.view.HasFocus() && Downloads.view.GetRowCount() == 0 {
-		Downloads.view.InputHandler()(tcell.NewEventKey(tcell.KeyEscape, ' ', tcell.ModNone), nil)
+		Downloads.view.InputHandler()(keybinding.KeyEvent(keybinding.KeyClose), nil)
 	}
 }
 

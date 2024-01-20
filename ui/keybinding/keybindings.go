@@ -41,7 +41,6 @@ const (
 	KeyDashboardReload         Key = "DashboardReload"
 	KeyDashboardCreatePlaylist Key = "DashboardCreatePlaylist"
 	KeyDashboardEditPlaylist   Key = "DashboardEditPlaylist"
-	KeyFilebrowserSelect       Key = "FilebrowserSelect"
 	KeyFilebrowserDirForward   Key = "FilebrowserDirForward"
 	KeyFilebrowserDirBack      Key = "FilebrowserDirBack"
 	KeyFilebrowserToggleHidden Key = "FilebrowserToggleHidden"
@@ -50,7 +49,6 @@ const (
 	KeyDownloadChangeDir       Key = "DownloadChangeDir"
 	KeyDownloadView            Key = "DownloadView"
 	KeyDownloadOptions         Key = "DownloadOptions"
-	KeyDownloadOptionSelect    Key = "DownloadOptionSelect"
 	KeyDownloadCancel          Key = "DownloadCancel"
 	KeyQueue                   Key = "Queue"
 	KeyQueuePlayMove           Key = "QueuePlayMove"
@@ -99,6 +97,7 @@ const (
 	KeyLink                    Key = "Link"
 	KeyAdd                     Key = "Add"
 	KeyRemove                  Key = "Remove"
+	KeySelect                  Key = "Select"
 	KeyLoadMore                Key = "LoadMore"
 	KeyClose                   Key = "Close"
 )
@@ -214,11 +213,6 @@ var (
 			Context: KeyContextDashboard,
 			Kb:      Keybinding{tcell.KeyRune, 'e', tcell.ModNone},
 		},
-		KeyFilebrowserSelect: {
-			Title:   "Select entry",
-			Context: KeyContextFiles,
-			Kb:      Keybinding{tcell.KeyEnter, ' ', tcell.ModNone},
-		},
 		KeyFilebrowserDirForward: {
 			Title:   "Go forward",
 			Context: KeyContextFiles,
@@ -258,11 +252,6 @@ var (
 			Title:   "Download Video",
 			Context: KeyContextDownloads,
 			Kb:      Keybinding{tcell.KeyRune, 'y', tcell.ModNone},
-		},
-		KeyDownloadOptionSelect: {
-			Title:   "Select Option",
-			Context: KeyContextDownloads,
-			Kb:      Keybinding{tcell.KeyEnter, ' ', tcell.ModNone},
 		},
 		KeyDownloadCancel: {
 			Title:   "Cancel Download",
@@ -515,6 +504,11 @@ var (
 		KeyLoadMore: {
 			Title:   "Load more",
 			Context: KeyContextCommon,
+			Kb:      Keybinding{tcell.KeyRune, '.', tcell.ModNone},
+		},
+		KeySelect: {
+			Title:   "Select",
+			Context: KeyContextCommon,
 			Kb:      Keybinding{tcell.KeyEnter, ' ', tcell.ModNone},
 		},
 		KeyClose: {
@@ -602,4 +596,10 @@ func KeyName(kb Keybinding) string {
 	}
 
 	return tcell.NewEventKey(kb.Key, kb.Rune, kb.Mod).Name()
+}
+
+// KeyEvent returns an event for the provided key.
+func KeyEvent(k Key) *tcell.EventKey {
+	kb := OperationData(k).Kb
+	return tcell.NewEventKey(kb.Key, kb.Rune, kb.Mod)
 }

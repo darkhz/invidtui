@@ -4,6 +4,7 @@ import (
 	"github.com/darkhz/invidtui/client"
 	inv "github.com/darkhz/invidtui/invidious"
 	"github.com/darkhz/invidtui/ui/app"
+	"github.com/darkhz/invidtui/ui/keybinding"
 	"github.com/darkhz/invidtui/ui/theme"
 	"github.com/gdamore/tcell/v2"
 )
@@ -36,8 +37,8 @@ func ShowLink() {
 	linkView := theme.NewTextView(property)
 	linkView.SetText(builder.Get())
 	linkView.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		switch event.Key() {
-		case tcell.KeyEnter, tcell.KeyEscape:
+		switch keybinding.KeyOperation(event, keybinding.KeyContextCommon) {
+		case keybinding.KeySelect, keybinding.KeyClose:
 			linkModal.Exit(false)
 		}
 

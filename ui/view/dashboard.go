@@ -258,13 +258,13 @@ func (d *DashboardView) AuthPage() {
 
 	d.message.SetText(builder.Get())
 	d.token.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		switch event.Key() {
-		case tcell.KeyEscape:
-			d.Keybindings(event)
-
-		case tcell.KeyEnter:
+		switch keybinding.KeyOperation(event, keybinding.KeyContextCommon) {
+		case keybinding.KeySelect:
 			app.UI.SetFocus(d.message)
 			go d.validateToken()
+
+		case keybinding.KeyClose:
+			d.Keybindings(event)
 		}
 
 		return event
@@ -339,8 +339,8 @@ func (d *DashboardView) PlaylistForm(edit bool) {
 		modal.Exit(false)
 	})
 	form.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		switch event.Key() {
-		case tcell.KeyEscape:
+		switch keybinding.KeyOperation(event, keybinding.KeyContextCommon) {
+		case keybinding.KeyClose:
 			modal.Exit(false)
 		}
 
@@ -610,15 +610,15 @@ func (d *DashboardView) modifyVideoInPlaylist(info inv.SearchData, add bool, loc
 	table.SetBorders(false)
 	table.SetSelectable(true, false)
 	table.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		switch event.Key() {
-		case tcell.KeyEscape:
-			modal.Exit(false)
-
-		case tcell.KeyEnter:
+		switch keybinding.KeyOperation(event, keybinding.KeyContextDashboard) {
+		case keybinding.KeySelect:
 			playlist, _ := app.FocusedTableReference()
 			modal.Exit(false)
 
 			go d.addVideo(info, playlist, lock)
+
+		case keybinding.KeyClose:
+			modal.Exit(false)
 		}
 
 		return event

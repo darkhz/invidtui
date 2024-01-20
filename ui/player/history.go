@@ -105,8 +105,8 @@ func showHistory() {
 	player.history.input = theme.NewInputField(property, "Filter:")
 	player.history.input.SetChangedFunc(historyFilter)
 	player.history.input.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		switch event.Key() {
-		case tcell.KeyEscape, tcell.KeyEnter:
+		switch keybinding.KeyOperation(event, keybinding.KeyContextCommon) {
+		case keybinding.KeySelect, keybinding.KeyClose:
 			app.UI.SetFocus(player.history.table)
 		}
 

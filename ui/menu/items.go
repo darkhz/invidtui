@@ -43,7 +43,7 @@ var Items = &app.MenuData{
 			keybinding.KeyClose,
 		},
 		keybinding.KeyContextDownloads: {
-			keybinding.KeyDownloadOptionSelect,
+			keybinding.KeySelect,
 			keybinding.KeyDownloadChangeDir,
 			keybinding.KeyDownloadCancel,
 			keybinding.KeyClose,

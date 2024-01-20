@@ -571,12 +571,12 @@ func (c *ChannelView) Keybindings(event *tcell.EventKey) *tcell.EventKey {
 
 // inputFunc describes the keybindings for the search input area.
 func (c *ChannelView) inputFunc(e *tcell.EventKey) *tcell.EventKey {
-	switch e.Key() {
-	case tcell.KeyEnter:
+	switch keybinding.KeyOperation(e, keybinding.KeyContextCommon) {
+	case keybinding.KeySelect:
 		go c.Search(app.UI.Status.GetText())
 		fallthrough
 
-	case tcell.KeyEscape:
+	case keybinding.KeyClose:
 		app.UI.Status.Pages.SwitchToPage("messages")
 		app.SetPrimaryFocus()
 	}

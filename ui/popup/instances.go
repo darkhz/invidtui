@@ -3,6 +3,7 @@ package popup
 import (
 	"github.com/darkhz/invidtui/client"
 	"github.com/darkhz/invidtui/ui/app"
+	"github.com/darkhz/invidtui/ui/keybinding"
 	"github.com/darkhz/invidtui/ui/theme"
 	"github.com/darkhz/invidtui/utils"
 	"github.com/darkhz/tview"
@@ -29,14 +30,14 @@ func ShowInstancesList() {
 	instancesView := theme.NewTable(property)
 	instancesView.SetSelectable(true, false)
 	instancesView.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		switch event.Key() {
-		case tcell.KeyEnter:
+		switch keybinding.KeyOperation(event, keybinding.KeyContextCommon) {
+		case keybinding.KeySelect:
 			row, _ := instancesView.GetSelection()
 			if instance, ok := instancesView.GetCell(row, 0).GetReference().(string); ok {
 				go checkInstance(instance, instancesView)
 			}
 
-		case tcell.KeyEscape:
+		case keybinding.KeyClose:
 			instancesModal.Exit(false)
 		}
 
