@@ -223,7 +223,7 @@ func IsValidURL(uri string) (*url.URL, error) {
 
 // IsValidJSON checks if the text is valid JSON.
 func IsValidJSON(text string) bool {
-	var msg []byte
+	var msg struct{}
 
 	return resolver.DecodeJSONBytes([]byte(text), &msg) == nil
 }
