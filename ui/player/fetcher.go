@@ -99,6 +99,7 @@ func (f *Fetcher) Show() {
 
 // Hide hides the media fetcher.
 func (f *Fetcher) Hide() {
+	f.info.Clear()
 	f.modal.Exit(false)
 }
 
