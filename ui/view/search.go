@@ -125,7 +125,6 @@ func (s *SearchView) Init() bool {
 	if s.parametersForm == nil {
 		s.parametersForm = theme.NewForm(s.property.SetItem(theme.ThemePopupBackground))
 	}
-
 	s.parametersBox = app.NewModal(
 		"parameters", "Set Search Parameters", s.parametersForm, 40, 60,
 		s.property.SetItem(theme.ThemePopupBackground),
@@ -233,6 +232,13 @@ func (s *SearchView) Query(switchMode ...struct{}) {
 	s.Init()
 
 	app.UI.Status.SetFocusFunc(func() {
+		if s.parametersBox != nil && s.parametersBox.Open {
+			app.UI.SetFocus(s.parametersForm)
+			app.SetContextMenu("", nil)
+
+			return
+		}
+
 		app.SetContextMenu(keybinding.KeyContextSearch, app.UI.Status.InputField)
 	})
 
@@ -297,6 +303,7 @@ func (s *SearchView) Parameters() {
 
 	app.UI.QueueUpdateDraw(func() {
 		s.parametersBox.Show(true)
+		app.SetContextMenu("", nil)
 	})
 }
 
