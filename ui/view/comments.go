@@ -40,7 +40,6 @@ func (c *CommentsView) Init() {
 
 	c.view = theme.NewTreeView(c.property)
 	c.view.SetGraphics(false)
-	c.view.SetSelectedFunc(c.selectorHandler)
 	c.view.SetInputCapture(c.Keybindings)
 	c.view.SetFocusFunc(func() {
 		app.SetContextMenu(keybinding.KeyContextComments, c.view)
@@ -168,9 +167,9 @@ func (c *CommentsView) Keybindings(event *tcell.EventKey) *tcell.EventKey {
 	switch keybinding.KeyOperation(event, keybinding.KeyContextComments) {
 	case keybinding.KeyCommentReplies:
 		node := c.view.GetCurrentNode()
-		if node.GetLevel() > 2 {
-			node.GetParent().SetExpanded(!node.GetParent().IsExpanded())
-		}
+		c.selectorHandler(node)
+
+		return nil
 
 	case keybinding.KeyClose:
 		c.Close()
