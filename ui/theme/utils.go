@@ -51,20 +51,18 @@ Documentation:
     -----
     The currently available items are:
 
-    "AudioChannels", "AudioSampleRate", "Author", "AuthorOwner", "AuthorVerified", 
-    "Background", "Border", "Buffer", "Button", "Channel", "Comment", "Description", 
-    "Directory", "Duration", "ErrorMessage", "File", "InfoMessage", "InputField", 
-    "InputLabel", "InstanceURI", "InvidiousURI", "Keybinding", "Likes", "ListField", 
-    "ListLabel", "ListOptions", "Loop", "MediaInfo", "MediaSize", "MediaType", 
-    "MoveModeSelector", "Name", "NormalModeSelector", "Path", "Pause", "Play",
-    "Playlist", "PopupBackground", "ProgressBar", "ProgressText", "Published",
-    "Selector", "Shuffle", "Subscribers", "Tabs", "TagAdding", "TagChanged", "TagError",
-    "TagFetching", "TagLoading", "TagPlaying", "TagStatusBar", "TagStopped", "Text", "Title",
-    "TotalDuration", "TotalVideos", "Video", "VideoFPS", "VideoResolution", "Views", "Volume", "YoutubeURI" 
+    "AudioChannels", "AudioSampleRate", "Author", "AuthorOwner", "AuthorVerified",
+    "Background", "Border", "Buffer", "Button", "Channel", "Comment", "CheckBoxLabel", "CheckBoxField",
+    "Description","Directory", "Duration", "ErrorMessage", "File", "InfoMessage", "InputField", "InputLabel",
+    "InstanceURI", "InvidiousURI", "Keybinding", "Likes", "ListField", "ListLabel", "ListOptions", "Loop",
+    "MediaInfo", "MediaSize", "MediaType", "MoveModeSelector", "Name", "NormalModeSelector", "Path", "Pause", "Play",
+    "Playlist", "PopupBackground", "ProgressBar", "ProgressText", "Published", "Selector", "Shuffle", "Subscribers",
+    "Tabs", "TagAdding", "TagChanged", "TagError", "TagFetching", "TagLoading", "TagPlaying", "TagStatusBar",
+    "TagStopped", "Text", "Title", "TotalDuration", "TotalVideos", "Video", "VideoFPS", "VideoResolution", "Views", "Volume", "YoutubeURI"
 
     Out of these, the common items (which can be defined across all contexts) are:
 
-    "Author", "Background", "Border", "Button", "Channel", 
+    "Author", "Background", "Border", "Button", "Channel", "CheckBoxLabel", "CheckBoxField",
     "Description", "Duration", "ErrorMessage", "InfoMessage", 
     "InputField", "InputLabel", "InstanceURI", "Likes", 
     "ListField", "ListLabel", "ListOptions", "MediaType", 
@@ -116,6 +114,8 @@ Documentation:
     Border: attr:bold; fg:white
     Button: attr:bold; bg:blue; fg:white
     Channel: attr:bold; fg:blue
+    CheckBoxLabel: attr:bold; fg:white
+    CheckBoxField: attr:bold; bg:blue; fg:white
     Description: attr:bold; fg:white
     Duration: attr:bold; fg:white
     ErrorMessage: attr:bold; fg:red

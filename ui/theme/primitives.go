@@ -42,7 +42,30 @@ func NewFlex(property ThemeProperty) *tview.Flex {
 
 // NewForm returns a new form primitive.
 func NewForm(property ThemeProperty) *tview.Form {
+	var itemCount int
+	var buttonCount int
+
 	form := tview.NewForm()
+	form.SetItemAttributesFunc(func(item tview.FormItem, labelWidth int) {
+		if itemCount == form.GetFormItemCount() {
+			return
+		}
+
+		itemCount++
+		applyTheme(item, property, labelWidth)
+	})
+	form.SetButtonAttributesFunc(func(button *tview.Button) {
+		if buttonCount == form.GetButtonCount() {
+			return
+		}
+
+		buttonCount++
+		applyTheme(button, property)
+	})
+	form.SetBlurFunc(func() {
+		itemCount = 0
+		buttonCount = 0
+	})
 	WrapDrawFunc(form, property, func(_ tcell.Screen, _, _, _, _ int) (int, int, int, int) {
 		return form.GetInnerRect()
 	})
@@ -164,7 +187,7 @@ func WrapDrawFunc(
 // applyTheme applies the theme to the primitive.
 //
 //gocyclo:ignore
-func applyTheme(primitive tview.Primitive, t ThemeProperty) {
+func applyTheme(primitive tview.Primitive, t ThemeProperty, labelWidth ...int) {
 	bgProperty := ThemeProperty{
 		Context: t.Context,
 		Item:    ThemeBackground,
@@ -190,9 +213,30 @@ func applyTheme(primitive tview.Primitive, t ThemeProperty) {
 		}
 	}
 
+	if labelWidth != nil {
+		if p, ok := primitive.(tview.FormItem); ok {
+			p.SetFormAttributes(labelWidth[0], 0, bgColor, 0, 0)
+		}
+	}
+
+	propMap := map[string]ThemeItem{
+		"label":   ThemeFormLabel,
+		"field":   ThemeFormField,
+		"options": ThemeFormOptions,
+	}
+
 	switch p := primitive.(type) {
 	case *tview.TextView:
 		p.SetText(GetThemedRegions(p.GetText(false)))
+
+	case *tview.Button:
+		style, _, ok := GetThemeSetting(ThemeProperty{
+			Context: t.Context,
+			Item:    ThemeFormButton,
+		})
+		if ok {
+			p.SetStyle(style)
+		}
 
 	case *tview.Table:
 		style, _, ok := GetThemeSetting(ThemeProperty{
@@ -231,83 +275,106 @@ func applyTheme(primitive tview.Primitive, t ThemeProperty) {
 			})
 		}
 
-	case *tview.InputField:
-		for item, styleFunc := range map[ThemeItem]func(s tcell.Style) *tview.InputField{
-			ThemeInputLabel: p.SetLabelStyle,
-			ThemeInputField: p.SetFieldStyle,
+	case *tview.Checkbox:
+		for _, item := range []ThemeItem{
+			ThemeFormLabel,
+			ThemeFormField,
 		} {
-			style, _, ok := GetThemeSetting(ThemeProperty{
+			property := ThemeProperty{
 				Context: t.Context,
 				Item:    item,
-			})
+			}
+
+			style, _, ok := GetThemeSetting(property)
 			if ok {
 				if _, bg, _ := style.Decompose(); bg == 0 {
 					style = style.Background(bgColor)
 				}
+			}
 
-				styleFunc(style)
+			switch item {
+			case ThemeFormLabel:
+				p.SetLabel(GetThemedLabel(
+					property, p.GetLabel(), false,
+				))
+
+			case ThemeFormField:
+				fg, bg, _ := style.Decompose()
+
+				p.SetFieldTextColor(fg)
+				p.SetFieldBackgroundColor(bg)
+			}
+		}
+
+	case *tview.InputField:
+		if labelWidth == nil {
+			propMap["label"] = ThemeInputLabel
+			propMap["field"] = ThemeInputField
+		}
+
+		for name, item := range propMap {
+			property := ThemeProperty{
+				Context: t.Context,
+				Item:    item,
+			}
+
+			style, _, ok := GetThemeSetting(property)
+			if !ok {
+				continue
+			}
+
+			_, bg, _ := style.Decompose()
+			if bg == 0 {
+				style = style.Background(bgColor)
+			}
+
+			switch name {
+			case "label":
+				p.SetLabelStyle(tcell.Style{}.Background(bg))
+				if p.GetLabel() != "" {
+					p.SetLabel(GetThemedLabel(
+						property, p.GetLabel(), labelWidth == nil,
+					))
+				}
+
+			case "field":
+				p.SetFieldStyle(style)
 			}
 		}
 
 	case *tview.DropDown:
-		for _, item := range []ThemeItem{
-			ThemeListLabel,
-			ThemeListField,
-			ThemeListOptions,
-		} {
-			style, _, ok := GetThemeSetting(ThemeProperty{
-				Context: t.Context,
-				Item:    item,
-			})
-			if !ok {
-				continue
-			}
-
-			fg, bg, _ := style.Decompose()
-
-			switch item {
-			case ThemeListLabel:
-				p.SetLabelColor(fg)
-
-			case ThemeListField:
-				p.SetFieldTextColor(fg)
-				p.SetFieldBackgroundColor(bg)
-
-			case ThemeListOptions:
-				p.List().SetMainTextColor(fg)
-				p.List().SetBackgroundColor(bg)
-			}
+		if labelWidth == nil {
+			propMap["label"] = ThemeListLabel
+			propMap["field"] = ThemeListField
+			propMap["options"] = ThemeListOptions
 		}
 
-	case *tview.Form:
-		for _, item := range []ThemeItem{
-			ThemeInputLabel,
-			ThemeInputField,
-			ThemeListLabel,
-			ThemeListField,
-			ThemeListOptions,
-			ThemeButton,
-		} {
-			style, _, ok := GetThemeSetting(ThemeProperty{
+		for name, item := range propMap {
+			property := ThemeProperty{
 				Context: t.Context,
 				Item:    item,
-			})
+			}
+
+			style, _, ok := GetThemeSetting(property)
 			if !ok {
 				continue
 			}
 
 			fg, bg, _ := style.Decompose()
 
-			switch item {
-			case ThemeListField, ThemeInputField:
-				p.SetFieldBackgroundColor(bg)
+			switch name {
+			case "label":
+				p.SetLabel(GetThemedLabel(
+					property, p.GetLabel(), false,
+				))
+
+			case "field":
 				p.SetFieldTextColor(fg)
+				p.SetFieldBackgroundColor(bg)
 
-			case ThemeInputLabel, ThemeListLabel:
-				p.SetLabelColor(fg)
-
-			case ThemeButton:
-				p.SetButtonStyle(style)
+			case "options":
+				p.List().SetMainTextColor(fg)
+				p.List().SetBackgroundColor(bg)
 			}
 		}
 	}

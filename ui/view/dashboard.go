@@ -327,8 +327,8 @@ func (d *DashboardView) PlaylistForm(edit bool) {
 		SetItem(theme.ThemePopupBackground)
 
 	form := theme.NewForm(property)
-	form.AddInputField("Name: ", info.Title, 0, nil, nil)
-	form.AddDropDown("Privacy: ", []string{"public", "unlisted", "private"}, -1, nil)
+	form.AddInputField("Name:", info.Title, 0, nil, nil)
+	form.AddDropDown("Privacy:", []string{"public", "unlisted", "private"}, -1, nil)
 	if edit {
 		form.AddInputField("Description: ", info.Description, 0, nil, nil)
 	}

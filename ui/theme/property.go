@@ -49,7 +49,6 @@ const (
 	ThemeTabs            ThemeItem = "Tabs"
 	ThemeBackground      ThemeItem = "Background"
 	ThemePopupBackground ThemeItem = "PopupBackground"
-	ThemeButton          ThemeItem = "Button"
 
 	ThemeInputLabel ThemeItem = "InputLabel"
 	ThemeInputField ThemeItem = "InputField"
@@ -58,8 +57,10 @@ const (
 	ThemeListField   ThemeItem = "ListField"
 	ThemeListOptions ThemeItem = "ListOptions"
 
-	ThemeCheckBoxLabel ThemeItem = "CheckBoxLabel"
-	ThemeCheckBoxField ThemeItem = "CheckBoxField"
+	ThemeFormButton  ThemeItem = "FormButton"
+	ThemeFormLabel   ThemeItem = "FormLabel"
+	ThemeFormField   ThemeItem = "FormField"
+	ThemeFormOptions ThemeItem = "FormOptions"
 
 	ThemeSelector           ThemeItem = "Selector"
 	ThemeNormalModeSelector ThemeItem = "NormalModeSelector"
@@ -132,11 +133,14 @@ var ThemeScopes = map[ThemeContext]map[ThemeItem]struct{}{
 		ThemeAuthor:          struct{}{},
 		ThemeBackground:      struct{}{},
 		ThemeBorder:          struct{}{},
-		ThemeButton:          struct{}{},
 		ThemeChannel:         struct{}{},
 		ThemeDescription:     struct{}{},
 		ThemeDuration:        struct{}{},
 		ThemeErrorMessage:    struct{}{},
+		ThemeFormButton:      struct{}{},
+		ThemeFormField:       struct{}{},
+		ThemeFormLabel:       struct{}{},
+		ThemeFormOptions:     struct{}{},
 		ThemeInfoMessage:     struct{}{},
 		ThemeInputField:      struct{}{},
 		ThemeInputLabel:      struct{}{},
@@ -193,6 +197,10 @@ var ThemeScopes = map[ThemeContext]map[ThemeItem]struct{}{
 		ThemeBorder:          struct{}{},
 		ThemeBackground:      struct{}{},
 		ThemeChannel:         struct{}{},
+		ThemeFormButton:      struct{}{},
+		ThemeFormField:       struct{}{},
+		ThemeFormLabel:       struct{}{},
+		ThemeFormOptions:     struct{}{},
 		ThemeInputField:      struct{}{},
 		ThemeInputLabel:      struct{}{},
 		ThemeInstanceURI:     struct{}{},
@@ -343,25 +351,24 @@ var ThemeScopes = map[ThemeContext]map[ThemeItem]struct{}{
 		ThemeVideo:              struct{}{},
 	},
 	ThemeContextSearch: {
-		ThemeAuthor:          struct{}{},
-		ThemeBackground:      struct{}{},
-		ThemeBorder:          struct{}{},
-		ThemeButton:          struct{}{},
-		ThemeChannel:         struct{}{},
-		ThemeInputField:      struct{}{},
-		ThemeInputLabel:      struct{}{},
-		ThemeListField:       struct{}{},
-		ThemeListLabel:       struct{}{},
-		ThemeListOptions:     struct{}{},
-		ThemePlaylist:        struct{}{},
-		ThemePopupBackground: struct{}{},
-		ThemeSelector:        struct{}{},
-		ThemeTabs:            struct{}{},
-		ThemeTitle:           struct{}{},
-		ThemeText:            struct{}{},
-		ThemeTotalDuration:   struct{}{},
-		ThemeTotalVideos:     struct{}{},
-		ThemeVideo:           struct{}{},
+		ThemeAuthor:        struct{}{},
+		ThemeBackground:    struct{}{},
+		ThemeBorder:        struct{}{},
+		ThemeChannel:       struct{}{},
+		ThemeFormButton:    struct{}{},
+		ThemeFormField:     struct{}{},
+		ThemeFormLabel:     struct{}{},
+		ThemeFormOptions:   struct{}{},
+		ThemeInputField:    struct{}{},
+		ThemeInputLabel:    struct{}{},
+		ThemePlaylist:      struct{}{},
+		ThemeSelector:      struct{}{},
+		ThemeTabs:          struct{}{},
+		ThemeTitle:         struct{}{},
+		ThemeText:          struct{}{},
+		ThemeTotalDuration: struct{}{},
+		ThemeTotalVideos:   struct{}{},
+		ThemeVideo:         struct{}{},
 	},
 	ThemeContextStart: {
 		ThemeText:       struct{}{},
