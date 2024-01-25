@@ -17,7 +17,10 @@ import (
 
 // SetupUI sets up the UI and starts the application.
 func SetupUI() {
-	app.Setup()
+	if err := app.Setup(); err != nil {
+		cmd.PrintError("UI: Could not start", err)
+	}
+
 	app.InitMenu(menu.Items)
 	app.SetResizeHandler(Resize)
 	app.SetGlobalKeybindings(Keybindings)
@@ -37,9 +40,7 @@ func SetupUI() {
 
 	_, focusedItem := app.UI.Pages.GetFrontPage()
 
-	if err := app.UI.SetRoot(app.UI.Area, true).SetFocus(focusedItem).Run(); err != nil {
-		cmd.PrintError("UI: Could not start", err)
-	}
+	app.UI.SetRoot(app.UI.Area, true).SetFocus(focusedItem).Run()
 }
 
 // StopUI stops the application.

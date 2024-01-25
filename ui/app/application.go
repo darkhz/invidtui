@@ -26,6 +26,8 @@ type Application struct {
 	Closed  context.Context
 	Exit    context.CancelFunc
 
+	Screen tcell.Screen
+
 	resize func(screen tcell.Screen)
 
 	lock sync.Mutex
@@ -37,7 +39,12 @@ type Application struct {
 var UI Application
 
 // Setup sets up the application
-func Setup() {
+func Setup() error {
+	screen, err := tcell.NewScreen()
+	if err != nil {
+		return err
+	}
+
 	property := theme.ThemeProperty{
 		Context: theme.ThemeContextApp,
 		Item:    theme.ThemeBackground,
@@ -89,7 +96,9 @@ func Setup() {
 
 	UI.Closed, UI.Exit = context.WithCancel(context.Background())
 
+	UI.Screen = screen
 	UI.Application = tview.NewApplication()
+	UI.Application.SetScreen(UI.Screen)
 	UI.SetAfterDrawFunc(func(screen tcell.Screen) {
 		UI.resize(screen)
 		suspend(screen)
@@ -119,6 +128,20 @@ func SetResizeHandler(resize func(screen tcell.Screen)) {
 // SetGlobalKeybindings sets the keybindings for the app.
 func SetGlobalKeybindings(kb func(event *tcell.EventKey) *tcell.EventKey) {
 	UI.SetInputCapture(kb)
+}
+
+// DrawPrimitives draws the primitives onto the screen.
+func DrawPrimitives(primitives ...tview.Primitive) {
+	UI.QueueUpdate(func() {
+		UI.Lock()
+		defer UI.Unlock()
+
+		for _, p := range primitives {
+			p.Draw(UI.Screen)
+		}
+
+		UI.Screen.Show()
+	})
 }
 
 // Stop stops the application.

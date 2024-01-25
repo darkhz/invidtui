@@ -153,7 +153,7 @@ func Show() {
 func ToggleInfo(hide ...struct{}) {
 	if hide != nil || player.toggle.Load() {
 		player.toggle.Store(false)
-		player.infoID = ""
+		infoID("")
 
 		infoContext(true, struct{}{})
 
@@ -492,20 +492,19 @@ func renderPlayer() {
 	var width int
 	var marker string
 
-	app.UI.QueueUpdateDraw(func() {
-		_, _, width, _ = player.desc.GetRect()
-		marker = player.queue.marker.Text
-	})
+	app.UI.Lock()
+	_, _, width, _ = player.desc.GetRect()
+	marker = player.queue.marker.Text
+	app.UI.Unlock()
 
 	title, desc, states := updateProgressAndInfo(
 		player.queue.GetTitle(),
 		marker,
 		width-10,
 	)
-	app.UI.QueueUpdateDraw(func() {
-		player.title.SetText(title)
-		player.desc.SetText(desc)
-	})
+	player.title.SetText(title)
+	player.desc.SetText(desc)
+	app.DrawPrimitives(player.flex)
 
 	player.mutex.Lock()
 	player.states = states
@@ -607,7 +606,7 @@ func changeImageQuality(set ...struct{}) {
 
 		if uri := video.Thumbnails[index].URL; uri != player.thumbURI {
 			player.thumbURI = uri
-			go renderInfoImage(infoContext(true), player.infoID, filepath.Base(uri), struct{}{})
+			go renderInfoImage(infoContext(true), infoID(), filepath.Base(uri), struct{}{})
 		}
 	})
 	player.quality.SetCurrentOption(pos)
@@ -625,7 +624,7 @@ func changeImageQuality(set ...struct{}) {
 
 // renderInfo renders the track information.
 func renderInfo(video inv.VideoData, force ...struct{}) {
-	if force == nil && (video.VideoID == player.infoID || !player.toggle.Load()) {
+	if force == nil && (video.VideoID == infoID() || !player.toggle.Load()) {
 		return
 	}
 
@@ -662,7 +661,7 @@ func renderInfo(video inv.VideoData, force ...struct{}) {
 	}
 
 	app.UI.QueueUpdateDraw(func() {
-		player.infoID = video.VideoID
+		infoID(video.VideoID)
 		if player.region.GetItemCount() > 2 {
 			player.region.RemoveItemIndex(1)
 		}
@@ -751,6 +750,7 @@ func playerUpdateLoop(ctx context.Context, cancel context.CancelFunc) {
 		case <-ctx.Done():
 			player.desc.Clear()
 			player.title.Clear()
+			app.DrawPrimitives(player.flex)
 			return
 
 		case <-player.events:
@@ -939,8 +939,23 @@ func sendPlayerEvents() {
 	}
 }
 
+// infoID returns or sets the video ID for the current player information.
+func infoID(set ...string) string {
+	player.mutex.Lock()
+	defer player.mutex.Unlock()
+
+	if set != nil {
+		player.infoID = set[0]
+	}
+
+	return player.infoID
+}
+
 // infoContext returns a new context for loading the player information.
 func infoContext(image bool, all ...struct{}) context.Context {
+	player.mutex.Lock()
+	defer player.mutex.Unlock()
+
 	ctx, cancel := context.WithCancel(context.Background())
 
 	if image {

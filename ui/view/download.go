@@ -478,13 +478,22 @@ func (p *DownloadProgress) renderBar(filename string, clen int64, cancel func(),
 
 // Write generates the progress bar.
 func (p *DownloadProgress) Write(b []byte) (int, error) {
+	app.UI.Lock()
+	open := Downloads.view.HasFocus() && Downloads.view.GetRowCount() != 0
+	app.UI.Unlock()
+	if !open {
+		return len(b), nil
+	}
+
 	p.builder.Start(theme.ThemeProgressBar, "progress")
 	p.builder.Write(b)
 	p.builder.Finish()
 
-	app.UI.QueueUpdateDraw(func() {
-		p.progress.SetText(p.builder.Get())
-	})
+	app.UI.Lock()
+	p.progress.SetText(p.builder.Get())
+	app.UI.Unlock()
 
-	return 0, nil
+	app.DrawPrimitives(Downloads.view)
+
+	return len(b), nil
 }
