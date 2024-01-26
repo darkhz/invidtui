@@ -1,0 +1,182 @@
+{
+  App: {
+    Author: attr:bold; fg:purple
+    Background: bg:grey
+    Border: attr:bold; bg:grey; fg:white
+    FormButton: attr:bold; bg:grey; fg:white
+    Channel: attr:bold; fg:blue
+    FormField: attr:bold; bg:pink; fg:white
+    FormLabel: attr:bold; bg:blue; fg:white
+    Description: attr:bold; bg:grey; fg:white
+    Duration: attr:bold; fg:white
+    ErrorMessage: attr:bold; fg:red
+    InfoMessage: attr:bold; fg:white
+    InputField: bg:grey; fg:white
+    InputLabel: attr:underline; bg:grey; fg:white
+    InstanceURI: attr:bold; fg:blue
+    Likes: attr:bold; fg:red
+    ListField: bg:blue; fg:white
+    ListLabel: attr:bold; fg:white
+    ListOptions: attr:bold; fg:white
+    MediaType: attr:bold; fg:pink
+    Playlist: attr:bold; fg:blue
+    PopupBackground: bg:blue
+    PopupBorder: attr:bold; bg:blue; fg:white
+    ProgressBar: attr:bold; fg:white
+    ProgressText: attr:bold; fg:white
+    Published: attr:bold; fg:aqua
+    Selector: attr:bold; bg:white; fg:black
+    Subscribers: attr:bold; fg:purple
+    Tabs: attr:bold; fg:aqua
+    TagStatusBar: fg:black; bg:yellow
+    Text: attr:bold; fg:white
+    Title: attr:bold,underline; fg:white
+    TotalDuration: attr:bold; fg:pink
+    TotalVideos: attr:bold; fg:pink
+    Video: attr:bold; fg:blue
+    Views: attr:bold; fg:pink
+  }
+  Channel: {
+    Description: attr:bold; fg:white
+    MediaType: attr:bold; fg:pink
+    Playlist: attr:bold; fg:blue
+    Title: attr:bold,underline; fg:white
+    TotalDuration: attr:bold; fg:pink
+    TotalVideos: attr:bold; fg:pink
+    Video: attr:bold; fg:blue
+  }
+  Comments: {
+    Author: attr:bold; fg:purple
+    AuthorOwner: attr:bold; fg:plum
+    AuthorVerified: attr:bold; fg:aqua
+    Comment: attr:bold; fg:white
+    Likes: attr:bold; fg:red
+    Published: attr:bold; fg:grey
+    Text: attr:bold; fg:white
+    Selector: attr:bold; fg:black
+    Title: attr:bold,underline; fg:white
+    Video: attr:bold,underline; fg:green
+  }
+  Dashboard: {
+    Channel: attr:bold; fg:blue
+    InputField: bg:blue; fg:white
+    InstanceURI: attr:bold; fg:blue
+    ListField: bg:blue; fg:white
+    ListLabel: attr:bold; fg:white
+    ListOptions: attr:bold; bg:grey; fg:white
+    Playlist: attr:bold; fg:blue
+    Text: attr:bold; fg:white
+    TotalDuration: attr:bold; fg:pink
+    TotalVideos: attr:bold; fg:pink
+    Video: attr:bold; fg:blue
+  }
+  Downloads: {
+    AudioChannels: attr:bold; fg:grey
+    AudioSampleRate: attr:bold; fg:lightpink
+    MediaInfo: attr:bold; fg:red
+    MediaSize: attr:bold; fg:blue
+    MediaType: attr:bold; fg:pink
+    PopupBackground: bg:black
+    ProgressBar: attr:bold; fg:white
+    ProgressText: attr:bold; fg:white
+    VideoFPS: attr:bold; fg:yellow
+    VideoResolution: attr:bold; fg:green
+  }
+  Fetcher: {
+    Author: attr:bold; fg:purple
+    ErrorMessage: attr:bold; fg:red
+    InfoMessage: attr:bold; fg:white
+    MediaType: attr:bold; fg:pink
+    ProgressText: attr:bold; fg:white
+    TagAdding: attr:bold; bg:yellow; fg:black
+    TagError: attr:bold; bg:red; fg:white
+    TagStatusBar: attr:bold; fg:white
+    Video: attr:bold; fg:grey
+  }
+  Files: {
+    InputField: bg:pink; fg:white
+    InputLabel: attr:underline; bg:blue; fg:white
+    Directory: attr:bold; fg:green
+    File: attr:bold; fg:yellow
+    Path: attr:bold,underline; fg:white
+    Title: attr:underline; fg:white
+  }
+  History: {
+    InputField: bg:pink; fg:white
+    InputLabel: attr:bold; bg:blue; fg:white
+    MediaType: attr:bold; fg:pink
+    Video: attr:bold; fg:grey
+  }
+  Instances: {
+    Background: bg:black
+    InstanceURI: attr:bold; fg:blue
+    PopupBackground: bg:black
+    TagChanged: attr:bold; fg:white
+    Title: attr:bold; fg:white
+  }
+  Links: {
+    InvidiousURI: attr:bold; fg:blue
+    PopupBackground: bg:black
+    Text: attr:bold,underline; fg:white
+    YoutubeURI: attr:bold; fg:red
+  }
+  Menu: {
+    Description: attr:bold; fg:white
+    Keybinding: attr:bold; fg:white
+    Name: attr:bold; fg:white
+  }
+  Player: {
+    Buffer: attr:bold; fg:white
+    Duration: attr:bold; fg:white
+    Loop: attr:bold; fg:white
+    MediaType: attr:bold; fg:pink
+    Pause: attr:bold; fg:white
+    Play: attr:bold; fg:white
+    ProgressBar: attr:bold; fg:white
+    Shuffle: attr:bold; fg:white
+    Title: attr:bold; fg:white
+    TotalDuration: attr:bold; fg:white
+    Volume: attr:bold; fg:white
+  }
+  PlayerInfo: {
+    Author: attr:bold,underline; fg:purple
+    Description: attr:bold; fg:white
+    Likes: attr:bold; fg:red
+    ListField: fg:white; bg:black
+    ListLabel: attr:bold; fg:green
+    ListOptions: attr:bold; fg:orange
+    Published: attr:bold; fg:aqua
+    Subscribers: attr:bold; fg:plum
+    Views: attr:bold; fg:pink
+  }
+  Playlist: {
+    Author: attr:bold; fg:purple
+    TotalDuration: attr:bold; fg:pink
+    TotalVideos: attr:bold; fg:pink
+    Video: attr:bold; fg:blue
+  }
+  Queue: {
+    Author: attr:bold; fg:purple
+    MediaType: attr:bold; fg:pink
+    MoveModeSelector: attr:bold; fg:aqua
+    NormalModeSelector: attr:bold; fg:white
+    TagFetching: attr:bold; bg:yellow; fg:black
+    TagLoading: attr:bold; bg:yellow; fg:black
+    TagPlaying: attr:bold; fg:white; bg:green
+    TagStopped: attr:bold; bg:red; fg:white
+    TotalDuration: attr:bold; fg:pink
+    Video: attr:bold; fg:grey
+  }
+  Search: {
+    Author: attr:bold; fg:purple
+    Channel: attr:bold; fg:blue
+    Playlist: attr:bold; fg:blue
+    Text: attr:bold; fg:white
+    TotalDuration: attr:bold; fg:pink
+    TotalVideos: attr:bold; fg:pink
+    Video: attr:bold; fg:blue
+  }
+  Start: {
+    Text: attr:bold; fg:white
+  }
+}
