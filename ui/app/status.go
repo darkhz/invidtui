@@ -150,9 +150,8 @@ func (s *Status) SetInput(label string,
 	if clearInput {
 		s.InputField.SetText("")
 	}
-	s.InputField.SetLabel(label)
-	s.InputField.SetLabelWidth(
-		tview.TaggedStringWidth(s.InputField.GetLabel()) + 1,
+	s.InputField.SetLabel(theme.GetLabel(
+		s.ThemeProperty().SetItem(theme.ThemeInputLabel), label, true),
 	)
 
 	if ifunc != nil {

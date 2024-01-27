@@ -103,6 +103,12 @@ func Setup() error {
 		UI.resize(screen)
 		suspend(screen)
 	})
+
+	theme.SetDrawFunc(func(p tview.Primitive) {
+		p.Draw(UI.Screen)
+	})
+
+	return nil
 }
 
 // SetPrimaryFocus sets the focus to the appropriate primitive.

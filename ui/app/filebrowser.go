@@ -95,9 +95,8 @@ func (f *FileBrowser) Show(prompt string, dofunc func(text string), options ...F
 	}
 
 	f.prompt = prompt
-	f.input.SetLabel(f.prompt)
-	f.input.SetLabelWidth(
-		tview.TaggedStringWidth(f.input.GetLabel()) + 1,
+	f.input.SetLabel(theme.GetLabel(
+		f.ThemeProperty().SetItem(theme.ThemeInputLabel), f.prompt, true),
 	)
 
 	if options != nil {

@@ -400,16 +400,16 @@ func (t ThemeProperty) SetContext(context ThemeContext) ThemeProperty {
 
 // UpdateThemeVersion updates the theme version.
 func UpdateThemeVersion() {
-	ThemeVersion++
+	pconfig.Version++
 }
 
 // SetThemeProperty updates the ThemeProperty's version and applies the theme for its primitive.
-func SetThemeProperty(primitive tview.Primitive, property *ThemeProperty) {
-	if property.Version == ThemeVersion {
+func SetThemeProperty(primitive tview.Primitive, property *ThemeProperty, labelWidth ...int) {
+	if property.Version == pconfig.Version {
 		return
 	}
 
 	property.Version += 1
 
-	applyTheme(primitive, *property)
+	applyTheme(primitive, *property, labelWidth...)
 }

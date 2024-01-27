@@ -366,3 +366,35 @@ func SetTextStyle(region, text string, context ThemeContext, item ThemeItem) str
 
 	return builder.Get()
 }
+
+// GetLabel returns a theme formatted label for primitives.
+func GetLabel(property ThemeProperty, label string, spaced bool) string {
+	if label == "" {
+		return ""
+	}
+
+	builder := NewTextBuilder(property.Context)
+	builder.Append(property.Item, "label", label)
+	if spaced {
+		style, _, ok := GetThemeSetting(property)
+		if ok {
+			_, bg, _ := style.Decompose()
+			fmt.Fprintf(&builder, "[:%s:] ", bg.Name())
+		}
+	}
+
+	return builder.Get()
+}
+
+// GetThemedLabel checks whether the label is formatted and reformats it, or returns a newly formatted label.
+func GetThemedLabel(property ThemeProperty, label string, spaced bool) string {
+	if label == "" {
+		return ""
+	}
+
+	if label[0] == '[' {
+		return GetThemedRegions(label)
+	}
+
+	return GetLabel(property, label, spaced)
+}

@@ -16,9 +16,17 @@ type ThemePrimitive interface {
 	SetTitle(title string) *tview.Box
 }
 
-// ThemeVersion is the global theme updater version.
-// All ThemeProperties check this version before updating its attached primitive.
-var ThemeVersion int
+// ThemePrimitiveConfig stores the configuration for all primitives.
+type ThemePrimitiveConfig struct {
+	// Version is the global theme updater version.
+	// All ThemeProperties check this version before updating its attached primitive.
+	Version int
+
+	// Draw draws the primitive onto the screen.
+	Draw func(p tview.Primitive)
+}
+
+var pconfig ThemePrimitiveConfig
 
 // NewBox returns a new box primitive.
 func NewBox(property ThemeProperty) *tview.Box {
@@ -96,7 +104,6 @@ func NewImage(property ThemeProperty) *tview.Image {
 // NewTreeView returns a new treeview primitive.
 func NewTreeView(property ThemeProperty) *tview.TreeView {
 	treeview := tview.NewTreeView()
-
 	WrapDrawFunc(treeview, property, func(_ tcell.Screen, _, _, _, _ int) (int, int, int, int) {
 		return treeview.GetInnerRect()
 	})
@@ -107,9 +114,8 @@ func NewTreeView(property ThemeProperty) *tview.TreeView {
 // NewInputField returns a new inputfield primitive.
 func NewInputField(property ThemeProperty, label string) *tview.InputField {
 	inputfield := tview.NewInputField()
-	inputfield.SetLabel(label)
-	inputfield.SetLabelWidth(
-		tview.TaggedStringWidth(inputfield.GetLabel()) + 1,
+	inputfield.SetLabel(GetLabel(
+		property.SetItem(ThemeInputLabel), label, true),
 	)
 	WrapDrawFunc(inputfield, property, func(_ tcell.Screen, _, _, _, _ int) (int, int, int, int) {
 		return inputfield.GetInnerRect()
@@ -121,9 +127,8 @@ func NewInputField(property ThemeProperty, label string) *tview.InputField {
 // NewDropDown returns a new dropdown primitive.
 func NewDropDown(property ThemeProperty, label string) *tview.DropDown {
 	dropdown := tview.NewDropDown()
-	dropdown.SetLabel(label)
-	dropdown.SetLabelWidth(
-		tview.TaggedStringWidth(dropdown.GetLabel()) + 1,
+	dropdown.SetLabel(GetLabel(
+		property.SetItem(ThemeListLabel), label, true),
 	)
 	WrapDrawFunc(dropdown, property, func(_ tcell.Screen, _, _, _, _ int) (int, int, int, int) {
 		return dropdown.GetInnerRect()
@@ -160,6 +165,11 @@ func NewTableCell(context ThemeContext, item ThemeItem, text string) *tview.Tabl
 	return tview.NewTableCell(SetTextStyle("region", text, context, item))
 }
 
+// SetDrawFunc sets the primitive's draw handler.
+func SetDrawFunc(draw func(p tview.Primitive)) {
+	pconfig.Draw = draw
+}
+
 // WrapDrawFunc wraps the primitive's DrawFunc with SetThemeProperty.
 func WrapDrawFunc(
 	primitive tview.Primitive, property ThemeProperty,
@@ -171,7 +181,7 @@ func WrapDrawFunc(
 		return
 	}
 
-	property.Version = ThemeVersion
+	property.Version = pconfig.Version
 
 	p.SetDrawFunc(func(s tcell.Screen, x, y, width, height int) (int, int, int, int) {
 		SetThemeProperty(primitive, &property)
@@ -188,6 +198,12 @@ func WrapDrawFunc(
 //
 //gocyclo:ignore
 func applyTheme(primitive tview.Primitive, t ThemeProperty, labelWidth ...int) {
+	defer func() {
+		if pconfig.Draw != nil && labelWidth == nil {
+			pconfig.Draw(primitive)
+		}
+	}()
+
 	bgProperty := ThemeProperty{
 		Context: t.Context,
 		Item:    ThemeBackground,

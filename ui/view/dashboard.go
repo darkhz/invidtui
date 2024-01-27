@@ -330,7 +330,7 @@ func (d *DashboardView) PlaylistForm(edit bool) {
 	form.AddInputField("Name:", info.Title, 0, nil, nil)
 	form.AddDropDown("Privacy:", []string{"public", "unlisted", "private"}, -1, nil)
 	if edit {
-		form.AddInputField("Description: ", info.Description, 0, nil, nil)
+		form.AddInputField("Description:", info.Description, 0, nil, nil)
 	}
 	form.AddButton(mode, func() {
 		go d.playlistFormHandler(form, modal, info, mode, edit)
