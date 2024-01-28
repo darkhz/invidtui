@@ -208,16 +208,17 @@ func applyTheme(primitive tview.Primitive, t ThemeProperty, labelWidth ...int) {
 		Context: t.Context,
 		Item:    ThemeBackground,
 	}
+	borderProperty := ThemeProperty{
+		Context: t.Context,
+		Item:    ThemeBorder,
+	}
 	if t.Item == ThemePopupBackground {
-		bgProperty.Item = t.Item
+		bgProperty.Item = ThemePopupBackground
+		borderProperty.Item = ThemePopupBorder
 	}
 
 	bgStyle, _, _ := GetThemeSetting(bgProperty)
-	borderStyle, _, _ := GetThemeSetting(ThemeProperty{
-		Context: t.Context,
-		Item:    ThemeBorder,
-	})
-
+	borderStyle, _, _ := GetThemeSetting(borderProperty)
 	_, bgColor, _ := bgStyle.Decompose()
 
 	if p, ok := primitive.(ThemePrimitive); ok {

@@ -48,6 +48,7 @@ func (f *FileBrowser) setup() {
 	}
 
 	property := f.ThemeProperty()
+	hbox := HorizontalLine(property.SetItem(theme.ThemePopupBorder))
 
 	f.title = theme.NewTextView(property)
 	f.title.SetTextAlign(tview.AlignCenter)
@@ -67,7 +68,7 @@ func (f *FileBrowser) setup() {
 		SetDirection(tview.FlexRow).
 		AddItem(f.title, 1, 0, false).
 		AddItem(f.table, 0, 1, false).
-		AddItem(HorizontalLine(property), 1, 0, false).
+		AddItem(hbox, 1, 0, false).
 		AddItem(f.input, 1, 0, true)
 
 	f.modal = NewModal("Files", "Browse", f.flex, 60, 100, property)

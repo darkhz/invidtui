@@ -59,6 +59,7 @@ const (
 // Setup sets up the media fetcher.
 func (f *Fetcher) Setup() {
 	property := f.ThemeProperty()
+	hbox := app.HorizontalLine(property.SetItem(theme.ThemePopupBorder))
 
 	f.items = deque.New[*FetcherData](100)
 
@@ -76,7 +77,7 @@ func (f *Fetcher) Setup() {
 	flex := theme.NewFlex(property).
 		SetDirection(tview.FlexRow).
 		AddItem(f.table, 0, 10, true).
-		AddItem(app.HorizontalLine(property), 1, 0, false).
+		AddItem(hbox, 1, 0, false).
 		AddItem(f.info, 0, 1, false)
 
 	f.modal = app.NewModal("fetcher", "Media Fetcher", flex, 100, 100, property)

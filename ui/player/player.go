@@ -172,11 +172,12 @@ func ToggleInfo(hide ...struct{}) {
 
 		property := player.property.SetContext(theme.ThemeContextPlayerInfo)
 		box := theme.NewBox(property)
+		vbox := app.VerticalLine(property.SetItem(theme.ThemeBorder))
 
 		app.UI.Region.Clear().
 			AddItem(player.region, 0, 1, false).
 			AddItem(box, 1, 0, false).
-			AddItem(app.VerticalLine(property), 1, 0, false).
+			AddItem(vbox, 1, 0, false).
 			AddItem(box, 1, 0, false).
 			AddItem(app.UI.Pages, 0, 2, true)
 

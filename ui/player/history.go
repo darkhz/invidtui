@@ -73,6 +73,7 @@ func addToHistory(data inv.SearchData) {
 func showHistory() {
 	var history []cmd.PlayHistorySettings
 	var property theme.ThemeProperty
+	var hbox *tview.Box
 
 	player.mutex.Lock()
 	history = player.history.entries
@@ -94,6 +95,7 @@ func showHistory() {
 		Context: theme.ThemeContextHistory,
 		Item:    theme.ThemePopupBackground,
 	}
+	hbox = app.HorizontalLine(property.SetItem(theme.ThemePopupBorder))
 
 	player.history.table = theme.NewTable(property)
 	player.history.table.SetSelectable(true, false)
@@ -116,7 +118,7 @@ func showHistory() {
 	player.history.flex = theme.NewFlex(property).
 		SetDirection(tview.FlexRow).
 		AddItem(player.history.table, 0, 10, true).
-		AddItem(app.HorizontalLine(property), 1, 0, false).
+		AddItem(hbox, 1, 0, false).
 		AddItem(player.history.input, 1, 0, false)
 
 	player.history.modal = app.NewModal("player_history", "Previously played", player.history.flex, 40, 0, property)

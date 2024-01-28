@@ -16,10 +16,7 @@ func HorizontalLine(property theme.ThemeProperty) *tview.Box {
 		box,
 		property,
 		func(screen tcell.Screen, x, y, width, height int) (int, int, int, int) {
-			style, _, ok := theme.GetThemeSetting(theme.ThemeProperty{
-				Context: property.Context,
-				Item:    theme.ThemeBorder,
-			})
+			style, _, ok := theme.GetThemeSetting(property)
 			if !ok {
 				style = tcell.StyleDefault.Foreground(tcell.ColorWhite)
 			}
@@ -53,10 +50,7 @@ func VerticalLine(property theme.ThemeProperty) *tview.Box {
 		box,
 		property,
 		func(screen tcell.Screen, x, y, width, height int) (int, int, int, int) {
-			style, _, ok := theme.GetThemeSetting(theme.ThemeProperty{
-				Context: property.Context,
-				Item:    theme.ThemeBorder,
-			})
+			style, _, ok := theme.GetThemeSetting(property)
 			if !ok {
 				style = tcell.StyleDefault.Foreground(tcell.ColorWhite)
 			}

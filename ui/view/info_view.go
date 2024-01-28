@@ -37,6 +37,7 @@ func (i *InfoView) Init(primitive tview.Primitive, property theme.ThemeProperty)
 func (i *InfoView) Set(title, description string) {
 	var descSize int
 
+	hbox := app.HorizontalLine(i.property.SetItem(theme.ThemeBorder))
 	_, _, pageWidth, _ := app.UI.Pages.GetRect()
 
 	descText := strings.ReplaceAll(description, "\n", " ")
@@ -51,10 +52,10 @@ func (i *InfoView) Set(title, description string) {
 
 	i.flex.Clear()
 	i.flex.AddItem(i.title, 1, 0, false)
-	i.flex.AddItem(app.HorizontalLine(i.property), 1, 0, false)
+	i.flex.AddItem(hbox, 1, 0, false)
 	if descLength > 0 {
 		i.flex.AddItem(i.description, descSize, 0, false)
-		i.flex.AddItem(app.HorizontalLine(i.property), 1, 0, false)
+		i.flex.AddItem(hbox, 1, 0, false)
 	}
 	i.flex.AddItem(i.primitive, 0, 10, true)
 

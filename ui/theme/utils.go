@@ -25,9 +25,9 @@ Documentation:
     Contexts
     --------
     The currently available contexts are:
-    
-    "App", "Channel", "Comments", "Dashboard", "Downloads", 
-    "Fetcher", "Files", "History", "Instances", "Links", "Menu", 
+
+    "App", "Channel", "Comments", "Dashboard", "Downloads",
+    "Fetcher", "Files", "History", "Instances", "Links", "Menu",
     "Player", "PlayerInfo", "Playlist", "Queue", "Search", "Start", "StatusBar"
 
     The "App" context is a global context, where all items common to the other contexts
@@ -45,28 +45,32 @@ Documentation:
     }
 
     This means that, for all other pages (not popups, more on that later), the background color will be blue,
-    but for the channel page, the background color will be black, since it overrides the global background setting.
-    
+    but for the channel page, the background color will be black, since it overrides the global background
+    setting.
+
     Items
     -----
     The currently available items are:
 
-    "AudioChannels", "AudioSampleRate", "Author", "AuthorOwner", "AuthorVerified",
-    "Background", "Border", "Buffer", "Button", "Channel", "Comment", "CheckBoxLabel", "CheckBoxField",
-    "Description","Directory", "Duration", "ErrorMessage", "File", "InfoMessage", "InputField", "InputLabel",
-    "InstanceURI", "InvidiousURI", "Keybinding", "Likes", "ListField", "ListLabel", "ListOptions", "Loop",
-    "MediaInfo", "MediaSize", "MediaType", "MoveModeSelector", "Name", "NormalModeSelector", "Path", "Pause", "Play",
-    "Playlist", "PopupBackground", "ProgressBar", "ProgressText", "Published", "Selector", "Shuffle", "Subscribers",
-    "Tabs", "TagAdding", "TagChanged", "TagError", "TagFetching", "TagLoading", "TagPlaying", "TagStatusBar",
-    "TagStopped", "Text", "Title", "TotalDuration", "TotalVideos", "Video", "VideoFPS", "VideoResolution", "Views", "Volume", "YoutubeURI"
+    "AudioChannels", "AudioSampleRate", "Author", "AuthorOwner", "AuthorVerified", "Background",
+    "Border", "Buffer", "Channel", "Comment", "Description", "Directory",
+    "Duration", "ErrorMessage", "File", "FormButton", "FormField", "FormLabel",
+    "InfoMessage", "InputField", "InputLabel", "InstanceURI", "InvidiousURI", "Keybinding",
+    "Likes", "ListField", "ListLabel", "ListOptions", "Loop", "MediaInfo",
+    "MediaSize", "MediaType", "MoveModeSelector", "Name", "NormalModeSelector", "Path",
+    "Pause", "Play", "Playlist", "PopupBackground", "PopupBorder", "ProgressBar",
+    "ProgressText", "Published", "Selector", "Shuffle", "Subscribers", "Tabs",
+    "TagAdding", "TagChanged", "TagError", "TagFetching", "TagLoading", "TagPlaying",
+    "TagStatusBar", "TagStopped", "Text", "Title", "TotalDuration", "TotalVideos",
+    "Video", "VideoFPS", "VideoResolution", "Views", "Volume", "YoutubeURI"
 
     Out of these, the common items (which can be defined across all contexts) are:
 
-    "Author", "Background", "Border", "Button", "Channel", "CheckBoxLabel", "CheckBoxField",
-    "Description", "Duration", "ErrorMessage", "InfoMessage", 
-    "InputField", "InputLabel", "InstanceURI", "Likes", 
-    "ListField", "ListLabel", "ListOptions", "MediaType", 
-    "Playlist", "PopupBackground", "ProgressBar", "ProgressText",
+    "Author", "Background", "Border", "FormButton", "Channel", "FormLabel", "FormField",
+    "Description", "Duration", "ErrorMessage", "InfoMessage",
+    "InputField", "InputLabel", "InstanceURI", "Likes",
+    "ListField", "ListLabel", "ListOptions", "MediaType",
+    "Playlist", "PopupBackground", "PopupBorder", "ProgressBar", "ProgressText",
     "Published", "Selector", "Subscribers", "Tabs", "TagStatusBar", "Text",
     "Title", "TotalDuration", "TotalVideos", "Video", "Views"
 
@@ -74,7 +78,7 @@ Documentation:
     ------------
     Each item must be associated with a theme parameter.
     The syntax for a parameter is:
-    
+
     attr:<attributeA>, <attributeB>; fg:<fgColor>; bg:<bgColor>
 
     Note that the 'attr', 'fg' and 'bg' keywords can be defined in any order.
@@ -96,15 +100,17 @@ Documentation:
     - A blue background color
     - Bold and underlined attributes
 
-    # Background and PopupBackground
-    --------------------------------
+    # Background:Border and PopupBackground:PopupBorder
+    ---------------------------------------------------
     A certain distinction is present when defining the 'Background' and 'PopupBackground' items.
-    'Background' is applied to pages only, while 'PopupBackground' is applied to popups.
+    - 'Background' and 'Border' applies to pages only, while
+    - 'PopupBackground' and 'PopupBorder' applies to popups.
 
-    'PopupBackground' applies to the following contexts:
-    "Menu", "Files", "Fetcher", "Queue", "Instances", "Links", "Downloads", "Comments"
-    
-    Otherwise the 'Background' item applies.
+    'PopupBackground' and 'PopupBorder' applies to the following contexts:
+    "Files", "Fetcher", "Queue", "Instances", "Links", "Comments", "Menu" (menu options popup),
+    "Downloads" (download options popup), "Search" (search parameters/suggestions popups)
+
+    Otherwise the 'Background' and 'Border' items apply.
 */
 
 {
@@ -112,10 +118,10 @@ Documentation:
     Author: attr:bold; fg:purple
     Background: bg:black
     Border: attr:bold; fg:white
-    Button: attr:bold; bg:blue; fg:white
+    FormButton: attr:bold; bg:blue; fg:white
     Channel: attr:bold; fg:blue
-    CheckBoxLabel: attr:bold; fg:white
-    CheckBoxField: attr:bold; bg:blue; fg:white
+    FormField: attr:bold; bg:blue; fg:white
+    FormLabel: attr:bold; fg:white
     Description: attr:bold; fg:white
     Duration: attr:bold; fg:white
     ErrorMessage: attr:bold; fg:red
@@ -130,6 +136,7 @@ Documentation:
     MediaType: attr:bold; fg:pink
     Playlist: attr:bold; fg:blue
     PopupBackground: bg:black
+    PopupBorder: attr:bold; fg:white
     ProgressBar: attr:bold; fg:white
     ProgressText: attr:bold; fg:white
     Published: attr:bold; fg:aqua
@@ -206,12 +213,12 @@ Documentation:
     File: attr:bold; fg:white
     InputField: bg:black
     InputLabel: attr:bold; fg:white
-    Path: attr:bold; fg:white
+    Path: attr:bold,underline; fg:white
     PopupBackground: bg:black
     Title: attr:underline; fg:white
   }
   History: {
-    InputField: bg:blue; fg:blue
+    InputField: bg:blue; fg:white
     InputLabel: attr:bold; fg:white
     MediaType: attr:bold; fg:pink
     Video: attr:bold; fg:blue
@@ -280,15 +287,10 @@ Documentation:
   }
   Search: {
     Author: attr:bold; fg:purple
-    Button: attr:bold; bg:blue; fg:white
+    FormButton: attr:bold; bg:blue; fg:white
     Channel: attr:bold; fg:blue
-    CheckBoxField: attr:bold; bg:grey; fg:white
-    CheckBoxLabel: attr:bold; fg:white
-    InputField: bg:blue; fg:white
-    InputLabel: attr:bold; fg:white
-    ListField: bg:pink; fg:grey
-    ListLabel: attr:bold; fg:white
-    ListOptions: attr:bold; bg:pink; fg:grey
+    FormField: attr:bold; bg:grey; fg:white
+    FormLabel: attr:bold; fg:white
     Playlist: attr:bold; fg:blue
     Text: attr:bold; fg:white
     TotalDuration: attr:bold; fg:pink
