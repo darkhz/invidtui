@@ -315,6 +315,9 @@ func (s *SearchView) Keybindings(event *tcell.EventKey) *tcell.EventKey {
 	case cmd.KeyChannelPlaylists:
 		Channel.EventHandler("playlist", event.Modifiers() == tcell.ModAlt)
 
+	case cmd.KeyChannelReleases:
+		Channel.EventHandler("releases", event.Modifiers() == tcell.ModAlt)
+
 	case cmd.KeyComments:
 		Comments.Show()
 

@@ -113,6 +113,7 @@ func (c *ChannelView) Tabs() app.Tab {
 		Info: []app.TabInfo{
 			{ID: "video", Title: "Videos"},
 			{ID: "playlist", Title: "Playlists"},
+			{ID: "releases", Title: "Releases"},
 			{ID: "search", Title: "Search"},
 		},
 
@@ -205,6 +206,9 @@ func (c *ChannelView) Load(pageType string, loadMore ...struct{}) {
 
 	case "playlist":
 		author, description, err = c.Playlists(c.currentID, loadMore...)
+
+	case "releases":
+		author, description, err = c.Releases(c.currentID, loadMore...)
 
 	case "search":
 		err = nil
@@ -406,6 +410,83 @@ func (c *ChannelView) Playlists(id string, loadMore ...struct{}) (string, string
 	})
 
 	app.ShowInfo("Playlist entries loaded", false)
+
+	return result.Author, result.Description, nil
+}
+
+// Releases loads the channel releases.
+func (c *ChannelView) Releases(id string, loadMore ...struct{}) (string, string, error) {
+	noReleasesErr := fmt.Errorf("View: Channel: No more releases in channel")
+
+	releaseContinuation := c.continuation["releases"]
+	if loadMore == nil {
+		releaseContinuation.loaded = false
+		releaseContinuation.continuation = ""
+	}
+	if releaseContinuation.loaded {
+		app.ShowError(noReleasesErr)
+		return "", "", noReleasesErr
+	}
+
+	app.ShowInfo("Loading Channel releases", true)
+
+	result, err := inv.ChannelReleases(id, releaseContinuation.continuation)
+	if err != nil {
+		return "", "", err
+	}
+
+	if len(result.Playlists) == 0 {
+		app.ShowError(noReleasesErr)
+		return "", "", noReleasesErr
+	}
+
+	if result.Continuation == "" {
+		releaseContinuation.loaded = true
+	}
+
+	releaseContinuation.continuation = result.Continuation
+
+	app.UI.QueueUpdateDraw(func() {
+		pos := -1
+		_, _, pageWidth, _ := app.UI.Pages.GetRect()
+
+		releaseMap := c.getTableMap()["Releases"]
+		releaseTable := releaseMap.table
+		rows := releaseTable.GetRowCount()
+
+		for i, r := range result.Playlists {
+			select {
+			case <-client.Ctx().Done():
+				return
+			default:
+			}
+
+			if pos < 0 {
+				pos = rows + i
+			}
+
+			sref := inv.SearchData{
+				Type:       "playlist",
+				Title:      r.Title,
+				PlaylistID: r.PlaylistID,
+				AuthorID:   result.ChannelID,
+				Author:     result.Author,
+			}
+
+			releaseTable.SetCell(rows+i, 0, tview.NewTableCell("[blue::b]"+tview.Escape(r.Title)).
+				SetExpansion(1).
+				SetReference(sref).
+				SetMaxWidth((pageWidth / 4)).
+				SetSelectedStyle(app.UI.SelectedStyle),
+			)
+		}
+
+		c.queueWrite(func() {
+			releaseMap.loaded = true
+		})
+	})
+
+	app.ShowInfo("Release entries loaded", false)
 
 	return result.Author, result.Description, nil
 }

@@ -76,6 +76,16 @@ func ChannelPlaylists(id, continuation string) (ChannelData, error) {
 	return Channel(id, "playlists", params)
 }
 
+// ChannelReleases loads only the releases present in the channel.
+func ChannelReleases(id, continuation string) (ChannelData, error) {
+	params := "?fields=playlists,continuation,error"
+	if continuation != "" {
+		params += "&continuation=" + continuation
+	}
+
+	return Channel(id, "releases", params)
+}
+
 // ChannelSearch searches for a query string in the channel.
 func ChannelSearch(id, searchText string, page int) ([]SearchData, int, error) {
 	return Search("channel", searchText, nil, page, id)
