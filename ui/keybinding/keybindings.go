@@ -92,6 +92,7 @@ const (
 	KeyPlaylistSave            Key = "PlaylistSave"
 	KeyChannelVideos           Key = "ChannelVideos"
 	KeyChannelPlaylists        Key = "ChannelPlaylists"
+	KeyChannelReleases         Key = "ChannelReleases"
 	KeyAudioURL                Key = "AudioURL"
 	KeyQuery                   Key = "Query"
 	KeyVideoURL                Key = "VideoURL"
@@ -487,6 +488,11 @@ var (
 			Title:   "Show Channel playlists",
 			Context: KeyContextCommon,
 			Kb:      Keybinding{tcell.KeyRune, 'U', tcell.ModNone},
+		},
+		KeyChannelReleases: {
+			Title:   "Show Channel releases",
+			Context: KeyContextCommon,
+			Kb:      Keybinding{tcell.KeyRune, 'R', tcell.ModNone},
 		},
 		KeyQuery: {
 			Title:   "Query",

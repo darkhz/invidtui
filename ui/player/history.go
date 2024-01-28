@@ -141,11 +141,14 @@ func historyTableKeybindings(event *tcell.EventKey) *tcell.EventKey {
 	case keybinding.KeyChannelPlaylists:
 		view.Channel.EventHandler("playlist", event.Modifiers() == tcell.ModAlt)
 
+	case keybinding.KeyChannelReleases:
+		view.Channel.EventHandler("releases", event.Modifiers() == tcell.ModAlt)
+
 	case keybinding.KeyClose:
 		player.history.modal.Exit(false)
 	}
 
-	for _, k := range []keybinding.Key{keybinding.KeyChannelVideos, keybinding.KeyChannelPlaylists} {
+	for _, k := range []keybinding.Key{keybinding.KeyChannelVideos, keybinding.KeyChannelPlaylists, keybinding.KeyChannelReleases} {
 		if keybinding.KeyOperation(event) == k {
 			player.history.modal.Exit(false)
 			app.UI.Status.SwitchToPage("messages")

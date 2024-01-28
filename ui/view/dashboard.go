@@ -425,6 +425,9 @@ func (d *DashboardView) subKeybindings(event *tcell.EventKey) *tcell.EventKey {
 	case keybinding.KeyChannelPlaylists:
 		Channel.EventHandler("playlist", event.Modifiers() == tcell.ModAlt)
 
+	case keybinding.KeyChannelReleases:
+		Channel.EventHandler("releases", event.Modifiers() == tcell.ModAlt)
+
 	case keybinding.KeyRemove:
 		d.ModifyHandler(false)
 
