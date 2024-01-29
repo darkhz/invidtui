@@ -160,6 +160,7 @@ func Stop(skip ...struct{}) {
 	}
 
 	UI.Status.Cancel()
+	UI.Sync()
 	UI.Stop()
 }
 
