@@ -777,6 +777,7 @@ LoadFeed:
 
 		if pos > 0 {
 			feedView.table.Select(pos, 0)
+			feedView.table.ScrollToEnd()
 		}
 	})
 
@@ -802,11 +803,17 @@ func (d *DashboardView) loadPlaylists(reload bool) {
 	plView.loaded = true
 
 	app.UI.QueueUpdateDraw(func() {
+		pos := -1
 		_, _, width, _ := app.UI.Pages.GetRect()
+		rows := plView.table.GetRowCount()
 
 		plView.table.SetSelectable(false, false)
 
 		for i, playlist := range playlists {
+			if pos < 0 {
+				pos = rows + i
+			}
+
 			sref := inv.SearchData{
 				Type:       "playlist",
 				Title:      playlist.Title,
@@ -836,6 +843,11 @@ func (d *DashboardView) loadPlaylists(reload bool) {
 		}
 
 		plView.table.SetSelectable(true, false)
+
+		if pos > 0 {
+			plView.table.Select(pos, 0)
+			plView.table.ScrollToEnd()
+		}
 	})
 
 	app.ShowInfo("Playlists loaded", false)
@@ -860,11 +872,17 @@ func (d *DashboardView) loadSubscriptions(reload bool) {
 	subView.loaded = true
 
 	app.UI.QueueUpdateDraw(func() {
+		pos := -1
 		_, _, width, _ := app.UI.Pages.GetRect()
+		rows := subView.table.GetRowCount()
 
 		subView.table.SetSelectable(false, false)
 
 		for i, subscription := range subscriptions {
+			if pos < 0 {
+				pos = rows + i
+			}
+
 			sref := inv.SearchData{
 				Type:     "channel",
 				Author:   subscription.Author,
@@ -883,6 +901,11 @@ func (d *DashboardView) loadSubscriptions(reload bool) {
 		}
 
 		subView.table.SetSelectable(true, false)
+
+		if pos > 0 {
+			subView.table.Select(pos, 0)
+			subView.table.ScrollToEnd()
+		}
 	})
 
 	app.ShowInfo("Subscriptions loaded", false)

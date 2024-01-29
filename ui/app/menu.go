@@ -194,6 +194,8 @@ func DrawMenu(x int, region string) {
 		)
 	}
 
+	modal.Table.ScrollToBeginning()
+
 	modal.Width = width
 	modal.Height = (len(menuItems) - skipped) + 2
 	if modal.Height > 10 {

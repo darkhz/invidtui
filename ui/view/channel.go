@@ -331,6 +331,9 @@ func (c *ChannelView) Videos(id string, loadMore ...struct{}) (string, string, e
 				SetSelectable(true).
 				SetAlign(tview.AlignRight),
 			)
+
+			videoTable.Select(pos, 0)
+			videoTable.ScrollToEnd()
 		}
 
 		c.queueWrite(func() {
@@ -421,6 +424,9 @@ func (c *ChannelView) Playlists(id string, loadMore ...struct{}) (string, string
 				SetSelectable(true).
 				SetAlign(tview.AlignRight),
 			)
+
+			playlistTable.Select(pos, 0)
+			playlistTable.ScrollToEnd()
 		}
 
 		c.queueWrite(func() {
@@ -501,6 +507,9 @@ func (c *ChannelView) Releases(id string, loadMore ...struct{}) (string, string,
 				SetReference(sref).
 				SetMaxWidth((pageWidth / 4)),
 			)
+
+			releaseTable.Select(pos, 0)
+			releaseTable.ScrollToEnd()
 		}
 
 		c.queueWrite(func() {
