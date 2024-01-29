@@ -103,6 +103,7 @@ func (s *Status) InfoMessage(text string, persist bool) {
 // ErrorMessage sends an error message to the status bar.
 func (s *Status) ErrorMessage(err error) {
 	if errors.Is(err, context.Canceled) {
+		ShowInfo("", false)
 		return
 	}
 
