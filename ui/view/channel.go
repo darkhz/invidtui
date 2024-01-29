@@ -624,6 +624,7 @@ func (c *ChannelView) Keybindings(event *tcell.EventKey) *tcell.EventKey {
 	case keybinding.KeySwitchTab:
 		c.currentType = app.SwitchTab(false)
 
+		client.Cancel()
 		c.View(c.currentType)
 		go c.Load(c.currentType)
 
