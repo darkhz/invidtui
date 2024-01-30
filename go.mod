@@ -4,11 +4,11 @@ go 1.18
 
 require (
 	github.com/darkhz/mpvipc v0.0.0-20231124135332-eb73ba48ad46
-	github.com/darkhz/tview v0.0.0-20240126070054-371cb01c9b7a
+	github.com/darkhz/tview v0.0.0-20240130154506-5ca91a0d158f
 	github.com/davidmytton/url-verifier v1.0.1
 	github.com/etherlabsio/go-m3u8 v1.0.0
 	github.com/gammazero/deque v0.2.1
-	github.com/gdamore/tcell/v2 v2.7.0
+	github.com/gdamore/tcell/v2 v2.6.0
 	github.com/hjson/hjson-go/v4 v4.4.0
 	github.com/knadh/koanf/parsers/hjson v0.1.0
 	github.com/knadh/koanf/providers/file v0.1.0

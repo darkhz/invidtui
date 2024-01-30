@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/darkhz/tview"
+	"github.com/gdamore/tcell/v2"
 )
 
 // DefaultThemeConfig is the default theme configuration in the HJSON format.
@@ -379,9 +380,14 @@ func GetLabel(property ThemeProperty, label string, spaced bool) string {
 	builder.Append(property.Item, "label", label)
 	if spaced {
 		style, _, ok := GetThemeSetting(property)
+		_, bg, _ := style.Decompose()
 		if ok {
-			_, bg, _ := style.Decompose()
-			fmt.Fprintf(&builder, "[:%s:] ", bg.Name())
+			for name, color := range tcell.ColorNames {
+				if bg == color {
+					fmt.Fprintf(&builder, "[:%s:] ", name)
+					break
+				}
+			}
 		}
 	}
 
