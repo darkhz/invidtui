@@ -171,6 +171,7 @@ func suspend(t tcell.Screen) {
 	}
 
 	platform.Suspend(t)
+	go UI.Draw()
 
 	UI.Suspend = false
 }
