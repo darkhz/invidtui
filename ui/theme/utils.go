@@ -380,17 +380,30 @@ func GetLabel(property ThemeProperty, label string, spaced bool) string {
 	builder.Append(property.Item, "label", label)
 	if spaced {
 		style, _, ok := GetThemeSetting(property)
-		_, bg, _ := style.Decompose()
 		if ok {
+			var colorName string
+
+			_, bg, _ := style.Decompose()
+			if !bg.Valid() {
+				builder.AppendText(" ")
+				goto Spaced
+			}
+
 			for name, color := range tcell.ColorNames {
 				if bg == color {
-					fmt.Fprintf(&builder, "[:%s:] ", name)
+					colorName = name
 					break
 				}
 			}
+			if colorName == "" {
+				colorName = fmt.Sprintf("#%06X", bg.Hex())
+			}
+
+			fmt.Fprintf(&builder, "[:%s:] ", colorName)
 		}
 	}
 
+Spaced:
 	return builder.Get()
 }
 
