@@ -249,7 +249,8 @@ func (q *Queue) AutoPlay(force bool) {
 
 	case mp.RepeatModePlaylist:
 		if !q.shuffle.Load() && q.Position() == q.Count()-1 {
-			q.SwitchToPosition(0)
+			q.SwitchToPosition(0, struct{}{})
+			q.MarkPlayingEntry(EntryPlaying)
 			return
 		}
 	}
@@ -360,7 +361,7 @@ func (q *Queue) SetPosition(position int) {
 }
 
 // SwitchToPosition switches to the specified position within the queue.
-func (q *Queue) SwitchToPosition(position int) {
+func (q *Queue) SwitchToPosition(position int, autoplay ...struct{}) {
 	q.storeMutex.Lock()
 	defer q.storeMutex.Unlock()
 
@@ -368,6 +369,8 @@ func (q *Queue) SwitchToPosition(position int) {
 	if !ok {
 		return
 	}
+
+	skipPlaying := autoplay != nil && position == 0 && data == q.current
 	if q.current != nil {
 		q.current.Playing = false
 	}
@@ -376,6 +379,10 @@ func (q *Queue) SwitchToPosition(position int) {
 	data.HasPlayed = true
 
 	q.current = data
+
+	if skipPlaying {
+		return
+	}
 
 	q.SetPosition(position)
 	q.Play()
