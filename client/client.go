@@ -159,6 +159,9 @@ func Ctx() context.Context {
 
 // Cancel cancels the client's context.
 func Cancel() {
+	client.mutex.Lock()
+	defer client.mutex.Unlock()
+
 	if client.rctx != nil {
 		client.rcancel()
 	}
@@ -173,6 +176,9 @@ func SendCtx() context.Context {
 
 // SendCancel cancels the client's send context.
 func SendCancel() {
+	client.mutex.Lock()
+	defer client.mutex.Unlock()
+
 	if client.sctx != nil {
 		client.scancel()
 	}
