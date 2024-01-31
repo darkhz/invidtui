@@ -187,7 +187,7 @@ func (c *ChannelView) Load(pageType string, loadMore ...struct{}) {
 	var err error
 	var author, description string
 
-	if !c.lock.TryAcquire(1) {
+	if err := c.lock.Acquire(client.Ctx(), 1); err != nil {
 		app.ShowError(fmt.Errorf("View: Channel: Still loading data"))
 		return
 	}
