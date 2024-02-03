@@ -227,7 +227,7 @@ func (c *ChannelView) Load(pageType string, loadMore ...struct{}) {
 
 RenderView:
 	app.UI.QueueUpdateDraw(func() {
-		if GetCurrentView() != &Channel && author != "" {
+		if author != "" {
 			c.infoView.Set(tview.Escape(author), tview.Escape(description))
 		}
 		if GetCurrentView() != &Channel || app.GetCurrentTab() != pageType {
