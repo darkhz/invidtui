@@ -146,7 +146,7 @@ func (c *ChannelView) View(pageType string) {
 	for _, i := range c.Tabs().Info {
 		if i.ID == pageType {
 			c.views.SwitchToPage(i.Title)
-			app.UI.SetFocus(c.getTableMap()[i.Title].table)
+			app.SetPrimaryFocus()
 
 			break
 		}

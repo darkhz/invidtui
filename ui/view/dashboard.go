@@ -199,7 +199,7 @@ func (d *DashboardView) View(auth ...struct{}) {
 	for _, i := range d.Tabs().Info {
 		if i.ID == d.CurrentPage() {
 			d.views.SwitchToPage(i.Title)
-			app.UI.SetFocus(d.getTableMap()[i.Title].table)
+			app.SetPrimaryFocus()
 
 			break
 		}

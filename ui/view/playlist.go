@@ -289,6 +289,6 @@ func (p *PlaylistView) renderPlaylist(result inv.PlaylistData, id string) {
 	app.SetTableSelector(p.table, rows)
 
 	if pg, _ := app.UI.Pages.GetFrontPage(); pg == "ui" {
-		app.UI.SetFocus(p.table)
+		app.SetPrimaryFocus()
 	}
 }

@@ -101,7 +101,7 @@ func (c *CommentsView) Load(id, title string) {
 		c.view.SetCurrentNode(c.root)
 
 		c.modal.Show(true)
-		app.UI.SetFocus(c.view)
+		app.SetPrimaryFocus()
 	})
 }
 
