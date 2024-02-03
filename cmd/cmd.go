@@ -65,13 +65,14 @@ func loadPlayer() {
 		printer.Error(err.Error())
 	}
 
-	err = mp.Init(
-		"mpv",
-		GetOptionValue("mpv-path"),
-		GetOptionValue("ytdl-path"),
-		GetOptionValue("num-retries"),
-		client.UserAgent,
-		socketpath,
+	err = mp.Init("mpv", mp.MediaPlayerProperties{
+		UserAgent:      client.UserAgent,
+		SocketPath:     socketpath,
+		PlayerPath:     GetOptionValue("mpv-path"),
+		YtdlPath:       GetOptionValue("ytdl-path"),
+		NumRetries:     GetOptionValue("num-retries"),
+		CloseInstances: IsOptionEnabled("close-instances"),
+	},
 	)
 	if err != nil {
 		printer.Error(err.Error())

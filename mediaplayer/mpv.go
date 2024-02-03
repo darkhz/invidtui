@@ -22,11 +22,8 @@ type MPV struct {
 var mpv MPV
 
 // Init initializes and sets up MPV.
-func (m *MPV) Init(execpath, ytdlpath, numretries, useragent, socket string) error {
-	if err := m.connect(
-		execpath, ytdlpath,
-		numretries, useragent, socket,
-	); err != nil {
+func (m *MPV) Init(properties MediaPlayerProperties) error {
+	if err := m.connect(properties); err != nil {
 		return err
 	}
 
@@ -328,25 +325,25 @@ func (m *MPV) Set(prop string, value interface{}) error {
 }
 
 // connect launches MPV and starts a new connection via the provided socket.
-func (m *MPV) connect(mpvpath, ytdlpath, numretries, useragent, socket string) error {
+func (m *MPV) connect(properties MediaPlayerProperties) error {
 	command := exec.Command(
-		mpvpath,
+		properties.PlayerPath,
 		"--idle",
 		"--keep-open",
 		"--no-terminal",
 		"--really-quiet",
 		"--no-input-terminal",
-		"--user-agent="+useragent,
-		"--input-ipc-server="+socket,
-		"--script-opts=ytdl_hook-ytdl_path="+ytdlpath,
+		"--user-agent="+properties.UserAgent,
+		"--input-ipc-server="+properties.SocketPath,
+		"--script-opts=ytdl_hook-ytdl_path="+properties.YtdlPath,
 	)
 
 	if err := command.Start(); err != nil {
 		return fmt.Errorf("MPV: Could not start")
 	}
 
-	conn := mpvipc.NewConnection(socket)
-	retries, _ := strconv.Atoi(numretries)
+	conn := mpvipc.NewConnection(properties.SocketPath)
+	retries, _ := strconv.Atoi(properties.NumRetries)
 	for i := 0; i <= retries; i++ {
 		err := conn.Open()
 		if err != nil {
@@ -354,7 +351,7 @@ func (m *MPV) connect(mpvpath, ytdlpath, numretries, useragent, socket string) e
 			continue
 		}
 
-		m.socket = socket
+		m.socket = properties.SocketPath
 		m.Connection = conn
 
 		return nil

@@ -4,7 +4,7 @@ import "sync"
 
 // MediaPlayer describes a media player.
 type MediaPlayer interface {
-	Init(execpath, ytdlpath, numretries, useragent, socket string) error
+	Init(properties MediaPlayerProperties) error
 	Exit()
 	Exited() bool
 	SendQuit(socket string)
@@ -51,6 +51,13 @@ type MediaPlayerSettings struct {
 	mutex sync.Mutex
 }
 
+// MediaPlayerProperties stores the media player's properties.
+type MediaPlayerProperties struct {
+	PlayerPath, YtdlPath, UserAgent, SocketPath string
+	NumRetries                                  string
+	CloseInstances                              bool
+}
+
 type MediaEvent int
 
 const (
@@ -78,14 +85,11 @@ var (
 )
 
 // Init launches the provided player.
-func Init(player, execpath, ytdlpath, numretries, useragent, socket string) error {
+func Init(player string, properties MediaPlayerProperties) error {
 	settings.current = player
 	settings.handler = func(e MediaEvent) {}
 
-	return players[player].Init(
-		execpath, ytdlpath,
-		numretries, useragent, socket,
-	)
+	return players[player].Init(properties)
 }
 
 // EventHandler sends a media event to the preset handler.
