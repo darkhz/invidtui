@@ -9,14 +9,13 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/darkhz/invidtui/platform"
 	"github.com/hjson/hjson-go/v4"
 	"github.com/knadh/koanf/v2"
 )
 
 // Config describes the configuration for the app.
 type Config struct {
-	path string
+	path, socket string
 
 	mutex sync.Mutex
 
@@ -53,7 +52,9 @@ func (c *Config) setup() {
 
 // GetConfigDir returns the full config path for the provided directory.
 func GetConfigDir(dir string) (string, error) {
+	config.mutex.Lock()
 	dir = filepath.Join(config.path, dir)
+	config.mutex.Unlock()
 
 	_, err := os.Stat(dir)
 	if errors.Is(err, fs.ErrNotExist) {
@@ -68,8 +69,6 @@ func GetConfigDir(dir string) (string, error) {
 
 // GetPath returns the full config path for the provided file type.
 func GetPath(ftype string, nocreate ...struct{}) (string, error) {
-	var cfpath string
-
 	if strings.Contains(ftype, "/") {
 		if _, err := GetConfigDir(filepath.Dir(ftype)); err != nil {
 			return "", err
@@ -77,29 +76,16 @@ func GetPath(ftype string, nocreate ...struct{}) (string, error) {
 	}
 
 	if ftype == "socket" {
-		socket := filepath.Join(config.path, "socket")
-		cfpath = platform.Socket(socket)
-
-		if _, err := os.Stat(socket); err == nil {
-			if !IsOptionEnabled("close-instances") {
-				return "", fmt.Errorf("Config: Socket exists at %s, is another instance running?", socket)
-			}
-
-			if err := os.Remove(socket); err != nil {
-				return "", fmt.Errorf("Config: Cannot remove %s", socket)
-			}
+		if config.socket == "" {
+			return "", fmt.Errorf("No socket found")
 		}
 
-		fd, err := os.OpenFile(socket, os.O_CREATE, os.ModeSocket)
-		if err != nil {
-			return "", fmt.Errorf("Config: Cannot create socket file at %s", socket)
-		}
-		fd.Close()
-
-		return cfpath, nil
+		return config.socket, nil
 	}
 
-	cfpath = filepath.Join(config.path, ftype)
+	config.mutex.Lock()
+	cfpath := filepath.Join(config.path, ftype)
+	config.mutex.Unlock()
 
 	if nocreate != nil {
 		_, err := os.Stat(cfpath)

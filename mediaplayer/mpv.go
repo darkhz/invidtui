@@ -342,6 +342,10 @@ func (m *MPV) connect(properties MediaPlayerProperties) error {
 		return fmt.Errorf("MPV: Could not start")
 	}
 
+	if properties.CloseInstances {
+		m.SendQuit(properties.SocketPath)
+	}
+
 	conn := mpvipc.NewConnection(properties.SocketPath)
 	retries, _ := strconv.Atoi(properties.NumRetries)
 	for i := 0; i <= retries; i++ {

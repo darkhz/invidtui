@@ -1,15 +1,19 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strconv"
 	"strings"
 
 	flag "github.com/spf13/pflag"
 
 	"github.com/darkhz/invidtui/client"
+	"github.com/darkhz/invidtui/platform"
 	"github.com/darkhz/invidtui/utils"
 	"github.com/knadh/koanf/parsers/hjson"
 	"github.com/knadh/koanf/providers/file"
@@ -224,6 +228,8 @@ func parse() {
 func check() {
 	RunAllParsers()
 	getSettings()
+
+	checkSocket()
 	checkAuth()
 
 	for _, option := range options {
@@ -235,6 +241,33 @@ func check() {
 			checkOtherOptions(option.Name, GetOptionValue(option.Name))
 		}
 	}
+}
+
+// checkSocket checks for and creates the socket. It parses the 'close-instances' command-line parameter.
+// If close-instances is not set and the socket exists, a message will be shown.
+// Otherwise, the socket is created/reused, and any pending connections to the socket are closed.
+func checkSocket() error {
+	socket := filepath.Join(config.path, "socket")
+	cfpath := platform.Socket(socket)
+
+	_, err := os.Stat(socket)
+	if err == nil {
+		if !IsOptionEnabled("close-instances") {
+			printer.Error(fmt.Sprintf("Socket exists at %s, is another instance running?", socket))
+		}
+	}
+
+	fd, err := os.OpenFile(socket, os.O_CREATE, os.ModeSocket|os.ModePerm)
+	if err != nil && !errors.Is(err, fs.ErrExist) {
+		printer.Error(fmt.Sprintf("Cannot create socket file at %s", socket))
+	}
+	fd.Close()
+
+	config.mutex.Lock()
+	config.socket = cfpath
+	config.mutex.Unlock()
+
+	return nil
 }
 
 // checkAuth parses and checks the 'token' and 'token-link' command-line parameters.
