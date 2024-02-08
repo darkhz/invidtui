@@ -743,22 +743,33 @@ func playingStatusCheck() {
 
 // playerUpdateLoop updates the player.
 func playerUpdateLoop(ctx context.Context, cancel context.CancelFunc) {
-	t := time.NewTicker(1 * time.Second)
-	defer t.Stop()
+	evCtx, evCancel := context.WithCancel(context.Background())
+	go func(c context.Context) {
+		for {
+			select {
+			case <-c.Done():
+				player.desc.Clear()
+				player.title.Clear()
+
+				app.UI.Lock()
+				app.DrawPrimitives(player.flex, app.UI.Status.Pages)
+				app.UI.Unlock()
+
+				return
+
+			case <-player.events:
+				renderPlayer()
+			}
+		}
+	}(evCtx)
 
 	for {
 		select {
 		case <-ctx.Done():
-			player.desc.Clear()
-			player.title.Clear()
-			app.DrawPrimitives(player.flex)
+			evCancel()
 			return
 
-		case <-player.events:
-			renderPlayer()
-			continue
-
-		case <-t.C:
+		case <-time.After(1 * time.Second):
 			renderPlayer()
 		}
 	}

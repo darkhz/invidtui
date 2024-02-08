@@ -138,7 +138,7 @@ func SetGlobalKeybindings(kb func(event *tcell.EventKey) *tcell.EventKey) {
 
 // DrawPrimitives draws the primitives onto the screen.
 func DrawPrimitives(primitives ...tview.Primitive) {
-	UI.QueueUpdate(func() {
+	go UI.QueueUpdate(func() {
 		UI.Lock()
 		defer UI.Unlock()
 
