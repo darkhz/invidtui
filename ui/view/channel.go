@@ -1,6 +1,7 @@
 package view
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"sync"
@@ -187,7 +188,7 @@ func (c *ChannelView) Load(pageType string, loadMore ...struct{}) {
 	var err error
 	var author, description string
 
-	if err := c.lock.Acquire(client.Ctx(), 1); err != nil {
+	if err := c.lock.Acquire(context.Background(), 1); err != nil {
 		app.ShowError(fmt.Errorf("View: Channel: Still loading data"))
 		return
 	}
