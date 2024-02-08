@@ -100,8 +100,14 @@ func (f *Fetcher) Show() {
 
 // Hide hides the media fetcher.
 func (f *Fetcher) Hide() {
-	f.info.Clear()
-	f.modal.Exit(false)
+	if !f.IsOpen() {
+		return
+	}
+
+	go app.UI.QueueUpdateDraw(func() {
+		f.info.Clear()
+		f.modal.Exit(false)
+	})
 }
 
 // IsOpen returns whether the media fetcher is open.
