@@ -17,6 +17,7 @@ import (
 	"github.com/darkhz/invidtui/ui/app"
 	"github.com/darkhz/invidtui/ui/keybinding"
 	"github.com/darkhz/invidtui/ui/theme"
+	"github.com/darkhz/invidtui/ui/view"
 	"github.com/darkhz/invidtui/utils"
 	"github.com/darkhz/tview"
 	"github.com/etherlabsio/go-m3u8/m3u8"
@@ -29,7 +30,6 @@ import (
 type Queue struct {
 	init, moveMode bool
 	prevrow        int
-	videos         map[string]*inv.VideoData
 
 	status chan struct{}
 
@@ -90,7 +90,6 @@ func (q *Queue) Setup() {
 	q.store = deque.New[*QueueData](100)
 
 	q.status = make(chan struct{}, 100)
-	q.videos = make(map[string]*inv.VideoData)
 
 	q.table = theme.NewTable(property)
 	q.table.SetContent(q)
@@ -158,7 +157,8 @@ func (q *Queue) Add(video inv.VideoData, audio bool, uri ...[2]string) {
 				" ",
 			).
 				SetMaxWidth(1).
-				SetSelectable(false),
+				SetSelectable(false).
+				SetReference(AttachableReference(video)),
 			theme.NewTableCell(
 				theme.ThemeContextQueue,
 				theme.ThemeVideo,
@@ -681,6 +681,9 @@ func (q *Queue) SetReference(row int, video inv.VideoData, checkID ...struct{}) 
 	}
 
 	data.Reference = video
+	if len(data.Columns) > 0 && data.Columns[0] != nil {
+		data.Columns[0].SetReference(AttachableReference(video))
+	}
 }
 
 // SetState sets the player states (repeat/shuffle).
@@ -893,7 +896,7 @@ ReadPlaylist:
 
 // Keybindings define the keybindings for the queue.
 func (q *Queue) Keybindings(event *tcell.EventKey) *tcell.EventKey {
-	operation := keybinding.KeyOperation(event, keybinding.KeyContextQueue)
+	operation := keybinding.KeyOperation(event, keybinding.KeyContextQueue, keybinding.KeyContextComments)
 
 	for _, op := range []keybinding.Key{
 		keybinding.KeyClose,
@@ -926,6 +929,9 @@ func (q *Queue) Keybindings(event *tcell.EventKey) *tcell.EventKey {
 
 	case keybinding.KeyPlayerStop, keybinding.KeyClose:
 		q.Hide()
+
+	case keybinding.KeyComments:
+		view.Comments.Show()
 	}
 
 	for _, o := range []keybinding.Key{
@@ -1106,5 +1112,16 @@ func (q *Queue) sendStatus() {
 	case q.status <- struct{}{}:
 
 	default:
+	}
+}
+
+// AttachableReference returns an attachable reference to the video item.
+func AttachableReference(v inv.VideoData) inv.SearchData {
+	return inv.SearchData{
+		Type:     "video",
+		Title:    v.Title,
+		VideoID:  v.VideoID,
+		AuthorID: v.AuthorID,
+		Author:   v.Author,
 	}
 }

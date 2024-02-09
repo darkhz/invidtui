@@ -114,6 +114,7 @@ var Items = &app.MenuData{
 			keybinding.KeyQueueDelete,
 			keybinding.KeyQueueMove,
 			keybinding.KeyQueueCancel,
+			keybinding.KeyComments,
 			keybinding.KeyClose,
 		},
 		keybinding.KeyContextFetcher: {
@@ -128,6 +129,7 @@ var Items = &app.MenuData{
 			keybinding.KeyChannelVideos,
 			keybinding.KeyChannelPlaylists,
 			keybinding.KeyChannelReleases,
+			keybinding.KeyComments,
 			keybinding.KeyClose,
 		},
 	},

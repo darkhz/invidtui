@@ -131,7 +131,7 @@ Render:
 
 // historyTableKeybindings defines the keybindings for the history popup.
 func historyTableKeybindings(event *tcell.EventKey) *tcell.EventKey {
-	switch keybinding.KeyOperation(event) {
+	switch keybinding.KeyOperation(event, keybinding.KeyContextComments) {
 	case keybinding.KeyQuery:
 		app.UI.SetFocus(player.history.input)
 
@@ -143,6 +143,9 @@ func historyTableKeybindings(event *tcell.EventKey) *tcell.EventKey {
 
 	case keybinding.KeyChannelReleases:
 		view.Channel.EventHandler("releases", event.Modifiers() == tcell.ModAlt)
+
+	case keybinding.KeyComments:
+		view.Comments.Show()
 
 	case keybinding.KeyClose:
 		player.history.modal.Exit(false)
