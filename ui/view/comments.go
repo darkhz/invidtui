@@ -259,7 +259,7 @@ func (c *CommentsView) addContinuation(node *tview.TreeNode, continuation string
 	}
 
 	node.AddChild(
-		tview.NewTreeNode("-- Load more replies --").
+		c.setNodeText(tview.NewTreeNode(""), theme.ThemeText, "-- Load more replies --").
 			SetSelectable(true).
 			SetReference(continuation),
 	)
