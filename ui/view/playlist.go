@@ -220,7 +220,6 @@ func (p *PlaylistView) Keybindings(event *tcell.EventKey) *tcell.EventKey {
 func (p *PlaylistView) renderPlaylist(result inv.PlaylistData, id string) {
 	var skipped int
 
-	pos := -1
 	rows := p.table.GetRowCount()
 	_, _, pageWidth, _ := app.UI.Pages.GetRect()
 
@@ -235,10 +234,6 @@ func (p *PlaylistView) renderPlaylist(result inv.PlaylistData, id string) {
 			return
 
 		default:
-		}
-
-		if pos < 0 {
-			pos = (rows + i) - skipped
 		}
 
 		if !prevDashboard {
@@ -290,17 +285,8 @@ func (p *PlaylistView) renderPlaylist(result inv.PlaylistData, id string) {
 
 	app.ShowInfo("Playlist entries loaded", false)
 
-	if pos >= 0 {
-		p.table.Select(pos, 0)
-
-		if pos == 0 {
-			p.table.ScrollToBeginning()
-		} else {
-			p.table.ScrollToEnd()
-		}
-	}
-
 	p.table.SetSelectable(true, false)
+	app.SetTableSelector(p.table, rows)
 
 	if pg, _ := app.UI.Pages.GetFrontPage(); pg == "ui" {
 		app.UI.SetFocus(p.table)

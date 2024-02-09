@@ -142,3 +142,18 @@ func FocusedTable() *tview.Table {
 
 	return nil
 }
+
+// SetTableSelector sets the table's selector position.
+func SetTableSelector(t *tview.Table, prevrows int) {
+	selection, _ := t.GetSelection()
+	newrows := t.GetRowCount()
+
+	if prevrows >= 0 && newrows > 0 && newrows-prevrows > 0 && selection != prevrows {
+		t.Select(prevrows, 0)
+		t.ScrollToEnd()
+		return
+	}
+
+	t.Select(0, 0)
+	t.ScrollToBeginning()
+}

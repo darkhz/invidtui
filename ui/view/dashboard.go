@@ -731,7 +731,6 @@ LoadFeed:
 			feedView.table.Clear()
 		}
 
-		pos := -1
 		_, _, width, _ := app.UI.Pages.GetRect()
 		rows := feedView.table.GetRowCount()
 
@@ -739,10 +738,6 @@ LoadFeed:
 			if video.LengthSeconds == 0 {
 				skipped++
 				continue
-			}
-
-			if pos < 0 {
-				pos = (rows + i) - skipped
 			}
 
 			sref := inv.SearchData{
@@ -774,11 +769,7 @@ LoadFeed:
 		}
 
 		feedView.table.SetSelectable(true, false)
-
-		if pos > 0 {
-			feedView.table.Select(pos, 0)
-			feedView.table.ScrollToEnd()
-		}
+		app.SetTableSelector(feedView.table, rows)
 	})
 
 	app.ShowInfo("Feed loaded", false)
@@ -803,17 +794,12 @@ func (d *DashboardView) loadPlaylists(reload bool) {
 	plView.loaded = true
 
 	app.UI.QueueUpdateDraw(func() {
-		pos := -1
 		_, _, width, _ := app.UI.Pages.GetRect()
 		rows := plView.table.GetRowCount()
 
 		plView.table.SetSelectable(false, false)
 
 		for i, playlist := range playlists {
-			if pos < 0 {
-				pos = rows + i
-			}
-
 			sref := inv.SearchData{
 				Type:       "playlist",
 				Title:      playlist.Title,
@@ -843,11 +829,7 @@ func (d *DashboardView) loadPlaylists(reload bool) {
 		}
 
 		plView.table.SetSelectable(true, false)
-
-		if pos > 0 {
-			plView.table.Select(pos, 0)
-			plView.table.ScrollToEnd()
-		}
+		app.SetTableSelector(plView.table, rows)
 	})
 
 	app.ShowInfo("Playlists loaded", false)
@@ -872,17 +854,12 @@ func (d *DashboardView) loadSubscriptions(reload bool) {
 	subView.loaded = true
 
 	app.UI.QueueUpdateDraw(func() {
-		pos := -1
 		_, _, width, _ := app.UI.Pages.GetRect()
 		rows := subView.table.GetRowCount()
 
 		subView.table.SetSelectable(false, false)
 
 		for i, subscription := range subscriptions {
-			if pos < 0 {
-				pos = rows + i
-			}
-
 			sref := inv.SearchData{
 				Type:     "channel",
 				Author:   subscription.Author,
@@ -901,11 +878,7 @@ func (d *DashboardView) loadSubscriptions(reload bool) {
 		}
 
 		subView.table.SetSelectable(true, false)
-
-		if pos > 0 {
-			subView.table.Select(pos, 0)
-			subView.table.ScrollToEnd()
-		}
+		app.SetTableSelector(subView.table, rows)
 	})
 
 	app.ShowInfo("Subscriptions loaded", false)

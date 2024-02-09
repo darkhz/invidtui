@@ -611,7 +611,6 @@ func (s *SearchView) setParameters() {
 func (s *SearchView) renderResults(results []inv.SearchData) {
 	var skipped int
 
-	pos := -1
 	rows := s.table.GetRowCount()
 	_, _, width, _ := app.UI.Pages.GetRect()
 
@@ -629,10 +628,6 @@ func (s *SearchView) renderResults(results []inv.SearchData) {
 		if result.Type == "category" {
 			skipped++
 			continue
-		}
-
-		if pos < 0 {
-			pos = (rows + i) - skipped
 		}
 
 		author = result.Author
@@ -750,10 +745,8 @@ func (s *SearchView) renderResults(results []inv.SearchData) {
 		}
 	}
 
-	s.table.Select(pos, 0)
-	s.table.ScrollToEnd()
-
 	s.table.SetSelectable(true, false)
+	app.SetTableSelector(s.table, rows)
 
 	if Banner.shown && len(results) > 0 {
 		app.UI.Pages.SwitchToPage(Search.Name())

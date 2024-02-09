@@ -281,7 +281,6 @@ func (c *ChannelView) Videos(id string, loadMore ...struct{}) (string, string, e
 	app.UI.QueueUpdateDraw(func() {
 		var skipped int
 
-		pos := -1
 		_, _, pageWidth, _ := app.UI.Pages.GetRect()
 
 		videoMap := c.getTableMap()["Videos"]
@@ -294,10 +293,6 @@ func (c *ChannelView) Videos(id string, loadMore ...struct{}) (string, string, e
 				return
 
 			default:
-			}
-
-			if pos < 0 {
-				pos = (rows + i) - skipped
 			}
 
 			if v.LengthSeconds == 0 {
@@ -331,10 +326,9 @@ func (c *ChannelView) Videos(id string, loadMore ...struct{}) (string, string, e
 				SetSelectable(true).
 				SetAlign(tview.AlignRight),
 			)
-
-			videoTable.Select(pos, 0)
-			videoTable.ScrollToEnd()
 		}
+
+		app.SetTableSelector(videoTable, rows)
 
 		c.queueWrite(func() {
 			videoMap.loaded = true
@@ -379,7 +373,6 @@ func (c *ChannelView) Playlists(id string, loadMore ...struct{}) (string, string
 	playlistContinuation.continuation = result.Continuation
 
 	app.UI.QueueUpdateDraw(func() {
-		pos := -1
 		_, _, pageWidth, _ := app.UI.Pages.GetRect()
 
 		playlistMap := c.getTableMap()["Playlists"]
@@ -392,10 +385,6 @@ func (c *ChannelView) Playlists(id string, loadMore ...struct{}) (string, string
 				return
 
 			default:
-			}
-
-			if pos < 0 {
-				pos = (rows + i)
 			}
 
 			sref := inv.SearchData{
@@ -424,10 +413,9 @@ func (c *ChannelView) Playlists(id string, loadMore ...struct{}) (string, string
 				SetSelectable(true).
 				SetAlign(tview.AlignRight),
 			)
-
-			playlistTable.Select(pos, 0)
-			playlistTable.ScrollToEnd()
 		}
+
+		app.SetTableSelector(playlistTable, rows)
 
 		c.queueWrite(func() {
 			playlistMap.loaded = true
@@ -472,7 +460,6 @@ func (c *ChannelView) Releases(id string, loadMore ...struct{}) (string, string,
 	releaseContinuation.continuation = result.Continuation
 
 	app.UI.QueueUpdateDraw(func() {
-		pos := -1
 		_, _, pageWidth, _ := app.UI.Pages.GetRect()
 
 		releaseMap := c.getTableMap()["Releases"]
@@ -484,10 +471,6 @@ func (c *ChannelView) Releases(id string, loadMore ...struct{}) (string, string,
 			case <-client.Ctx().Done():
 				return
 			default:
-			}
-
-			if pos < 0 {
-				pos = rows + i
 			}
 
 			sref := inv.SearchData{
@@ -507,10 +490,9 @@ func (c *ChannelView) Releases(id string, loadMore ...struct{}) (string, string,
 				SetReference(sref).
 				SetMaxWidth((pageWidth / 4)),
 			)
-
-			releaseTable.Select(pos, 0)
-			releaseTable.ScrollToEnd()
 		}
+
+		app.SetTableSelector(releaseTable, rows)
 
 		c.queueWrite(func() {
 			releaseMap.loaded = true
@@ -555,8 +537,6 @@ func (c *ChannelView) Search(text string) {
 	searchContinuation.page = page
 
 	app.UI.QueueUpdateDraw(func() {
-		pos := -1
-
 		searchMap := c.getTableMap()["Search"]
 
 		searchTable := searchMap.table
@@ -568,10 +548,6 @@ func (c *ChannelView) Search(text string) {
 		_, _, width, _ := searchTable.GetRect()
 
 		for i, result := range results {
-			if pos < 0 {
-				pos = rows + i
-			}
-
 			if result.Title == "" {
 				result.Title = result.Author
 				result.Author = ""
@@ -606,9 +582,7 @@ func (c *ChannelView) Search(text string) {
 			)
 		}
 
-		searchTable.Select(pos, 0)
-		searchTable.ScrollToEnd()
-
+		app.SetTableSelector(searchTable, rows)
 		searchTable.SetSelectable(true, false)
 
 		c.queueWrite(func() {
