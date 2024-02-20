@@ -668,9 +668,9 @@ func (q *Queue) SelectCurrentRow(row ...int) {
 func (q *Queue) GetRect() (int, int, int, int) {
 	var x, y, w, h int
 
-	app.UI.QueueUpdate(func() {
-		x, y, w, h = q.table.GetRect()
-	})
+	app.UI.RLock()
+	x, y, w, h = q.table.GetRect()
+	app.UI.RUnlock()
 
 	return x, y, w, h
 }

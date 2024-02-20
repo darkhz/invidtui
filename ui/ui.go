@@ -92,7 +92,7 @@ func Keybindings(event *tcell.EventKey) *tcell.EventKey {
 		view.Downloads.View()
 
 	case keybinding.KeyDownloadOptions:
-		go view.Downloads.ShowOptions()
+		view.Downloads.ShowOptions()
 
 	case keybinding.KeyInstancesList:
 		go popup.ShowInstancesList()
