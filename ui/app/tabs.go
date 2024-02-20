@@ -2,6 +2,7 @@ package app
 
 import (
 	"github.com/darkhz/invidtui/ui/theme"
+	"github.com/darkhz/tview"
 )
 
 // Tab describes the layout for a tab.
@@ -10,6 +11,8 @@ type Tab struct {
 	Info            []TabInfo
 
 	Context theme.ThemeContext
+
+	TabView *tview.TextView
 }
 
 // TabInfo stores the tab information.
@@ -70,24 +73,37 @@ func SwitchTab(reverse bool, tabs ...Tab) string {
 	var selected string
 	var regions []string
 
-	if tabs != nil && tabs[0].Info != nil {
-		selected = theme.FormatRegion(tabs[0].Selected, currentTab.Context, theme.ThemeTabs)
-		for _, region := range tabs[0].Info {
-			regions = append(
-				regions,
-				theme.FormatRegion(region.ID, currentTab.Context, theme.ThemeTabs),
-			)
+	textview := UI.Tabs
+
+	if tabs != nil {
+		if t := tabs[0].TabView; t != nil {
+			textview = t
 		}
 
-		goto Selected
+		context := tabs[0].Context
+		if context == "" {
+			context = currentTab.Context
+		}
+
+		if tabs[0].Info != nil {
+			selected = theme.FormatRegion(tabs[0].Selected, context, theme.ThemeTabs)
+			for _, region := range tabs[0].Info {
+				regions = append(
+					regions,
+					theme.FormatRegion(region.ID, context, theme.ThemeTabs),
+				)
+			}
+
+			goto Selected
+		}
 	}
 
-	regions = UI.Tabs.GetRegionIDs()
+	regions = textview.GetRegionIDs()
 	if len(regions) == 0 {
 		return selected
 	}
 
-	if highlights := UI.Tabs.GetHighlights(); highlights != nil {
+	if highlights := textview.GetHighlights(); highlights != nil {
 		selected = highlights[0]
 	} else {
 		return selected
@@ -112,8 +128,8 @@ Selected:
 		currentView = len(regions) - 1
 	}
 
-	UI.Tabs.Highlight(regions[currentView])
-	UI.Tabs.ScrollToHighlight()
+	textview.Highlight(regions[currentView])
+	textview.ScrollToHighlight()
 
 	region, _, _ := theme.GetThemeRegion(regions[currentView])
 	return region

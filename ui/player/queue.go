@@ -33,9 +33,11 @@ type Queue struct {
 
 	status chan struct{}
 
-	modal  *app.Modal
-	table  *tview.Table
-	marker *tview.TableCell
+	modal             *app.Modal
+	table, recommends *tview.Table
+	tabs              *tview.TextView
+	pages             *tview.Pages
+	marker            *tview.TableCell
 
 	lock *semaphore.Weighted
 
@@ -86,10 +88,16 @@ func (q *Queue) Setup() {
 	}
 
 	property := q.ThemeProperty()
+	defer q.tabsHandler()
 
 	q.store = deque.New[*QueueData](100)
 
 	q.status = make(chan struct{}, 100)
+
+	q.pages = theme.NewPages(property)
+
+	q.tabs = theme.NewTextView(property)
+	q.tabs.SetTextAlign(tview.AlignCenter)
 
 	q.table = theme.NewTable(property)
 	q.table.SetContent(q)
@@ -100,7 +108,20 @@ func (q *Queue) Setup() {
 		app.SetContextMenu(keybinding.KeyContextQueue, q.table)
 	})
 
-	q.modal = app.NewModal("queue", "Queue", q.table, 40, 0, property)
+	q.recommends = theme.NewTable(property)
+	q.recommends.SetSelectable(true, false)
+	q.recommends.SetInputCapture(q.Keybindings)
+	q.recommends.SetFocusFunc(func() {
+		app.SetContextMenu(keybinding.KeyContextQueue, q.recommends)
+	})
+
+	flex := theme.NewFlex(property).
+		SetDirection(tview.FlexRow).
+		AddItem(q.pages, 0, 1, true).
+		AddItem(app.HorizontalLine(property), 1, 0, false).
+		AddItem(q.tabs, 1, 0, false)
+
+	q.modal = app.NewModal("queue", "Queue", flex, 40, 0, property)
 
 	q.lock = semaphore.NewWeighted(1)
 
@@ -125,6 +146,13 @@ func (q *Queue) Hide() {
 // IsOpen returns whether the queue is open.
 func (q *Queue) IsOpen() bool {
 	return q.modal != nil && q.modal.Open
+}
+
+// IsQueueShown returns whether the queue page is shown.
+func (q *Queue) IsQueueShown() bool {
+	page, _ := q.pages.GetFrontPage()
+
+	return q.IsOpen() && page == "queue"
 }
 
 // Add adds an entry to the player queue.
@@ -240,6 +268,67 @@ func (q *Queue) Add(video inv.VideoData, audio bool, uri ...[2]string) {
 	}
 }
 
+// AddRecommendations adds the video-based recommendations to the queue modal.
+func (q *Queue) AddRecommendations(video inv.VideoData) {
+	q.recommends.Clear()
+	_, _, w, _ := q.GetRect()
+
+	for i, v := range video.RecommendedVideos {
+		length := "Live"
+		if !v.LiveNow {
+			length = utils.FormatDuration(v.LengthSeconds)
+		}
+
+		q.recommends.SetCell(i, 0, theme.NewTableCell(
+			theme.ThemeContextQueue,
+			theme.ThemeVideo,
+			tview.Escape(v.Title),
+		).
+			SetExpansion(1).
+			SetMaxWidth(w/7).
+			SetSelectable(true).
+			SetReference(AttachableReference(v)),
+		)
+		q.recommends.SetCell(i, 1, theme.NewTableCell(
+			theme.ThemeContextQueue,
+			theme.ThemePopupBackground,
+			" ",
+		).
+			SetMaxWidth(1).
+			SetSelectable(true),
+		)
+		q.recommends.SetCell(i, 2, theme.NewTableCell(
+			theme.ThemeContextQueue,
+			theme.ThemeAuthor,
+			tview.Escape(v.Author),
+		).
+			SetExpansion(1).
+			SetMaxWidth(w/7).
+			SetSelectable(true).
+			SetAlign(tview.AlignRight),
+		)
+		q.recommends.SetCell(i, 3, theme.NewTableCell(
+			theme.ThemeContextQueue,
+			theme.ThemePopupBackground,
+			" ",
+		).
+			SetMaxWidth(1).
+			SetSelectable(true),
+		)
+		q.recommends.SetCell(i, 4, theme.NewTableCell(
+			theme.ThemeContextQueue,
+			theme.ThemeTotalDuration,
+			length,
+		).
+			SetMaxWidth(10).
+			SetSelectable(true),
+		)
+	}
+
+	q.recommends.Select(0, 0)
+	q.recommends.ScrollToBeginning()
+}
+
 // AutoPlay automatically selects what to play after
 // the current entry has finished playing.
 func (q *Queue) AutoPlay(force bool) {
@@ -294,6 +383,7 @@ func (q *Queue) Play(norender ...struct{}) {
 		}
 
 		q.SetReference(q.Position(), video, struct{}{})
+		q.AddRecommendations(video)
 		q.MarkPlayingEntry(EntryLoading)
 
 		if err := mp.Player().LoadFile(
@@ -932,6 +1022,9 @@ func (q *Queue) Keybindings(event *tcell.EventKey) *tcell.EventKey {
 
 	case keybinding.KeyComments:
 		view.Comments.Show()
+
+	case keybinding.KeySwitchTab:
+		q.tabsHandler()
 	}
 
 	for _, o := range []keybinding.Key{
@@ -1055,6 +1148,61 @@ func (q *Queue) selectorHandler(row, col int) {
 		}
 
 		cell.SetText(" ")
+	}
+}
+
+// tabsHandler handles tab switching within the queue.
+func (q *Queue) tabsHandler() {
+	tab := app.Tab{
+		Title: "Queue",
+		Info: []app.TabInfo{
+			{ID: "queue", Title: "Queue"},
+			{ID: "recommends", Title: "Recommendations"},
+		},
+
+		Context: theme.ThemeContextQueue,
+
+		TabView: q.tabs,
+	}
+
+	if q.tabs.GetText(false) == "" {
+		builder := theme.NewTextBuilder(theme.ThemeContextQueue)
+		items := map[string]tview.Primitive{
+			"queue":      q.table,
+			"recommends": q.recommends,
+		}
+
+		for i, info := range tab.Info {
+			q.pages.AddPage(info.ID, items[info.ID], true, info.ID == "queue")
+
+			builder.Format(theme.ThemeTabs, info.ID, " %s ", info.Title)
+			if i < len(tab.Info) {
+				builder.AppendText(" ")
+			}
+		}
+
+		q.tabs.SetText(builder.Get())
+		q.pages.SwitchToPage("recommends")
+	}
+
+	page, _ := q.pages.GetFrontPage()
+	tab.Selected = page
+
+	id := app.SwitchTab(false, tab)
+	q.pages.SwitchToPage(id)
+	for _, info := range tab.Info {
+		if id != info.ID {
+			continue
+		}
+
+		q.modal.Title.SetText(
+			theme.SetTextStyle(
+				"title", info.Title,
+				theme.ThemeContextQueue, theme.ThemeTitle,
+			),
+		)
+
+		break
 	}
 }
 

@@ -350,6 +350,7 @@ var ThemeScopes = map[ThemeContext]map[ThemeItem]struct{}{
 		ThemeTagLoading:         struct{}{},
 		ThemeTagPlaying:         struct{}{},
 		ThemeTagStopped:         struct{}{},
+		ThemeTabs:               struct{}{},
 		ThemeTitle:              struct{}{},
 		ThemeTotalDuration:      struct{}{},
 		ThemeVideo:              struct{}{},

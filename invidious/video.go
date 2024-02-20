@@ -17,21 +17,22 @@ import (
 
 // VideoData stores information about a video.
 type VideoData struct {
-	Title           string            `json:"title"`
-	Author          string            `json:"author"`
-	AuthorID        string            `json:"authorId"`
-	VideoID         string            `json:"videoId"`
-	HlsURL          string            `json:"hlsUrl"`
-	LengthSeconds   int64             `json:"lengthSeconds"`
-	LiveNow         bool              `json:"liveNow"`
-	ViewCount       int               `json:"viewCount"`
-	LikeCount       int               `json:"likeCount"`
-	PublishedText   string            `json:"publishedText"`
-	SubCountText    string            `json:"subCountText"`
-	Description     string            `json:"description"`
-	Thumbnails      []VideoThumbnails `json:"videoThumbnails"`
-	FormatStreams   []VideoFormat     `json:"formatStreams"`
-	AdaptiveFormats []VideoFormat     `json:"adaptiveFormats"`
+	Title             string            `json:"title"`
+	Author            string            `json:"author"`
+	AuthorID          string            `json:"authorId"`
+	VideoID           string            `json:"videoId"`
+	HlsURL            string            `json:"hlsUrl"`
+	LengthSeconds     int64             `json:"lengthSeconds"`
+	LiveNow           bool              `json:"liveNow"`
+	ViewCount         int               `json:"viewCount"`
+	LikeCount         int               `json:"likeCount"`
+	PublishedText     string            `json:"publishedText"`
+	SubCountText      string            `json:"subCountText"`
+	Description       string            `json:"description"`
+	Thumbnails        []VideoThumbnails `json:"videoThumbnails"`
+	FormatStreams     []VideoFormat     `json:"formatStreams"`
+	AdaptiveFormats   []VideoFormat     `json:"adaptiveFormats"`
+	RecommendedVideos []VideoData       `json:"recommendedVideos"`
 
 	MediaType string
 }

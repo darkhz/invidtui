@@ -309,6 +309,23 @@ func IsQueueEmpty() bool {
 	return player.queue.table == nil || player.queue.Count() == 0
 }
 
+// IsQueueAreaFocused returns whether the queue area is focused.
+func IsQueueAreaFocused() bool {
+	pages := player.queue.pages
+	if pages == nil {
+		return false
+	}
+
+	_, item := pages.GetFrontPage()
+
+	return item.HasFocus()
+}
+
+// IsQueueRecommendsFocused returns whether the queue recommendations page is focused.
+func IsQueueRecommendsFocused() bool {
+	return player.queue.recommends != nil && player.queue.recommends.HasFocus()
+}
+
 // IsHistoryInputFocused returns whether the history search bar is focused.
 func IsHistoryInputFocused() bool {
 	return player.history.input != nil && player.history.input.HasFocus()
@@ -413,7 +430,7 @@ func playerKeybindings(event *tcell.EventKey) {
 // playSelected determines the media type according
 // to the key pressed, and plays the currently selected entry.
 func playSelected(key keybinding.Key) {
-	if player.queue.IsOpen() {
+	if player.queue.IsQueueShown() {
 		player.queue.Keybindings(keybinding.KeyEvent(key))
 		return
 	}

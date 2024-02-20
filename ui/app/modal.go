@@ -16,6 +16,7 @@ type Modal struct {
 
 	Flex  *tview.Flex
 	Table *tview.Table
+	Title *tview.TextView
 
 	y *tview.Flex
 	x *tview.Flex
@@ -60,6 +61,7 @@ func NewModal(name, title string, item tview.Primitive, height, width int, prope
 		Name:  name,
 		Flex:  flex,
 		Table: table,
+		Title: modalTitle,
 
 		Height: height,
 		Width:  width,
