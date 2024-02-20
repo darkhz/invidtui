@@ -5,8 +5,6 @@ import (
 	"github.com/darkhz/invidtui/resolver"
 )
 
-const channelFields = "?fields=title,authorId,author,description,viewCount,error&hl=en"
-
 // ChannelData stores channel related data.
 type ChannelData struct {
 	Title        string          `json:"title"`
@@ -20,7 +18,7 @@ type ChannelData struct {
 }
 
 // Channel retrieves information about a channel.
-func Channel(id, stype, params string, channel ...ChannelData) (ChannelData, error) {
+func Channel(id, stype, continuation string, channel ...ChannelData) (ChannelData, error) {
 	var err error
 	var query string
 	var data ChannelData
@@ -32,7 +30,7 @@ func Channel(id, stype, params string, channel ...ChannelData) (ChannelData, err
 		goto GetData
 	}
 
-	query = "channels/" + id + channelFields
+	query = "channels/" + id
 
 	// Get the channel data first.
 	data, err = decodeChannelData(query)
@@ -42,7 +40,10 @@ func Channel(id, stype, params string, channel ...ChannelData) (ChannelData, err
 
 GetData:
 	// Then get the data associated with the provided channel type (stype).
-	query = "channels/" + id + "/" + stype + params
+	query = "channels/" + id + "/" + stype
+	if continuation != "" {
+		query += "?continuation=" + continuation
+	}
 
 	d, err := decodeChannelData(query)
 	if err != nil {
@@ -58,32 +59,17 @@ GetData:
 
 // ChannelVideos retrieves video information from a channel.
 func ChannelVideos(id, continuation string) (ChannelData, error) {
-	params := "?fields=videos,continuation,error"
-	if continuation != "" {
-		params += "&continuation=" + continuation
-	}
-
-	return Channel(id, "videos", params)
+	return Channel(id, "videos", continuation)
 }
 
 // ChannelPlaylists loads only the playlists present in the channel.
 func ChannelPlaylists(id, continuation string) (ChannelData, error) {
-	params := "?fields=playlists,continuation,error"
-	if continuation != "" {
-		params += "&continuation=" + continuation
-	}
-
-	return Channel(id, "playlists", params)
+	return Channel(id, "playlists", continuation)
 }
 
 // ChannelReleases loads only the releases present in the channel.
 func ChannelReleases(id, continuation string) (ChannelData, error) {
-	params := "?fields=playlists,continuation,error"
-	if continuation != "" {
-		params += "&continuation=" + continuation
-	}
-
-	return Channel(id, "releases", params)
+	return Channel(id, "releases", continuation)
 }
 
 // ChannelSearch searches for a query string in the channel.

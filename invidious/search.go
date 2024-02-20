@@ -8,8 +8,6 @@ import (
 	"github.com/darkhz/invidtui/resolver"
 )
 
-const searchField = "&fields=type,title,videoId,playlistId,author,authorId,publishedText,description,videoCount,subCount,lengthSeconds,videos,liveNow,error&hl=en"
-
 // SearchData stores information about a search result.
 type SearchData struct {
 	Type          string `json:"type"`
@@ -43,7 +41,7 @@ func Search(stype, text string, parameters map[string]string, page int, ucid ...
 	client.Cancel()
 
 	for newpg = page + 1; newpg <= page+2; newpg++ {
-		query := "?q=" + url.QueryEscape(text) + searchField +
+		query := "?q=" + url.QueryEscape(text) +
 			"&page=" + strconv.Itoa(newpg)
 
 		if stype == "channel" && ucid != nil {

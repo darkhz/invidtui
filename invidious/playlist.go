@@ -15,12 +15,7 @@ import (
 	"github.com/etherlabsio/go-m3u8/m3u8"
 )
 
-const (
-	PlaylistEntryPrefix = "invidtui.video."
-
-	playlistFields      = "?fields=title,playlistId,author,description,videoCount,viewCount,videos,error&hl=en"
-	playlistVideoFields = "?fields=videoCount,videos,error"
-)
+const PlaylistEntryPrefix = "invidtui.video."
 
 // PlaylistData stores information about a playlist.
 type PlaylistData struct {
@@ -51,7 +46,7 @@ func Playlist(id string, auth bool, page int, ctx ...context.Context) (PlaylistD
 		ctx = append(ctx, client.Ctx())
 	}
 
-	return getPlaylist(ctx[0], id, playlistFields, page, auth)
+	return getPlaylist(ctx[0], id, page, auth)
 }
 
 // PlaylistVideos retrieves a playlist's videos only.
@@ -72,7 +67,7 @@ func PlaylistVideos(ctx context.Context, id string, auth bool, add func(stats [3
 		default:
 		}
 
-		playlist, err := getPlaylist(ctx, id, playlistVideoFields, page, auth)
+		playlist, err := getPlaylist(ctx, id, page, auth)
 		if err != nil {
 			return nil, err
 		}
@@ -341,10 +336,10 @@ func GeneratePlaylist(file string, list []VideoData, flags int, appendToFile boo
 }
 
 // getPlaylist queries for and returns a playlist according to the provided parameters.
-func getPlaylist(ctx context.Context, id, param string, page int, auth bool) (PlaylistData, error) {
+func getPlaylist(ctx context.Context, id string, page int, auth bool) (PlaylistData, error) {
 	var data PlaylistData
 
-	query := "playlists/" + id + param + "&page=" + strconv.Itoa(page)
+	query := "playlists/" + id + "?page=" + strconv.Itoa(page)
 	if auth {
 		query = "auth/" + query
 	}

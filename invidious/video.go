@@ -15,12 +15,6 @@ import (
 	"github.com/etherlabsio/go-m3u8/m3u8"
 )
 
-const (
-	videoFields       = "?fields=title,videoId,author,authorId,hlsUrl,publishedText,lengthSeconds,formatStreams,adaptiveFormats,videoThumbnails,liveNow,viewCount,likeCount,subCountText,description,error&hl=en"
-	videoFormatFields = "?fields=formatStreams,adaptiveFormats,error"
-	videoHlsFields    = "?fields=hlsUrl,error"
-)
-
 // VideoData stores information about a video.
 type VideoData struct {
 	Title           string            `json:"title"`
@@ -71,7 +65,7 @@ func Video(id string, ctx ...context.Context) (VideoData, error) {
 		ctx = append(ctx, client.Ctx())
 	}
 
-	return getVideo(ctx[0], id, videoFields)
+	return getVideo(ctx[0], id)
 }
 
 // VideoThumbnail returns data to parse a video thumbnail.
@@ -128,11 +122,11 @@ func CheckLiveURL(uri string, audio bool) (string, bool) {
 	return id, renew
 }
 
-// getVideo queries for and returns a video according to the provided parameters.
-func getVideo(ctx context.Context, id, param string) (VideoData, error) {
+// getVideo queries for and returns a video according to the provided video ID.
+func getVideo(ctx context.Context, id string) (VideoData, error) {
 	var data VideoData
 
-	res, err := client.Fetch(ctx, "videos/"+id+param)
+	res, err := client.Fetch(ctx, "videos/"+id)
 	if err != nil {
 		return VideoData{}, err
 	}
@@ -152,7 +146,7 @@ func getVideoURI(ctx context.Context, video VideoData, audio bool) (VideoData, [
 	var audioURL, videoURL string
 
 	if video.FormatStreams == nil || video.AdaptiveFormats == nil {
-		v, err := getVideo(ctx, video.VideoID, videoFormatFields)
+		v, err := getVideo(ctx, video.VideoID)
 		if err != nil {
 			return VideoData{}, uris, err
 		}
@@ -187,7 +181,7 @@ func getVideoURI(ctx context.Context, video VideoData, audio bool) (VideoData, [
 func getLiveVideo(ctx context.Context, id string, audio bool) (string, string) {
 	var videoURL, audioURL string
 
-	video, err := getVideo(ctx, id, videoHlsFields)
+	video, err := getVideo(ctx, id)
 	if err != nil || video.HlsURL == "" {
 		return "", ""
 	}
