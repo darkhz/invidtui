@@ -256,12 +256,13 @@ func checkSocket() error {
 			printer.Error(fmt.Sprintf("Socket exists at %s, is another instance running?", socket))
 		}
 	}
-
-	fd, err := os.OpenFile(socket, os.O_CREATE, os.ModeSocket|os.ModePerm)
 	if err != nil && !errors.Is(err, fs.ErrExist) {
-		printer.Error(fmt.Sprintf("Cannot create socket file at %s", socket))
+		fd, err := os.OpenFile(socket, os.O_CREATE, os.ModeSocket|os.ModePerm)
+		if err != nil {
+			printer.Error(fmt.Sprintf("Cannot create socket file at %s", socket))
+		}
+		fd.Close()
 	}
-	fd.Close()
 
 	config.mutex.Lock()
 	config.socket = cfpath
