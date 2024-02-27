@@ -512,7 +512,9 @@ func renderPlayer() {
 
 	app.UI.Lock()
 	_, _, width, _ = player.desc.GetRect()
-	marker = player.queue.marker.Text
+	if m := player.queue.marker; m != nil {
+		marker = m.Text
+	}
 	app.UI.Unlock()
 
 	title, desc, states := updateProgressAndInfo(
@@ -650,11 +652,13 @@ func renderInfo(video inv.VideoData, force ...struct{}) {
 
 	builder := theme.NewTextBuilder(theme.ThemeContextPlayerInfo)
 
-	app.UI.QueueUpdateDraw(func() {
+	app.ConditionalDraw(func() bool {
 		builder.Append(theme.ThemeDescription, "info", "Loading information...")
 		player.info.SetText(builder.Get())
 
 		player.image.SetImage(nil)
+
+		return IsInfoShown()
 	})
 
 	if video.Thumbnails == nil {
@@ -662,9 +666,11 @@ func renderInfo(video inv.VideoData, force ...struct{}) {
 			v, err := inv.Video(v.VideoID, ctx)
 			if err != nil {
 				if ctx.Err() != context.Canceled {
-					app.UI.QueueUpdateDraw(func() {
+					app.ConditionalDraw(func() bool {
 						b.Format(theme.ThemeDescription, "info", "No information for\n%s", v.Title)
 						player.info.SetText(b.Get())
+
+						return IsInfoShown()
 					})
 				}
 
@@ -678,7 +684,7 @@ func renderInfo(video inv.VideoData, force ...struct{}) {
 		return
 	}
 
-	app.UI.QueueUpdateDraw(func() {
+	app.ConditionalDraw(func() bool {
 		infoID(video.VideoID)
 		if player.region.GetItemCount() > 2 {
 			player.region.RemoveItemIndex(1)
@@ -705,6 +711,8 @@ func renderInfo(video inv.VideoData, force ...struct{}) {
 		player.info.ScrollToBeginning()
 
 		changeImageQuality(struct{}{})
+
+		return IsInfoShown()
 	})
 
 	go renderInfoImage(infoContext(true), video.VideoID, filepath.Base(player.thumbURI))
@@ -735,8 +743,10 @@ func renderInfoImage(ctx context.Context, id, image string, change ...struct{}) 
 		return
 	}
 
-	app.UI.QueueUpdateDraw(func() {
+	app.ConditionalDraw(func() bool {
 		player.image.SetImage(thumbnail)
+
+		return IsInfoShown()
 	})
 
 	app.ShowInfo("Player: Image loaded", false, change != nil)

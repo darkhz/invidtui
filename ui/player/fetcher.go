@@ -300,11 +300,13 @@ func (f *Fetcher) MarkStatus(data *FetcherData, status FetcherStatus, err error,
 		builder.Format(theme.ThemeProgressText, "extra", ` %s`, text[0])
 	}
 
-	go app.UI.QueueUpdateDraw(func() {
+	go app.ConditionalDraw(func() bool {
 		cell.SetText(builder.Get())
 
 		pos, _ := f.table.GetSelection()
 		f.table.Select(pos, 0)
+
+		return f.IsOpen()
 	})
 }
 

@@ -137,7 +137,7 @@ func (f *FileBrowser) Query(
 		acceptFunc = tview.InputFieldMaxLength(max[0])
 	}
 
-	UI.QueueUpdateDraw(func() {
+	ConditionalDraw(func() bool {
 		f.input.SetText("")
 		f.input.SetLabel(prompt + " ")
 		f.input.SetAcceptanceFunc(acceptFunc)
@@ -156,16 +156,20 @@ func (f *FileBrowser) Query(
 
 			return event
 		})
+
+		return f.IsOpen()
 	})
 
 	response := <-reply
 
-	UI.QueueUpdateDraw(func() {
+	ConditionalDraw(func() bool {
 		row, _ := f.table.GetSelection()
 		f.table.Select(row, 0)
 
 		f.input.SetLabel(f.prompt)
 		f.input.SetInputCapture(f.inputFunc)
+
+		return f.IsOpen()
 	})
 
 	return response
@@ -235,6 +239,11 @@ func (f *FileBrowser) Keybindings(event *tcell.EventKey) *tcell.EventKey {
 	}
 
 	return event
+}
+
+// IsOpen returns whether the filebrowser is open.
+func (f *FileBrowser) IsOpen() bool {
+	return f.modal != nil && f.modal.Open
 }
 
 // inputFunc defines the keybindings for the file browser's inputbox.
@@ -390,7 +399,7 @@ func (f *FileBrowser) list(testPath string) ([]fs.DirEntry, bool) {
 // render displays the contents of the directory on
 // the filebrowser popup.
 func (f *FileBrowser) render(dlist []fs.DirEntry, cdBack bool) {
-	UI.QueueUpdateDraw(func() {
+	ConditionalDraw(func() bool {
 		var pos int
 
 		f.table.Clear()
@@ -434,6 +443,8 @@ func (f *FileBrowser) render(dlist []fs.DirEntry, cdBack bool) {
 		)
 
 		ResizeModal()
+
+		return f.IsOpen()
 	})
 }
 

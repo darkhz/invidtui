@@ -126,6 +126,10 @@ func (d *DownloadsView) IsInitialized() bool {
 	return d.init
 }
 
+func (d *DownloadsView) IsPageOpen() bool {
+	return d.IsInitialized() && GetCurrentView() == &Downloads
+}
+
 // View shows the download view.
 func (d *DownloadsView) View() {
 	if d.view == nil {
@@ -232,8 +236,10 @@ func (d *DownloadsView) TransferVideo(id, itag, filename string) {
 	defer file.Close()
 
 	progress.renderBar(filename, res.ContentLength, cancel, true)
-	defer app.UI.QueueUpdateDraw(func() {
+	defer app.ConditionalDraw(func() bool {
 		progress.remove()
+
+		return d.IsPageOpen()
 	})
 
 	_, err = io.Copy(io.MultiWriter(file, progress.bar), res.Body)
@@ -256,8 +262,10 @@ func (d *DownloadsView) TransferPlaylist(id, file string, flags int, auth, appen
 	defer cancel()
 
 	progress.renderBar(filename, 0, cancel, false)
-	defer app.UI.QueueUpdateDraw(func() {
+	defer app.ConditionalDraw(func() bool {
 		progress.remove()
+
+		return d.IsPageOpen()
 	})
 
 	videos, err := inv.PlaylistVideos(ctx, id, auth, func(stats [3]int64) {
@@ -467,12 +475,14 @@ func (p *DownloadProgress) renderBar(filename string, clen int64, cancel func(),
 
 	p.builder = theme.NewTextBuilder(theme.ThemeContextDownloads)
 
-	app.UI.QueueUpdateDraw(func() {
+	app.ConditionalDraw(func() bool {
 		rows := Downloads.view.GetRowCount()
 
 		Downloads.view.SetCell(rows+1, 0, p.desc.SetReference(p))
 		Downloads.view.SetCell(rows+1, 1, p.progress)
 		Downloads.view.Select(rows+1, 0)
+
+		return Downloads.IsPageOpen()
 	})
 }
 

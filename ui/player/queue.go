@@ -262,8 +262,10 @@ func (q *Queue) Add(video inv.VideoData, audio bool, uri ...[2]string) {
 	if count == 0 {
 		q.SwitchToPosition(count)
 
-		app.UI.QueueUpdateDraw(func() {
+		app.ConditionalDraw(func() bool {
 			q.SelectCurrentRow()
+
+			return q.IsOpen()
 		})
 	}
 }
@@ -694,19 +696,19 @@ func (q *Queue) MarkPlayingEntry(status QueueEntryStatus) {
 		EntryStopped:  theme.ThemeTagStopped,
 	}
 
-	app.UI.Lock()
-	if q.marker != nil {
-		q.marker.SetText("")
-	}
+	app.ConditionalDraw(func() bool {
+		if q.marker != nil {
+			q.marker.SetText("")
+		}
 
-	builder := theme.NewTextBuilder(theme.ThemeContextQueue)
-	builder.Format(tagMap[status], "tag", " %s ", status)
+		builder := theme.NewTextBuilder(theme.ThemeContextQueue)
+		builder.Format(tagMap[status], "tag", " %s ", status)
 
-	q.marker = cell
-	q.marker.SetText(builder.Get())
-	app.UI.Unlock()
+		q.marker = cell
+		q.marker.SetText(builder.Get())
 
-	go app.UI.Draw()
+		return q.IsOpen()
+	})
 }
 
 // MarkEntryMediaType marks the selected queue entry as 'Audio/Video'.

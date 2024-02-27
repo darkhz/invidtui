@@ -70,6 +70,11 @@ func (c *CommentsView) Show() {
 	go c.Load(info.VideoID, info.Title)
 }
 
+// IsOpen returns if the comments view is open.
+func (c *CommentsView) IsOpen() bool {
+	return c.modal != nil && c.modal.Open
+}
+
 // Load loads the comments from the given video.
 func (c *CommentsView) Load(id, title string) {
 	if !c.lock.TryAcquire(1) {
@@ -120,21 +125,25 @@ func (c *CommentsView) Subcomments(selected, removed *tview.TreeNode, continuati
 
 	item := theme.ThemeText
 
-	app.UI.QueueUpdateDraw(func() {
+	app.ConditionalDraw(func() bool {
 		c.setNodeText(showNode, item, "-- Loading comments --")
+
+		return c.IsOpen()
 	})
 
 	subcomments, err := inv.Comments(c.currentID, continuation)
 	if err != nil {
 		app.ShowError(err)
-		app.UI.QueueUpdateDraw(func() {
+		app.ConditionalDraw(func() bool {
 			c.setNodeText(selected, item, "-- Reload --")
+
+			return c.IsOpen()
 		})
 
 		return
 	}
 
-	app.UI.QueueUpdateDraw(func() {
+	app.ConditionalDraw(func() bool {
 		for i, comment := range subcomments.Comments {
 			current := c.addComment(selected, comment)
 			if i == 0 {
@@ -149,6 +158,8 @@ func (c *CommentsView) Subcomments(selected, removed *tview.TreeNode, continuati
 		}
 
 		c.addContinuation(selected, subcomments.Continuation)
+
+		return c.IsOpen()
 	})
 }
 

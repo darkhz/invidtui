@@ -138,7 +138,7 @@ func SetGlobalKeybindings(kb func(event *tcell.EventKey) *tcell.EventKey) {
 
 // DrawPrimitives draws the primitives onto the screen.
 func DrawPrimitives(primitives ...tview.Primitive) {
-	go UI.QueueUpdate(func() {
+	UI.QueueUpdate(func() {
 		UI.Lock()
 		defer UI.Unlock()
 
@@ -147,6 +147,15 @@ func DrawPrimitives(primitives ...tview.Primitive) {
 		}
 
 		UI.Screen.Show()
+	})
+}
+
+// ConditionalDraw redraws the screen according to the conditional mustDraw parameter.
+func ConditionalDraw(mustDraw func() bool) {
+	UI.QueueUpdate(func() {
+		if mustDraw() {
+			go UI.Draw()
+		}
 	})
 }
 
