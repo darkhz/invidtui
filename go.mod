@@ -8,7 +8,7 @@ require (
 	github.com/davidmytton/url-verifier v1.0.1
 	github.com/etherlabsio/go-m3u8 v1.0.0
 	github.com/gammazero/deque v0.2.1
-	github.com/gdamore/tcell/v2 v2.6.0
+	github.com/gdamore/tcell/v2 v2.7.4
 	github.com/hjson/hjson-go/v4 v4.4.0
 	github.com/knadh/koanf/parsers/hjson v0.1.0
 	github.com/knadh/koanf/providers/file v0.1.0
@@ -16,7 +16,7 @@ require (
 	github.com/knadh/koanf/providers/rawbytes v0.1.0
 	github.com/knadh/koanf/v2 v2.1.0
 	github.com/mitchellh/go-homedir v1.1.0
-	github.com/schollz/progressbar/v3 v3.14.1
+	github.com/schollz/progressbar/v3 v3.14.2
 	github.com/spf13/pflag v1.0.5
 	github.com/theckman/yacspin v0.13.12
 	github.com/ugorji/go/codec v1.2.12
@@ -39,7 +39,7 @@ require (
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
-	golang.org/x/sys v0.17.0 // indirect
-	golang.org/x/term v0.17.0 // indirect
+	golang.org/x/sys v0.18.0 // indirect
+	golang.org/x/term v0.18.0 // indirect
 	gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce // indirect
 )
