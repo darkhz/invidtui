@@ -807,6 +807,10 @@ func mediaEventHandler(event mp.MediaEvent) {
 	switch event {
 	case mp.EventInProgress:
 		player.queue.MarkPlayingEntry(EntryPlaying)
+		player.queue.SetAndClearTimestamp(player.queue.Position())
+
+	case mp.EventLoading:
+		player.queue.MarkPlayingEntry(EntryLoading)
 
 	case mp.EventEnd:
 		player.queue.MarkPlayingEntry(EntryStopped)

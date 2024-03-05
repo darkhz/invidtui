@@ -383,14 +383,25 @@ func (m *MPV) eventListener() {
 	defer func() { stopListening <- struct{}{} }()
 
 	m.Call("observe_property", 1, "eof-reached")
+	m.Call("observe_property", 2, "paused-for-cache")
+	m.Call("observe_property", 3, "seeking")
 
 	for event := range events {
 		mediaEvent := EventNone
 
-		if event.ID == 1 {
+		switch event.ID {
+		case 1:
 			if eof, ok := event.Data.(bool); ok {
 				mediaEvent = EventEnd
 				if !eof {
+					mediaEvent = EventInProgress
+				}
+			}
+
+		case 2, 3:
+			if loading, ok := event.Data.(bool); ok {
+				mediaEvent = EventLoading
+				if !loading {
 					mediaEvent = EventInProgress
 				}
 			}

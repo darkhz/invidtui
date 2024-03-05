@@ -62,6 +62,7 @@ type QueueData struct {
 	Reference                 inv.VideoData
 	Columns                   [QueueColumnSize]*tview.TableCell
 	Audio, Playing, HasPlayed bool
+	Timestamp                 int64
 }
 
 // QueueEntryStatus describes the status of a queue entry.
@@ -257,6 +258,7 @@ func (q *Queue) Add(video inv.VideoData, audio bool, uri ...[2]string) {
 		Audio:     audio,
 		Reference: video,
 		URI:       uris,
+		Timestamp: -1,
 	})
 
 	if count == 0 {
@@ -403,6 +405,19 @@ func (q *Queue) Play(norender ...struct{}) {
 			renderInfo(data.Reference, struct{}{})
 		}
 	}()
+}
+
+func (q *Queue) SetAndClearTimestamp(position int) {
+	q.storeMutex.Lock()
+	defer q.storeMutex.Unlock()
+
+	data, ok := q.GetEntryPointer(position)
+	if !ok || data.Timestamp < 0 {
+		return
+	}
+
+	mp.Player().SetPosition(data.Timestamp)
+	data.Timestamp = -1
 }
 
 // Delete removes a entry from the specified position within the queue.
@@ -738,6 +753,7 @@ func (q *Queue) MarkEntryMediaType(key keybinding.Key) {
 	}
 
 	data.Audio = audio
+	data.Timestamp = mp.Player().Position()
 	data.Columns[QueueMediaMarker].SetText(
 		theme.SetTextStyle(
 			"mediatype", media, theme.ThemeContextQueue, theme.ThemeMediaType),

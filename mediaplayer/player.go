@@ -64,6 +64,7 @@ const (
 	EventNone MediaEvent = iota
 	EventEnd
 	EventStart
+	EventLoading
 	EventInProgress
 	EventError
 )
