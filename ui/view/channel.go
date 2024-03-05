@@ -616,6 +616,12 @@ func (c *ChannelView) Keybindings(event *tcell.EventKey) *tcell.EventKey {
 		go c.Load(c.currentType, struct{}{})
 
 	case keybinding.KeyClose:
+		if c.lock.TryAcquire(1) {
+			c.lock.Release(1)
+		} else {
+			client.Cancel()
+		}
+
 		CloseView()
 
 	case keybinding.KeyQuery:
