@@ -354,7 +354,7 @@ func (d *DashboardView) PlaylistForm(edit bool) {
 // Keybindings defines the keybindings for the dashboard view.
 func (d *DashboardView) Keybindings(event *tcell.EventKey) *tcell.EventKey {
 	switch keybinding.KeyOperation(event, keybinding.KeyContextDashboard) {
-	case keybinding.KeySwitchTab:
+	case keybinding.KeySwitch:
 		d.CurrentPage(app.SwitchTab(false))
 
 		client.Cancel()

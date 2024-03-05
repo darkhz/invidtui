@@ -66,7 +66,7 @@ var Items = &app.MenuData{
 			keybinding.KeyDownloadOptions,
 		},
 		keybinding.KeyContextChannel: {
-			keybinding.KeySwitchTab,
+			keybinding.KeySwitch,
 			keybinding.KeyLoadMore,
 			keybinding.KeyQuery,
 			keybinding.KeyPlaylist,
@@ -77,7 +77,7 @@ var Items = &app.MenuData{
 			keybinding.KeyClose,
 		},
 		keybinding.KeyContextDashboard: {
-			keybinding.KeySwitchTab,
+			keybinding.KeySwitch,
 			keybinding.KeyDashboardReload,
 			keybinding.KeyLoadMore,
 			keybinding.KeyAdd,
@@ -104,6 +104,7 @@ var Items = &app.MenuData{
 			keybinding.KeyPlayerPlayVideo,
 			keybinding.KeyAudioURL,
 			keybinding.KeyVideoURL,
+			keybinding.KeyPlayerSeekCustom,
 		},
 		keybinding.KeyContextQueue: {
 			keybinding.KeyQueuePlayMove,
@@ -117,7 +118,7 @@ var Items = &app.MenuData{
 			keybinding.KeyQueueMove,
 			keybinding.KeyQueueCancel,
 			keybinding.KeyComments,
-			keybinding.KeySwitchTab,
+			keybinding.KeySwitch,
 			keybinding.KeyClose,
 		},
 		keybinding.KeyContextFetcher: {
@@ -133,6 +134,11 @@ var Items = &app.MenuData{
 			keybinding.KeyChannelPlaylists,
 			keybinding.KeyChannelReleases,
 			keybinding.KeyComments,
+			keybinding.KeyClose,
+		},
+		keybinding.KeyContextSeek: {
+			keybinding.KeySelect,
+			keybinding.KeySwitch,
 			keybinding.KeyClose,
 		},
 	},
@@ -170,5 +176,6 @@ var Items = &app.MenuData{
 		keybinding.KeyPlayerQueueVideo:        queueMedia,
 		keybinding.KeyPlayerPlayAudio:         queuePlayMedia,
 		keybinding.KeyPlayerPlayVideo:         queuePlayMedia,
+		keybinding.KeyPlayerSeekCustom:        isPlaying,
 	},
 }

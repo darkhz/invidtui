@@ -15,6 +15,8 @@ type MediaPlayer interface {
 	Stop()
 	SeekForward()
 	SeekBackward()
+	SeekToPosition(seekpos string)
+	SetPosition(position int64)
 	Position() int64
 	Duration() int64
 

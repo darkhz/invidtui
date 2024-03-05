@@ -111,6 +111,16 @@ func (m *MPV) SeekBackward() {
 	m.Call("seek", -1)
 }
 
+// SeekToPosition seeks the track to the given position.
+func (m *MPV) SeekToPosition(seekpos string) {
+	m.Call("seek", seekpos)
+}
+
+// SetPosition sets the absolute position for the track.
+func (m *MPV) SetPosition(position int64) {
+	m.Call("seek", position, "absolute")
+}
+
 // Position returns the seek position.
 func (m *MPV) Position() int64 {
 	var position float64

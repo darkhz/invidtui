@@ -1041,7 +1041,7 @@ func (q *Queue) Keybindings(event *tcell.EventKey) *tcell.EventKey {
 	case keybinding.KeyComments:
 		view.Comments.Show()
 
-	case keybinding.KeySwitchTab:
+	case keybinding.KeySwitch:
 		q.tabsHandler()
 	}
 

@@ -26,6 +26,7 @@ import (
 type Player struct {
 	queue   Queue
 	fetcher Fetcher
+	seeker  CustomSeeker
 
 	infoID, thumbURI string
 	init             bool
@@ -113,6 +114,7 @@ func Start() {
 	setup()
 	player.queue.Setup()
 	player.fetcher.Setup()
+	player.seeker.Setup()
 
 	loadState()
 	loadHistory()
@@ -202,6 +204,7 @@ func Hide() {
 	sendPlayingStatus(false)
 
 	app.UI.QueueUpdateDraw(func() {
+		player.seeker.Hide()
 		ToggleInfo(struct{}{})
 		app.ResizeModal()
 		app.UI.Layout.RemoveItem(player.flex)
@@ -373,6 +376,9 @@ func Keybindings(event *tcell.EventKey) *tcell.EventKey {
 	case keybinding.KeyAudioURL, keybinding.KeyVideoURL:
 		playInputURL(event.Rune() == 'b')
 		return nil
+
+	case keybinding.KeyPlayerSeekCustom:
+		player.seeker.Show()
 	}
 
 	return event

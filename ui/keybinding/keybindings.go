@@ -74,6 +74,7 @@ const (
 	KeyPlayerInfoChangeQuality Key = "PlayerInfoChangeQuality"
 	KeyPlayerSeekForward       Key = "PlayerSeekForward"
 	KeyPlayerSeekBackward      Key = "PlayerSeekBackward"
+	KeyPlayerSeekCustom        Key = "PlayerSeekCustom"
 	KeyPlayerStop              Key = "PlayerStop"
 	KeyPlayerToggleLoop        Key = "PlayerToggleLoop"
 	KeyPlayerToggleShuffle     Key = "PlayerToggleShuffle"
@@ -87,7 +88,7 @@ const (
 	KeyPlayerInfoScrollDown    Key = "PlayerInfoScrollDown"
 	KeyComments                Key = "Comments"
 	KeyCommentReplies          Key = "CommentReplies"
-	KeySwitchTab               Key = "SwitchTab"
+	KeySwitch                  Key = "Switch"
 	KeyPlaylist                Key = "Playlist"
 	KeyPlaylistSave            Key = "PlaylistSave"
 	KeyChannelVideos           Key = "ChannelVideos"
@@ -119,6 +120,7 @@ const (
 	KeyContextDownloads KeyContext = "Downloads"
 	KeyContextQueue     KeyContext = "Queue"
 	KeyContextFetcher   KeyContext = "Fetcher"
+	KeyContextSeek      KeyContext = "Seek"
 	KeyContextComments  KeyContext = "Comments"
 	KeyContextStart     KeyContext = "Start"
 	KeyContextPlaylist  KeyContext = "Playlist"
@@ -389,6 +391,12 @@ var (
 			Kb:      Keybinding{tcell.KeyLeft, ' ', tcell.ModCtrl},
 			Global:  true,
 		},
+		KeyPlayerSeekCustom: {
+			Title:   "Custom Seeking",
+			Context: KeyContextPlayer,
+			Kb:      Keybinding{tcell.KeyRune, '.', tcell.ModAlt},
+			Global:  true,
+		},
 		KeyPlayerStop: {
 			Context: KeyContextPlayer,
 			Kb:      Keybinding{tcell.KeyRune, 'S', tcell.ModNone},
@@ -469,8 +477,8 @@ var (
 			Context: KeyContextComments,
 			Kb:      Keybinding{tcell.KeyEnter, ' ', tcell.ModNone},
 		},
-		KeySwitchTab: {
-			Title:   "Switch tab",
+		KeySwitch: {
+			Title:   "Switch Tab/Input",
 			Context: KeyContextCommon,
 			Kb:      Keybinding{tcell.KeyTab, ' ', tcell.ModNone},
 		},

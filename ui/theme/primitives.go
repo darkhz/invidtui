@@ -113,9 +113,14 @@ func NewTreeView(property ThemeProperty) *tview.TreeView {
 
 // NewInputField returns a new inputfield primitive.
 func NewInputField(property ThemeProperty, label string) *tview.InputField {
+	item := ThemeInputLabel
+	if property.IsForm {
+		item = ThemeFormLabel
+	}
+
 	inputfield := tview.NewInputField()
 	inputfield.SetLabel(GetLabel(
-		property.SetItem(ThemeInputLabel), label, true),
+		property.SetItem(item), label, true),
 	)
 	WrapDrawFunc(inputfield, property, func(_ tcell.Screen, _, _, _, _ int) (int, int, int, int) {
 		return inputfield.GetInnerRect()
@@ -126,9 +131,14 @@ func NewInputField(property ThemeProperty, label string) *tview.InputField {
 
 // NewDropDown returns a new dropdown primitive.
 func NewDropDown(property ThemeProperty, label string) *tview.DropDown {
+	item := ThemeListLabel
+	if property.IsForm {
+		item = ThemeFormLabel
+	}
+
 	dropdown := tview.NewDropDown()
 	dropdown.SetLabel(GetLabel(
-		property.SetItem(ThemeListLabel), label, true),
+		property.SetItem(item), label, true),
 	)
 	WrapDrawFunc(dropdown, property, func(_ tcell.Screen, _, _, _, _ int) (int, int, int, int) {
 		return dropdown.GetInnerRect()
@@ -324,7 +334,7 @@ func applyTheme(primitive tview.Primitive, t ThemeProperty, labelWidth ...int) {
 		}
 
 	case *tview.InputField:
-		if labelWidth == nil {
+		if labelWidth == nil && !t.IsForm {
 			propMap["label"] = ThemeInputLabel
 			propMap["field"] = ThemeInputField
 		}
@@ -360,7 +370,7 @@ func applyTheme(primitive tview.Primitive, t ThemeProperty, labelWidth ...int) {
 		}
 
 	case *tview.DropDown:
-		if labelWidth == nil {
+		if labelWidth == nil && !t.IsForm {
 			propMap["label"] = ThemeListLabel
 			propMap["field"] = ThemeListField
 			propMap["options"] = ThemeListOptions

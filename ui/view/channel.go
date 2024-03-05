@@ -605,7 +605,7 @@ func (c *ChannelView) Query() {
 // Keybindings describes the keybindings for the channel view.
 func (c *ChannelView) Keybindings(event *tcell.EventKey) *tcell.EventKey {
 	switch keybinding.KeyOperation(event, keybinding.KeyContextComments) {
-	case keybinding.KeySwitchTab:
+	case keybinding.KeySwitch:
 		c.currentType = app.SwitchTab(false)
 
 		client.Cancel()

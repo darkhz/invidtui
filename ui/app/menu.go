@@ -154,7 +154,7 @@ func DrawMenu(x int, region string) {
 				}
 			}
 
-		case keybinding.KeyClose, keybinding.KeySwitchTab:
+		case keybinding.KeyClose, keybinding.KeySwitch:
 			MenuKeybindings(event)
 		}
 
@@ -226,7 +226,7 @@ func MenuKeybindings(event *tcell.EventKey) *tcell.EventKey {
 	case keybinding.KeySelect, keybinding.KeyClose:
 		MenuExit()
 
-	case keybinding.KeySwitchTab:
+	case keybinding.KeySwitch:
 		var index int
 
 		highlighted := UI.Menu.GetHighlights()

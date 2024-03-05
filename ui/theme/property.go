@@ -10,6 +10,8 @@ type ThemeProperty struct {
 
 	Context ThemeContext
 	Item    ThemeItem
+
+	IsForm bool
 }
 
 // ThemeContext describes the type of context to apply the color into.
@@ -23,19 +25,20 @@ const (
 	ThemeContextInstances ThemeContext = "Instances"
 	ThemeContextLinks     ThemeContext = "Links"
 
-	ThemeContextPlayerInfo ThemeContext = "PlayerInfo"
-	ThemeContextPlayer     ThemeContext = "Player"
-	ThemeContextSearch     ThemeContext = "Search"
-	ThemeContextDashboard  ThemeContext = "Dashboard"
-	ThemeContextFiles      ThemeContext = "Files"
-	ThemeContextDownloads  ThemeContext = "Downloads"
-	ThemeContextQueue      ThemeContext = "Queue"
-	ThemeContextFetcher    ThemeContext = "Fetcher"
-	ThemeContextComments   ThemeContext = "Comments"
-	ThemeContextStart      ThemeContext = "Start"
-	ThemeContextPlaylist   ThemeContext = "Playlist"
-	ThemeContextChannel    ThemeContext = "Channel"
-	ThemeContextHistory    ThemeContext = "History"
+	ThemeContextPlayerInfo   ThemeContext = "PlayerInfo"
+	ThemeContextPlayer       ThemeContext = "Player"
+	ThemeContextSearch       ThemeContext = "Search"
+	ThemeContextDashboard    ThemeContext = "Dashboard"
+	ThemeContextFiles        ThemeContext = "Files"
+	ThemeContextDownloads    ThemeContext = "Downloads"
+	ThemeContextQueue        ThemeContext = "Queue"
+	ThemeContextFetcher      ThemeContext = "Fetcher"
+	ThemeContextComments     ThemeContext = "Comments"
+	ThemeContextStart        ThemeContext = "Start"
+	ThemeContextPlaylist     ThemeContext = "Playlist"
+	ThemeContextChannel      ThemeContext = "Channel"
+	ThemeContextHistory      ThemeContext = "History"
+	ThemeContextCustomSeeker ThemeContext = "CustomSeeker"
 )
 
 // ThemeItem describes a theme item.
@@ -288,6 +291,14 @@ var ThemeScopes = map[ThemeContext]map[ThemeItem]struct{}{
 		ThemeText:            struct{}{},
 		ThemeTitle:           struct{}{},
 		ThemeYoutubeURI:      struct{}{},
+	},
+	ThemeContextCustomSeeker: {
+		ThemeFormField:       struct{}{},
+		ThemeFormLabel:       struct{}{},
+		ThemePopupBorder:     struct{}{},
+		ThemePopupBackground: struct{}{},
+		ThemeText:            struct{}{},
+		ThemeTitle:           struct{}{},
 	},
 	ThemeContextMenu: {
 		ThemeBackground:      struct{}{},
