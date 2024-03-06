@@ -146,8 +146,10 @@ func (f *Fetcher) Fetch(info inv.SearchData, audio bool, newdata ...*FetcherData
 
 		video, err = inv.Video(info.VideoID, ctx)
 		if err == nil {
-			player.queue.Add(video, audio)
+			video.Timestamp = info.Timestamp
 			info.Title = video.Title
+
+			player.queue.Add(video, audio)
 		}
 	}
 	if err != nil {

@@ -25,6 +25,8 @@ type SearchData struct {
 	SubCount      int    `json:"subCount"`
 	LengthSeconds int64  `json:"lengthSeconds"`
 	LiveNow       bool   `json:"liveNow"`
+
+	Timestamp *int64
 }
 
 // SuggestData stores search suggestions.

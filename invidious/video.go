@@ -35,6 +35,7 @@ type VideoData struct {
 	RecommendedVideos []VideoData       `json:"recommendedVideos"`
 
 	MediaType string
+	Timestamp *int64
 }
 
 // VideoFormat stores information about the video's format.

@@ -62,7 +62,7 @@ type QueueData struct {
 	Reference                 inv.VideoData
 	Columns                   [QueueColumnSize]*tview.TableCell
 	Audio, Playing, HasPlayed bool
-	Timestamp                 int64
+	Timestamp                 *int64
 }
 
 // QueueEntryStatus describes the status of a queue entry.
@@ -176,6 +176,7 @@ func (q *Queue) Add(video inv.VideoData, audio bool, uri ...[2]string) {
 		uris = uri[0]
 	}
 
+	timestamp := video.Timestamp
 	video.MediaType = media
 
 	q.SetData(count, QueueData{
@@ -258,7 +259,7 @@ func (q *Queue) Add(video inv.VideoData, audio bool, uri ...[2]string) {
 		Audio:     audio,
 		Reference: video,
 		URI:       uris,
-		Timestamp: -1,
+		Timestamp: timestamp,
 	})
 
 	if count == 0 {
@@ -405,19 +406,6 @@ func (q *Queue) Play(norender ...struct{}) {
 			renderInfo(data.Reference, struct{}{})
 		}
 	}()
-}
-
-func (q *Queue) SetAndClearTimestamp(position int) {
-	q.storeMutex.Lock()
-	defer q.storeMutex.Unlock()
-
-	data, ok := q.GetEntryPointer(position)
-	if !ok || data.Timestamp < 0 {
-		return
-	}
-
-	mp.Player().SetPosition(data.Timestamp)
-	data.Timestamp = -1
 }
 
 // Delete removes a entry from the specified position within the queue.
@@ -752,8 +740,10 @@ func (q *Queue) MarkEntryMediaType(key keybinding.Key) {
 		return
 	}
 
+	position := mp.Player().Position()
+
 	data.Audio = audio
-	data.Timestamp = mp.Player().Position()
+	data.Timestamp = &position
 	data.Columns[QueueMediaMarker].SetText(
 		theme.SetTextStyle(
 			"mediatype", media, theme.ThemeContextQueue, theme.ThemeMediaType),
@@ -806,6 +796,25 @@ func (q *Queue) SetState(state string) {
 		q.repeat.Store(int32(repeatMode))
 		mp.Player().SetLoopMode(mp.RepeatMode(repeatMode))
 	}
+}
+
+// SetTimestamp seeks to the available timestamp during playback.
+func (q *Queue) SetTimestamp(position int) {
+	q.storeMutex.Lock()
+	defer q.storeMutex.Unlock()
+
+	data, ok := q.GetEntryPointer(position)
+	if !ok || data.Timestamp == nil {
+		return
+	}
+
+	timestamp := *data.Timestamp
+	if timestamp < 0 {
+		return
+	}
+
+	mp.Player().SetPosition(timestamp)
+	data.Timestamp = nil
 }
 
 // Clear clears the queue.

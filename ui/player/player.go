@@ -471,15 +471,25 @@ func playInputURL(audio bool) {
 
 // playFromURL plays the given URL.
 func playFromURL(text string, audio bool) {
-	id, mtype, err := utils.GetVPIDFromURL(text)
+	var timestamp *int64
+
+	id, mtype, ts, err := utils.GetVPIDFromURL(text)
 	if err != nil {
 		app.ShowError(err)
 		return
 	}
 
+	if ts != "" {
+		duration := utils.ConvertDurationToSeconds(ts, struct{}{})
+		if duration >= 0 {
+			timestamp = &duration
+		}
+	}
+
 	info := inv.SearchData{
-		Title: text,
-		Type:  mtype,
+		Title:     text,
+		Type:      mtype,
+		Timestamp: timestamp,
 	}
 
 	if mtype == "video" {
@@ -813,7 +823,7 @@ func mediaEventHandler(event mp.MediaEvent) {
 	switch event {
 	case mp.EventInProgress:
 		player.queue.MarkPlayingEntry(EntryPlaying)
-		player.queue.SetAndClearTimestamp(player.queue.Position())
+		player.queue.SetTimestamp(player.queue.Position())
 
 	case mp.EventLoading:
 		player.queue.MarkPlayingEntry(EntryLoading)

@@ -99,14 +99,25 @@ func FormatNumber(num int) string {
 	return sb.String()
 }
 
-// ConvertDurationToSeconds converts a "hh:mm:ss" string to seconds.
-func ConvertDurationToSeconds(duration string) int64 {
+// ConvertDurationToSeconds converts a "hh:mm:ss" or a "01h01m01s" string to seconds. If only a number is provided, it will be converted to seconds.
+func ConvertDurationToSeconds(duration string, hms ...struct{}) int64 {
+	var dursplit []string
+	var length int
+
 	if duration == "" {
-		return 0
+		return -1
 	}
 
-	dursplit := strings.Split(duration, ":")
-	length := len(dursplit)
+	if hms != nil {
+		if _, err := strconv.ParseInt(duration, 10, 64); err == nil {
+			duration += "s"
+		}
+
+		goto GetDuration
+	}
+
+	dursplit = strings.Split(duration, ":")
+	length = len(dursplit)
 	switch {
 	case length <= 1:
 		return 0
@@ -119,7 +130,13 @@ func ConvertDurationToSeconds(duration string) int64 {
 		dursplit[i] = dursplit[i] + v
 	}
 
-	d, _ := time.ParseDuration(strings.Join(dursplit, ""))
+	duration = strings.Join(dursplit, "")
+
+GetDuration:
+	d, err := time.ParseDuration(duration)
+	if err != nil {
+		return -1
+	}
 
 	return int64(d.Seconds())
 }
@@ -239,7 +256,7 @@ func GetDataFromURL(uri string) url.Values {
 }
 
 // GetVPIDFromURL gets the video/playlist ID from a URL.
-func GetVPIDFromURL(uri string) (string, string, error) {
+func GetVPIDFromURL(uri string) (string, string, string, error) {
 	mediaURL := uri
 
 	if !strings.HasPrefix(uri, "https://") {
@@ -248,27 +265,29 @@ func GetVPIDFromURL(uri string) (string, string, error) {
 
 	u, err := IsValidURL(mediaURL)
 	if err != nil {
-		return "", "", err
+		return "", "", "", err
 	}
 
+	timestamp := u.Query().Get("t")
+
 	if strings.Contains(uri, "youtu.be") {
-		return strings.TrimLeft(u.Path, "/"), "video", nil
+		return strings.TrimLeft(u.Path, "/"), "video", timestamp, nil
 	} else if strings.Contains(uri, "watch?v=") {
-		return u.Query().Get("v"), "video", nil
+		return u.Query().Get("v"), "video", timestamp, nil
 	} else if strings.Contains(uri, "playlist?list=") {
-		return u.Query().Get("list"), "playlist", nil
+		return u.Query().Get("list"), "playlist", "", nil
 	}
 
 	if strings.Contains(uri, "/channel") ||
 		(strings.HasPrefix(uri, "UC") && len(uri) >= 24) {
-		return "", "", fmt.Errorf("the URL or ID is a channel")
+		return "", "", "", fmt.Errorf("the URL or ID is a channel")
 	}
 
 	if strings.HasPrefix(uri, "PL") && len(uri) >= 34 {
-		return uri, "playlist", nil
+		return uri, "playlist", "", nil
 	}
 
-	return uri, "video", nil
+	return uri, "video", timestamp, nil
 }
 
 // GetHostname gets the hostname of the given URL.
