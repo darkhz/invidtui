@@ -50,8 +50,9 @@ func Playlist(id string, auth bool, page int, ctx ...context.Context) (PlaylistD
 }
 
 // PlaylistVideos retrieves a playlist's videos only.
-func PlaylistVideos(ctx context.Context, id string, auth bool, add func(stats [3]int64)) ([]VideoData, error) {
+func PlaylistVideos(ctx context.Context, id string, auth bool, add func(stats [3]int64)) (PlaylistData, []VideoData, error) {
 	var idx, skipped int64
+	var playlist PlaylistData
 
 	page := 1
 	videoCount := int64(2)
@@ -60,19 +61,21 @@ func PlaylistVideos(ctx context.Context, id string, auth bool, add func(stats [3
 	videoMap := make(map[int32]PlaylistVideo)
 
 	for idx < videoCount-1 {
+		var err error
+
 		select {
 		case <-ctx.Done():
-			return nil, ctx.Err()
+			return playlist, nil, ctx.Err()
 
 		default:
 		}
 
-		playlist, err := getPlaylist(ctx, id, page, auth)
+		playlist, err = getPlaylist(ctx, id, page, auth)
 		if err != nil {
-			return nil, err
+			return playlist, nil, err
 		}
 		if len(playlist.Videos) == 0 || (len(videoMap) > 0 && skipped == int64(len(videoMap))) {
-			return nil, fmt.Errorf("No more videos")
+			return playlist, nil, fmt.Errorf("No more videos")
 		}
 
 		videoCount = playlist.VideoCount
@@ -119,7 +122,7 @@ func PlaylistVideos(ctx context.Context, id string, auth bool, add func(stats [3
 		}
 	}
 
-	return videos, nil
+	return playlist, videos, nil
 }
 
 // UserPlaylists retrieves the user's playlists.

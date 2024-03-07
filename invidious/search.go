@@ -100,3 +100,35 @@ func SearchSuggestions(text string) (SuggestData, error) {
 
 	return data, nil
 }
+
+// GetSearchData returns the SearchData according to the provided info.
+func GetSearchData(info interface{}, d ...SearchData) SearchData {
+	data := SearchData{}
+	if d != nil {
+		data = d[0]
+	}
+
+	switch v := info.(type) {
+	case VideoData:
+		data.Type = "video"
+		data.Title = v.Title
+		data.Author = v.Author
+		data.AuthorID = v.AuthorID
+		data.VideoID = v.VideoID
+
+	case PlaylistData:
+		data.Type = "playlist"
+		data.Title = v.Title
+		data.Author = v.Author
+		data.PlaylistID = v.PlaylistID
+		data.AuthorID = v.AuthorID
+
+	case ChannelData:
+		data.Type = "channel"
+		data.Title = v.Title
+		data.AuthorID = v.ChannelID
+		data.Author = v.Author
+	}
+
+	return data
+}

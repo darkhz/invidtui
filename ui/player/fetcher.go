@@ -131,11 +131,14 @@ func (f *Fetcher) Fetch(info inv.SearchData, audio bool, newdata ...*FetcherData
 	switch info.Type {
 	case "playlist":
 		var videos []inv.VideoData
+		var playlist inv.PlaylistData
 
-		videos, err = inv.PlaylistVideos(ctx, info.PlaylistID, false, func(stats [3]int64) {
+		playlist, videos, err = inv.PlaylistVideos(ctx, info.PlaylistID, false, func(stats [3]int64) {
 			f.MarkStatus(data, FetcherStatusAdding, nil, fmt.Sprintf("(%d of %d)", stats[1], stats[2]))
 		})
 		if err == nil {
+			info = inv.GetSearchData(playlist, info)
+
 			for _, v := range videos {
 				player.queue.Add(v, audio)
 			}
@@ -146,8 +149,8 @@ func (f *Fetcher) Fetch(info inv.SearchData, audio bool, newdata ...*FetcherData
 
 		video, err = inv.Video(info.VideoID, ctx)
 		if err == nil {
+			info = inv.GetSearchData(video, info)
 			video.Timestamp = info.Timestamp
-			info.Title = video.Title
 
 			player.queue.Add(video, audio)
 		}

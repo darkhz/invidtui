@@ -268,7 +268,7 @@ func (d *DownloadsView) TransferPlaylist(id, file string, flags int, auth, appen
 		return d.IsPageOpen()
 	})
 
-	videos, err := inv.PlaylistVideos(ctx, id, auth, func(stats [3]int64) {
+	_, videos, err := inv.PlaylistVideos(ctx, id, auth, func(stats [3]int64) {
 		if progress.bar.GetMax() <= 0 {
 			progress.bar.ChangeMax64(stats[2])
 			progress.bar.Reset()
