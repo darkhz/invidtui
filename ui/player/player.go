@@ -794,9 +794,7 @@ func playerUpdateLoop(ctx context.Context) {
 				player.desc.Clear()
 				player.title.Clear()
 
-				app.UI.Lock()
 				app.DrawPrimitives(player.flex, app.UI.Status.Pages)
-				app.UI.Unlock()
 
 				return
 
