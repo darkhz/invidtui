@@ -780,12 +780,12 @@ func playingStatusCheck() {
 		}
 
 		Context(false)
-		go playerUpdateLoop(player.ctx, player.cancel)
+		go playerUpdateLoop(player.ctx)
 	}
 }
 
 // playerUpdateLoop updates the player.
-func playerUpdateLoop(ctx context.Context, cancel context.CancelFunc) {
+func playerUpdateLoop(ctx context.Context) {
 	evCtx, evCancel := context.WithCancel(context.Background())
 	go func(c context.Context) {
 		for {
