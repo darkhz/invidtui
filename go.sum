@@ -3,8 +3,8 @@ github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 h1:DklsrG3d
 github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2/go.mod h1:WaHUgvxTVq04UNunO+XhnAqY/wQc+bxr74GqbsZ/Jqw=
 github.com/darkhz/mpvipc v0.0.0-20231124135332-eb73ba48ad46 h1:Q+VU+REB8rA55FZWlvDXDRK34zG0HDAVJIN72eX7RAE=
 github.com/darkhz/mpvipc v0.0.0-20231124135332-eb73ba48ad46/go.mod h1:Dk4kPIU8+4lXO7wE04XDYb+U6999lrl59SMoGx4qjmA=
-github.com/darkhz/tview v0.0.0-20240130154506-5ca91a0d158f h1:kGVVKk8cBYMor6zlkgWNFWvhoTqAV86G/fAKKYoqyDU=
-github.com/darkhz/tview v0.0.0-20240130154506-5ca91a0d158f/go.mod h1:kPbqemhLWHUgP7zdRL800Q7ENzmlZXhSLlCerkOi+DI=
+github.com/darkhz/tview v0.0.0-20240308094543-6078a888ff79 h1:sRV/sfsevZQJt6GGYr89F2E6PuXI+Zapjn5fSHNIdXA=
+github.com/darkhz/tview v0.0.0-20240308094543-6078a888ff79/go.mod h1:LqVfmEdNqFdmpbjOhcIq9wkTUrw8Pik6eUEAq/YJyGk=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=

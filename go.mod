@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/darkhz/mpvipc v0.0.0-20231124135332-eb73ba48ad46
-	github.com/darkhz/tview v0.0.0-20240130154506-5ca91a0d158f
+	github.com/darkhz/tview v0.0.0-20240308094543-6078a888ff79
 	github.com/davidmytton/url-verifier v1.0.1
 	github.com/etherlabsio/go-m3u8 v1.0.0
 	github.com/gammazero/deque v0.2.1
