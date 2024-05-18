@@ -79,7 +79,7 @@ func (m *MPV) LoadFile(title string, duration int64, audio bool, files [2]string
 		options = append(options, "audio-file="+files[1])
 	}
 
-	_, err := m.Call("loadfile", files[0], "replace", strings.Join(options, ","))
+	_, err := m.Call("loadfile", files[0], "replace", "-1", strings.Join(options, ","))
 	if err != nil {
 		return fmt.Errorf("MPV: Unable to load %s", title)
 	}
