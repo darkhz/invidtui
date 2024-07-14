@@ -239,7 +239,7 @@ func parseThemeSetting(setting string) (tcell.Style, string, error) {
 			default:
 				color = tcell.GetColor(name)
 			}
-			if color == 0 {
+			if color == 0 && name != "default" {
 				return tcell.Style{}, "", fmt.Errorf("Invalid color '%s'", name)
 			}
 
