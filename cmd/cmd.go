@@ -48,12 +48,10 @@ func loadInstance() {
 
 	printer.Print(msg)
 
-	instance, err := client.GetBestInstance(customInstance)
+	_, err := client.GetBestInstance(customInstance)
 	if err != nil {
 		printer.Error(err.Error())
 	}
-
-	client.SetHost(instance)
 }
 
 // loadPlayer loads the media player.

@@ -323,7 +323,7 @@ func loopFormats(
 func getLatestURL(id, itag string) string {
 	var itagstr string
 
-	host := client.Instance()
+	host := client.FullHost()
 
 	idstr := "id=" + id
 

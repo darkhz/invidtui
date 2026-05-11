@@ -28,7 +28,8 @@ const (
 
 // Client stores information about a client.
 type Client struct {
-	uri *url.URL
+	uri      *url.URL
+	userinfo *url.Userinfo
 
 	rctx, sctx       context.Context
 	rcancel, scancel context.CancelFunc
@@ -65,7 +66,20 @@ func Host() string {
 		return ""
 	}
 
-	return client.uri.Scheme + "://" + client.uri.Hostname()
+	return client.uri.Scheme + "://" + client.uri.Host
+}
+
+func FullHost() string {
+	client.mutex.Lock()
+	defer client.mutex.Unlock()
+
+	if client.uri == nil {
+		return ""
+	}
+
+	u := *client.uri
+	u.User = client.userinfo
+	return u.String()
 }
 
 // SetHost sets the client's host.
@@ -78,6 +92,9 @@ func SetHost(host string) *url.URL {
 		client.uri.Scheme = "https"
 		client.uri, _ = url.Parse(client.uri.String())
 	}
+
+	client.userinfo = client.uri.User
+	client.uri.User = nil
 
 	return client.uri
 }
@@ -198,6 +215,13 @@ func request(ctx context.Context, method, param string, body io.Reader, token ..
 	}
 
 	req.Header.Set("User-Agent", UserAgent)
+	client.mutex.Lock()
+	userinfo := client.userinfo
+	client.mutex.Unlock()
+	if userinfo != nil {
+		password, _ := userinfo.Password()
+		req.SetBasicAuth(userinfo.Username(), password)
+	}
 	if method == http.MethodPost || method == http.MethodPatch {
 		req.Header.Set("Content-Type", "application/json")
 	}
