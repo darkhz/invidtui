@@ -582,6 +582,9 @@ func KeyOperation(event *tcell.EventKey, keyContexts ...KeyContext) Key {
 	}
 
 	kb := Keybinding{event.Key(), ch, event.Modifiers()}
+	if kb.Key == tcell.KeyRune {
+		kb.Mod &^= tcell.ModShift
+	}
 
 	for _, contexts := range [][]KeyContext{
 		keyContexts,

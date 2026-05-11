@@ -60,6 +60,7 @@ func AddAuth(instance, token string) {
 	if instanceURI.Scheme == "" {
 		instanceURI.Scheme = "https"
 	}
+	instanceURI.User = nil
 
 	auth.store[instanceURI.String()] = token
 }

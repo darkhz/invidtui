@@ -19,7 +19,7 @@ func GetInstances() ([]string, error) {
 	var instances [][]interface{}
 	var list []string
 
-	host := Instance()
+	host := FullHost()
 
 	dataURI := SetHost(InstanceData)
 
@@ -53,7 +53,7 @@ func CheckInstance(host string) (string, error) {
 	}
 
 	SetHost(host)
-	host = Instance()
+	host = FullHost()
 
 	res, err := request(Ctx(), http.MethodHead, API+"search", nil)
 	if err == nil && res.StatusCode == 200 {
@@ -63,19 +63,35 @@ func CheckInstance(host string) (string, error) {
 	return "", fmt.Errorf("Client: Cannot select instance")
 }
 
-// GetBestInstance determines and returns the best instance.
+func NormalizeInstance(raw string) string {
+	if raw == "" {
+		return raw
+	}
+	if !strings.Contains(raw, "://") {
+		raw = "//" + raw
+	}
+	u, err := url.Parse(raw)
+	if err != nil || u.Host == "" {
+		return raw
+	}
+	if u.Scheme == "" {
+		u.Scheme = "https"
+	}
+	return u.String()
+}
+
 func GetBestInstance(custom string) (string, error) {
 	var bestInstance string
 
 	if custom != "" {
-		if uri, err := url.Parse(custom); err == nil {
-			host := uri.Hostname()
-			if host != "" {
-				custom = host
-			}
+		hasScheme := strings.Contains(custom, "://")
+		normalized := NormalizeInstance(custom)
+		if inst, err := CheckInstance(normalized); err == nil || hasScheme {
+			return inst, err
 		}
-
-		return CheckInstance(custom)
+		u, _ := url.Parse(normalized)
+		u.Scheme = "http"
+		return CheckInstance(u.String())
 	}
 
 	instances, err := GetInstances()

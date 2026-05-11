@@ -284,7 +284,8 @@ func checkAuth() {
 		printer.Error("Instance is not specified")
 	}
 
-	instance = utils.GetHostname(customInstance)
+	normalized := client.NormalizeInstance(customInstance)
+	instance = utils.GetHostname(normalized)
 	if generateLink {
 		printer.Print(client.AuthLink(instance), 0)
 	}
@@ -295,12 +296,12 @@ func checkAuth() {
 
 	printer.Print("Authenticating")
 
-	client.SetHost(instance)
+	client.SetHost(normalized)
 	if !client.IsTokenValid(token) {
 		printer.Error("Invalid token or authentication timeout")
 	}
 
-	client.AddAuth(instance, token)
+	client.AddAuth(normalized, token)
 
 	SetOptionValue("instance-validated", true)
 }

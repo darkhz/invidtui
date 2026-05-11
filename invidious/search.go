@@ -3,10 +3,15 @@ package invidious
 import (
 	"net/url"
 	"strconv"
+	"strings"
 
 	"github.com/darkhz/invidtui/client"
 	"github.com/darkhz/invidtui/resolver"
 )
+
+func isPageExhausted(err error) bool {
+	return strings.Contains(err.Error(), "returned 400")
+}
 
 // SearchData stores information about a search result.
 type SearchData struct {
@@ -62,6 +67,9 @@ func Search(stype, text string, parameters map[string]string, page int, ucid ...
 
 		res, err := client.Fetch(client.Ctx(), query)
 		if err != nil {
+			if isPageExhausted(err) {
+				break
+			}
 			return nil, newpg, err
 		}
 

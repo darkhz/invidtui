@@ -294,12 +294,12 @@ func GetVPIDFromURL(uri string) (string, string, string, error) {
 func GetHostname(hostURL string) string {
 	uri, _ := url.Parse(hostURL)
 
-	hostname := uri.Hostname()
-	if hostname == "" {
+	host := uri.Host
+	if host == "" {
 		return hostURL
 	}
 
-	return hostname
+	return host
 }
 
 // GetUnixTimeAfter returns the Unix time after the
